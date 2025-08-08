@@ -121,3 +121,7 @@
     @apply bg-background text-foreground;
   }
 }
+
+* {
+  font-family: 'Your New Font', sans-serif !important;
+}
