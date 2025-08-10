@@ -3,6 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Edit, Search, Trash2 } from "lucide-react";
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Select,
   SelectContent,
@@ -32,7 +33,8 @@ import {
 
 export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const itemsPerPage = 11;
+  const router = useRouter();
 
   const sampleProducts = [
     {
@@ -143,6 +145,24 @@ export default function Page() {
       sku: "UH012",
       location: "Warehouse A",
     },
+    {
+      id: 13,
+      name: "Tablet Stand",
+      description: "Adjustable aluminum stand",
+      price: "$34.99",
+      quantity: 38,
+      sku: "TS011",
+      location: "Warehouse C",
+    },
+    {
+      id: 14,
+      name: "USB Hub",
+      description: "7-port USB 3.0 hub",
+      price: "$29.99",
+      quantity: 56,
+      sku: "UH012",
+      location: "Warehouse A",
+    },
   ];
 
   // Calculate pagination
@@ -151,11 +171,17 @@ export default function Page() {
   const endIndex = startIndex + itemsPerPage;
   const currentProducts = sampleProducts.slice(startIndex, endIndex);
 
-  const handleEdit = (productId: number) => {
+  const handleRowClick = (productId: number) => {
+    router.push(`/products/productDetail/${productId}`);
+  };
+
+  const handleEdit = (e: React.MouseEvent, productId: number) => {
+    e.stopPropagation(); // Prevent row click when clicking edit button
     console.log("Edit product:", productId);
   };
 
-  const handleDelete = (productId: number) => {
+  const handleDelete = (e: React.MouseEvent, productId: number) => {
+    e.stopPropagation(); // Prevent row click when clicking delete button
     console.log("Delete product:", productId);
   };
 
@@ -166,6 +192,7 @@ export default function Page() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };
+
   // Generate page numbers for pagination
   const getPageNumbers = () => {
     const pages = [];
@@ -259,25 +286,31 @@ export default function Page() {
             </Select>
           </div>
           <div>
-            <Button onClick={handleAddProduct} className="cursor-pointer">Add Product</Button>
+            <Button onClick={handleAddProduct} className="cursor-pointer">
+              Add Product
+            </Button>
           </div>
         </div>
 
         <Table className="mt-4">
           <TableHeader>
             <TableRow>
-              <TableHead>Product Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>SKU</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="font-bold">Product Name</TableHead>
+              <TableHead className="font-bold">Description</TableHead>
+              <TableHead className="font-bold">Price</TableHead>
+              <TableHead className="font-bold">Quantity</TableHead>
+              <TableHead className="font-bold">SKU</TableHead>
+              <TableHead className="font-bold">Location</TableHead>
+              <TableHead className="text-right font-bold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {currentProducts.map((product) => (
-              <TableRow key={product.id}>
+              <TableRow
+                key={product.id}
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => handleRowClick(product.id)}
+              >
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell className="text-gray-600">
                   {product.description}
@@ -294,7 +327,7 @@ export default function Page() {
                       variant="outline"
                       size="sm"
                       className="h-8 w-8 p-0 cursor-pointer"
-                      onClick={() => handleEdit(product.id)}
+                      onClick={(e) => handleEdit(e, product.id)}
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -302,7 +335,7 @@ export default function Page() {
                       variant="outline"
                       size="sm"
                       className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                      onClick={() => handleDelete(product.id)}
+                      onClick={(e) => handleDelete(e, product.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -317,7 +350,7 @@ export default function Page() {
         <div className=" flex  justify-between items-center mt-4 ">
           <div className="text-sm text-gray-500 w-full">
             Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleProducts.length)} of
+            {Math.min(endIndex, sampleProducts.length)} of{" "}
             {sampleProducts.length} products
           </div>
 
@@ -369,4 +402,3 @@ export default function Page() {
     </div>
   );
 }
-
