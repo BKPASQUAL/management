@@ -150,8 +150,8 @@ const ChartCard: React.FC<ChartCardProps> = ({
   color,
   chartType = "bar",
 }) => (
-  <div className="border p-4 rounded-lg w-[32%] h-80">
-    <h3 className="font-semibold text-gray-700 mb-4 text-center">{title}</h3>
+  <div className="border p-4 rounded-lg h-80 w-full">
+    <h3 className="font-semibold text-gray-700 mb-4 text-center text-sm sm:text-base">{title}</h3>
     {chartType === "line" ? (
       <ChartContainer
         config={{
@@ -212,8 +212,8 @@ const ChartCard: React.FC<ChartCardProps> = ({
 const ProductCharts: React.FC = () => {
   return (
     <div className="flex flex-col gap-6">
-      {/* First Row - 3 Charts */}
-      <div className="flex flex-row justify-between gap-4">
+      {/* First Row - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ChartCard
           title="Stock Levels (Last 12 Months)"
           data={stockData}
@@ -238,8 +238,8 @@ const ProductCharts: React.FC = () => {
         />
       </div>
 
-      {/* Second Row - 3 Charts */}
-      <div className="flex flex-row justify-between gap-4">
+      {/* Second Row - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ChartCard
           title="Conversion Rate (%)"
           data={conversionData}
