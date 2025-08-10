@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Edit, Search, Trash2 } from "lucide-react";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Select,
@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,

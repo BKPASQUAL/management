@@ -10,7 +10,6 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Home,
@@ -26,7 +25,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export function AppSidebar() {
-  const { state } = useSidebar();
   const pathname = usePathname();
 
   const menuItems = [
