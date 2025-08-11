@@ -29,11 +29,13 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import AddProductModal from "@/components/model/AddProduct";
 
 export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 11;
   const router = useRouter();
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const sampleProducts = [
     {
@@ -285,9 +287,7 @@ export default function Page() {
             </Select>
           </div>
           <div>
-            <Button onClick={handleAddProduct} className="cursor-pointer">
-              Add Product
-            </Button>
+            <Button onClick={() => setIsAddModalOpen(true)} className="cursor-pointer">Add Product</Button>
           </div>
         </div>
 
@@ -398,6 +398,10 @@ export default function Page() {
           </Pagination>
         </div>
       </div>
+      <AddProductModal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+      />
     </div>
   );
 }
