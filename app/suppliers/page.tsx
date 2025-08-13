@@ -254,7 +254,7 @@ export default function Page() {
   };
 
   return (
-    <div className="p-4 lg:p-6">
+    <div className="">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
@@ -517,8 +517,8 @@ export default function Page() {
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6">
-          <div className="text-sm text-gray-500 text-center sm:text-left">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6 ">
+          <div className="text-sm text-gray-500 text-center sm:text-left w-full">
             Showing {startIndex + 1} to{" "}
             {Math.min(endIndex, sampleSuppliers.length)} of{" "}
             {sampleSuppliers.length} Suppliers

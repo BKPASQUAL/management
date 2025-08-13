@@ -162,7 +162,7 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
                 <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
                   <SelectValue placeholder="Select Category" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-48 overflow-y-auto">
                   <SelectItem value="electronics">Electronics</SelectItem>
                   <SelectItem value="components">Components</SelectItem>
                   <SelectItem value="audio">Audio Equipment</SelectItem>
