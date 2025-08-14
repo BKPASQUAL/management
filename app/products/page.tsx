@@ -1,7 +1,15 @@
 "use client";
 
 import { Input } from "@/components/ui/input";
-import { Edit, Search, Trash2 } from "lucide-react";
+import {
+  Edit,
+  Search,
+  Trash2,
+  DollarSign,
+  Package,
+  MapPin,
+  Hash,
+} from "lucide-react";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -148,20 +156,20 @@ export default function Page() {
     },
     {
       id: 13,
-      name: "Tablet Stand",
-      description: "Adjustable aluminum stand",
-      price: "$34.99",
-      quantity: 38,
-      sku: "TS011",
+      name: "Tablet Stand Pro",
+      description: "Premium adjustable aluminum stand",
+      price: "$44.99",
+      quantity: 25,
+      sku: "TS013",
       location: "Warehouse C",
     },
     {
       id: 14,
-      name: "USB Hub",
-      description: "7-port USB 3.0 hub",
-      price: "$29.99",
-      quantity: 56,
-      sku: "UH012",
+      name: "USB Hub Pro",
+      description: "10-port USB 3.1 hub with charging",
+      price: "$49.99",
+      quantity: 33,
+      sku: "UH014",
       location: "Warehouse A",
     },
   ];
@@ -177,12 +185,12 @@ export default function Page() {
   };
 
   const handleEdit = (e: React.MouseEvent, productId: number) => {
-    e.stopPropagation(); // Prevent row click when clicking edit button
+    e.stopPropagation();
     console.log("Edit product:", productId);
   };
 
   const handleDelete = (e: React.MouseEvent, productId: number) => {
-    e.stopPropagation(); // Prevent row click when clicking delete button
+    e.stopPropagation();
     console.log("Delete product:", productId);
   };
 
@@ -230,32 +238,42 @@ export default function Page() {
     return pages;
   };
 
+  // Get stock status color
+  const getStockStatus = (quantity: number) => {
+    if (quantity <= 20) return "text-red-600 bg-red-100";
+    if (quantity <= 50) return "text-yellow-600 bg-yellow-100";
+    return "text-green-600 bg-green-100";
+  };
+
   return (
-    <div>
-      <div className="flex justify-between items-center">
+    <div className="">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-bold text-2xl">Product Management</h1>
-          <p className="text-gray-500">Efficiently manage and track products</p>
+          <h1 className="font-bold text-xl lg:text-2xl">Product Management</h1>
+          <p className="text-gray-500 text-sm lg:text-base">
+            Efficiently manage and track products
+          </p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
           <Button
             variant="outline"
-            className="border-green-500  hover:bg-green-50 cursor-pointer"
+            className="border-green-500 hover:bg-green-50 cursor-pointer w-full sm:w-auto"
           >
             Generate Report
           </Button>
-
-          <div className="border p-4 rounded-lg">
+          <div className="border p-3 rounded-lg text-sm w-full sm:w-auto text-center">
             Total Products: {sampleProducts.length}
           </div>
         </div>
       </div>
 
-      <div className="border rounded-lg p-4 mt-4">
-        <div className="flex items-center justify-between gap-4 mt-2">
-          {/* Search Bar */}
-          <div className="w-full flex items-center gap-4">
-            <div className="relative w-2/7">
+      <div className="border rounded-lg p-4">
+        {/* Search and Filter Section */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+            {/* Search Bar */}
+            <div className="relative flex-1 sm:max-w-xs">
               <Search
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={18}
@@ -264,97 +282,265 @@ export default function Page() {
             </div>
 
             {/* Filters */}
-            <Select>
-              <SelectTrigger className="w-[180px] h-10">
-                <SelectValue placeholder="Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="electronics">Electronics</SelectItem>
-                <SelectItem value="accessories">Accessories</SelectItem>
-                <SelectItem value="audio">Audio</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <Select>
+                <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
+                  <SelectValue placeholder="Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="accessories">Accessories</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select>
-              <SelectTrigger className="w-[180px] h-10">
-                <SelectValue placeholder="Suppliers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="supplier1">Supplier A</SelectItem>
-                <SelectItem value="supplier2">Supplier B</SelectItem>
-                <SelectItem value="supplier3">Supplier C</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select>
+                <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
+                  <SelectValue placeholder="Suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="supplier1">Supplier A</SelectItem>
+                  <SelectItem value="supplier2">Supplier B</SelectItem>
+                  <SelectItem value="supplier3">Supplier C</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div>
-            <Button onClick={() => setIsAddModalOpen(true)} className="cursor-pointer">Add Product</Button>
+
+          {/* Add Button */}
+          <div className="w-full lg:w-auto">
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="cursor-pointer w-full lg:w-auto"
+            >
+              Add Product
+            </Button>
           </div>
         </div>
 
-        <Table className="mt-4">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold">Product Name</TableHead>
-              <TableHead className="font-bold">Description</TableHead>
-              <TableHead className="font-bold">Price</TableHead>
-              <TableHead className="font-bold">Quantity</TableHead>
-              <TableHead className="font-bold">SKU</TableHead>
-              <TableHead className="font-bold">Location</TableHead>
-              <TableHead className="text-right font-bold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentProducts.map((product) => (
-              <TableRow
-                key={product.id}
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleRowClick(product.id)}
-              >
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell className="text-gray-600">
-                  {product.description}
-                </TableCell>
-                <TableCell className="font-semibold">{product.price}</TableCell>
-                <TableCell>{product.quantity}</TableCell>
-                <TableCell className="font-mono text-sm">
-                  {product.sku}
-                </TableCell>
-                <TableCell>{product.location}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 cursor-pointer"
-                      onClick={(e) => handleEdit(e, product.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                      onClick={(e) => handleDelete(e, product.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        {/* Desktop Table View (hidden on mobile/tablet) */}
+        <div className="hidden xl:block mt-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-bold">Product Name</TableHead>
+                <TableHead className="font-bold">Description</TableHead>
+                <TableHead className="font-bold">Price</TableHead>
+                <TableHead className="font-bold">Quantity</TableHead>
+                <TableHead className="font-bold">SKU</TableHead>
+                <TableHead className="font-bold">Location</TableHead>
+                <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {currentProducts.map((product) => (
+                <TableRow
+                  key={product.id}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(product.id)}
+                >
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell className="text-gray-600">
+                    {product.description}
+                  </TableCell>
+                  <TableCell className="font-semibold">
+                    {product.price}
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                        product.quantity
+                      )}`}
+                    >
+                      {product.quantity}
+                    </span>
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {product.sku}
+                  </TableCell>
+                  <TableCell>{product.location}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 cursor-pointer"
+                        onClick={(e) => handleEdit(e, product.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                        onClick={(e) => handleDelete(e, product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Tablet View (md to lg) - Simplified Table */}
+        <div className="hidden md:block xl:hidden mt-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-bold">Product Info</TableHead>
+                <TableHead className="font-bold">Price & Stock</TableHead>
+                <TableHead className="font-bold">Location</TableHead>
+                <TableHead className="text-right font-bold">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {currentProducts.map((product) => (
+                <TableRow
+                  key={product.id}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleRowClick(product.id)}
+                >
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-[200px]">
+                        {product.description}
+                      </div>
+                      <div className="text-xs font-mono text-gray-400 mt-1">
+                        SKU: {product.sku}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-semibold text-lg">
+                        {product.price}
+                      </div>
+                      <div className="text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                            product.quantity
+                          )}`}
+                        >
+                          Stock: {product.quantity}
+                        </span>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">{product.location}</div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 cursor-pointer"
+                        onClick={(e) => handleEdit(e, product.id)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                        onClick={(e) => handleDelete(e, product.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile View - Card Layout */}
+        <div className="block md:hidden mt-4 space-y-4">
+          {currentProducts.map((product) => (
+            <div
+              key={product.id}
+              className="border rounded-lg p-4 bg-white shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleRowClick(product.id)}
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div className="flex-1">
+                  <h3 className="font-medium text-lg leading-tight mb-1">
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                    {product.description}
+                  </p>
+                </div>
+                <div className="flex gap-2 ml-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 cursor-pointer"
+                    onClick={(e) => handleEdit(e, product.id)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+                    onClick={(e) => handleDelete(e, product.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <span className="font-semibold text-lg">{product.price}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-gray-400" />
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                      product.quantity
+                    )}`}
+                  >
+                    {product.quantity}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-gray-400" />
+                  <span className="font-mono text-xs text-gray-600">
+                    {product.sku}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400" />
+                  <span className="text-gray-600 text-xs">
+                    {product.location}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Pagination */}
-        <div className=" flex  justify-between items-center mt-4 ">
-          <div className="text-sm text-gray-500 w-full">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6">
+          <div className="text-sm text-gray-500 text-center sm:text-left">
             Showing {startIndex + 1} to{" "}
             {Math.min(endIndex, sampleProducts.length)} of{" "}
             {sampleProducts.length} products
           </div>
 
-          <Pagination className="flex  justify-end">
-            <PaginationContent>
+          <Pagination className="justify-center sm:justify-end">
+            <PaginationContent className="flex-wrap">
               <PaginationItem>
                 <PaginationPrevious
                   onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
@@ -398,6 +584,7 @@ export default function Page() {
           </Pagination>
         </div>
       </div>
+
       <AddProductModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
