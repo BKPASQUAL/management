@@ -1,3 +1,7 @@
+"use client";
+import ProductHistoryTable from "@/components/ProductHistoryTable";
+import SupplierBillHistory from "@/components/SupplierBillHistory";
+import SupplierCharts from "@/components/SupplierCharts";
 import {
   AlertTriangle,
   Calendar,
@@ -5,13 +9,20 @@ import {
   X,
   CreditCard,
   TrendingUp,
+  Package,
 } from "lucide-react";
 import React from "react";
 
 export default function page() {
   return (
-    <div>
-      <h1>Orange</h1>
+    <div className="flex flex-col gap-y-6">
+      <div className="flex flex-row gap-4 items-center ">
+        <Package className="w-6 h-6 sm:w-7 sm:h-7" />
+        <div className="gap-1">
+          <h1 className="font-bold text-xl sm:text-2xl">Orel Corporation</h1>
+          <p className="text-gray-500 text-sm sm:text-base">Or10244</p>
+        </div>
+      </div>
       {/* Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {/* Last 90 Days Bills */}
@@ -86,6 +97,8 @@ export default function page() {
           </p>
         </div>
       </div>
+      <SupplierCharts />
+      <SupplierBillHistory />
     </div>
   );
 }

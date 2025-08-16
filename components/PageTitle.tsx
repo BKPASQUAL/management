@@ -7,7 +7,7 @@ export function PageTitle() {
 
   const pageMap: { [key: string]: string } = {
     "/dashboard": "Dashboard",
-    "/products": "Products", 
+    "/products": "Products",
     "/users": "Users",
     "/analytics": "Analytics",
     "/settings": "Settings",
@@ -18,24 +18,26 @@ export function PageTitle() {
     // Check if it's a product detail page
     if (path.startsWith("/products/productDetail/")) {
       return "Product Details";
+    } else if (path.startsWith("/suppliers/supplierDetail/")) {
+      return "Product Details";
     }
-    
+
     // Add more dynamic route patterns here if needed
     // Example: if (path.startsWith("/users/profile/")) {
     //   return "User Profile";
     // }
-    
+
     return null;
   };
 
-  const currentTitle = 
-    pageMap[pathname] || 
+  const currentTitle =
+    pageMap[pathname] ||
     getDynamicTitle(pathname) ||
     pathname
       .split("/")
       .pop()
       ?.replace(/-/g, " ")
-      .replace(/\b\w/g, (l) => l.toUpperCase()) || 
+      .replace(/\b\w/g, (l) => l.toUpperCase()) ||
     "Page";
 
   return (
