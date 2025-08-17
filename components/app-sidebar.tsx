@@ -59,6 +59,11 @@ export function AppSidebar() {
       icon: Settings,
       href: "/settings",
     },
+     {
+      title: "Create Supplier Bill",
+      icon: Settings,
+      href: "/createSpplierBill",
+    },
   ];
 
   const handleSignOut = () => {
