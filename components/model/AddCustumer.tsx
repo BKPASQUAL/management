@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Camera } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -29,19 +28,15 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
   const [formData, setFormData] = useState({
     customerName: "",
     customerCode: "",
-    contactPerson: "",
-    email: "",
-    phone: "",
+    ownerName: "",
+    contactNumber: "",
     area: "",
+    email: "",
     route: "",
-    representative: "",
+    rep: "",
     address: "",
-    website: "",
     notes: "",
   });
-
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -67,10 +62,10 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
     }));
   };
 
-  const handleRepresentativeChange = (value: string) => {
+  const handleRepChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
-      representative: value,
+      rep: value,
     }));
   };
 
@@ -78,14 +73,13 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
     setFormData({
       customerName: "",
       customerCode: "",
-      contactPerson: "",
-      email: "",
-      phone: "",
+      ownerName: "",
+      contactNumber: "",
       area: "",
+      email: "",
       route: "",
-      representative: "",
+      rep: "",
       address: "",
-      website: "",
       notes: "",
     });
   };
@@ -106,15 +100,14 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
 
   const isFormValid =
     formData.customerName.trim() &&
-    formData.contactPerson.trim() &&
+    formData.ownerName.trim() &&
     formData.email.trim() &&
-    formData.area.trim() &&
-    formData.representative.trim();
+    formData.area.trim();
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
       <DialogContent className="w-[95vw] max-w-[95vw] sm:w-[600px] sm:max-w-[600px] lg:w-[705px] lg:max-w-[705px] max-h-[90vh] sm:max-h-[85vh] overflow-y-auto p-4 sm:p-6 mx-auto my-auto">
-        <DialogHeader className="">
+        <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl font-semibold">
             Add New Customer
           </DialogTitle>
@@ -124,7 +117,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
         </DialogHeader>
 
         <div className="space-y-4 sm:space-y-6">
-          {/* Basic Information */}
+          {/* Customer Information */}
           <div className="space-y-3 sm:space-y-4">
             <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-2">
               <Input
@@ -132,7 +125,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 placeholder="Customer Name *"
                 value={formData.customerName}
                 onChange={handleChange}
-                className="col-span-full text-sm sm:text-base h-10 sm:h-11"
+                className="text-sm sm:text-base h-10 sm:h-11"
                 required
               />
               <Input
@@ -143,55 +136,28 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 className="text-sm sm:text-base h-10 sm:h-11"
               />
               <Input
-                name="contactPerson"
-                placeholder="Contact Person *"
-                value={formData.contactPerson}
+                name="ownerName"
+                placeholder="Owner Name *"
+                value={formData.ownerName}
                 onChange={handleChange}
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
               />
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="space-y-3 sm:space-y-4">
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               <Input
-                name="email"
-                placeholder="Email Address *"
-                value={formData.email}
-                onChange={handleChange}
-                type="email"
-                required
-                className="text-sm sm:text-base h-10 sm:h-11"
-              />
-              <Input
-                name="phone"
-                placeholder="Phone Number"
-                value={formData.phone}
+                name="contactNumber"
+                placeholder="Contact Number"
+                value={formData.contactNumber}
                 onChange={handleChange}
                 type="tel"
                 className="text-sm sm:text-base h-10 sm:h-11"
               />
-              <Input
-                name="website"
-                placeholder="Website URL (optional)"
-                value={formData.website}
-                onChange={handleChange}
-                type="url"
-                className="col-span-full sm:col-span-2 text-sm sm:text-base h-10 sm:h-11"
-              />
             </div>
           </div>
 
-          {/* Business Information */}
+          {/* Area and Contact */}
           <div className="space-y-3 sm:space-y-4">
-            {/* <h3 className="text-sm sm:text-base font-medium text-gray-900">Business Information</h3> */}
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              <Select
-                onValueChange={handleAreaChange}
-                value={formData.area}
-              >
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+              <Select onValueChange={handleAreaChange} value={formData.area}>
                 <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
                   <SelectValue placeholder="Select Area *" />
                 </SelectTrigger>
@@ -214,10 +180,22 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 </SelectContent>
               </Select>
 
-              <Select
-                onValueChange={handleRouteChange}
-                value={formData.route}
-              >
+              <Input
+                name="email"
+                placeholder="Email Address *"
+                value={formData.email}
+                onChange={handleChange}
+                type="email"
+                required
+                className="text-sm sm:text-base h-10 sm:h-11"
+              />
+            </div>
+          </div>
+
+          {/* Route and Rep */}
+          <div className="space-y-3 sm:space-y-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+              <Select onValueChange={handleRouteChange} value={formData.route}>
                 <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
                   <SelectValue placeholder="Select Route" />
                 </SelectTrigger>
@@ -246,40 +224,44 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 </SelectContent>
               </Select>
 
-              <Select
-                onValueChange={handleRepresentativeChange}
-                value={formData.representative}
-              >
+              <Select onValueChange={handleRepChange} value={formData.rep}>
                 <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                  <SelectValue placeholder="Assign Representative *" />
+                  <SelectValue placeholder="Assign Rep" />
                 </SelectTrigger>
                 <SelectContent className="max-h-48 overflow-y-auto">
                   <SelectItem value="john-silva">John Silva</SelectItem>
                   <SelectItem value="mary-fernando">Mary Fernando</SelectItem>
                   <SelectItem value="david-perera">David Perera</SelectItem>
                   <SelectItem value="sarah-desilva">Sarah De Silva</SelectItem>
-                  <SelectItem value="michael-jayawardena">Michael Jayawardena</SelectItem>
-                  <SelectItem value="priya-wijesinghe">Priya Wijesinghe</SelectItem>
-                  <SelectItem value="kevin-rajapakse">Kevin Rajapakse</SelectItem>
-                  <SelectItem value="nimal-gunasekara">Nimal Gunasekara</SelectItem>
+                  <SelectItem value="michael-jayawardena">
+                    Michael Jayawardena
+                  </SelectItem>
+                  <SelectItem value="priya-wijesinghe">
+                    Priya Wijesinghe
+                  </SelectItem>
+                  <SelectItem value="kevin-rajapakse">
+                    Kevin Rajapakse
+                  </SelectItem>
+                  <SelectItem value="nimal-gunasekara">
+                    Nimal Gunasekara
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Location Information */}
+          {/* Address and Notes */}
           <div className="space-y-3 sm:space-y-4">
-            {/* <h3 className="text-sm sm:text-base font-medium text-gray-900">Address Information</h3> */}
             <Textarea
               name="address"
-              placeholder="Full Business Address"
+              placeholder="Address"
               value={formData.address}
               onChange={handleChange}
               className="min-h-[80px] sm:min-h-[100px] text-sm sm:text-base resize-none"
             />
             <Textarea
               name="notes"
-              placeholder="Additional Notes (Business requirements, special instructions, etc.)"
+              placeholder="Notes"
               value={formData.notes}
               onChange={handleChange}
               className="min-h-[60px] sm:min-h-[80px] text-sm sm:text-base resize-none"
