@@ -20,6 +20,8 @@ export function PageTitle() {
       return "Product Details";
     } else if (path.startsWith("/suppliers/supplierDetail/")) {
       return "Product Details";
+    }  else if (path.startsWith("/customers/customerDetail/")) {
+      return "Customer Details";
     }
 
     // Add more dynamic route patterns here if needed

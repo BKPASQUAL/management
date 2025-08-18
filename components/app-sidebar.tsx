@@ -79,6 +79,7 @@ export function AppSidebar() {
       icon: Receipt,
       href: "/createCustomerBill",
     },
+    
   ];
 
   const handleSignOut = () => {

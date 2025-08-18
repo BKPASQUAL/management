@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 // Define the Customer interface
 interface Customer {
@@ -28,6 +29,7 @@ export default function CustomerTable() {
   // State for pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
+  const router = useRouter();
 
   const sampleCustomers: Customer[] = [
     {
@@ -58,7 +60,7 @@ export default function CustomerTable() {
       route: "Route G1",
       representative: "David Perera",
       phone: "+94 91 2345678",
-    //   email: "sales@digitalworld.lk",
+      //   email: "sales@digitalworld.lk",
     },
     {
       id: 4,
@@ -78,7 +80,7 @@ export default function CustomerTable() {
       route: "Route M1",
       representative: "John Silva",
       phone: "+94 41 2345678",
-    //   email: "contact@smartsystems.lk",
+      //   email: "contact@smartsystems.lk",
     },
     {
       id: 6,
@@ -158,7 +160,7 @@ export default function CustomerTable() {
       route: "Route A3",
       representative: "John Silva",
       phone: "+94 11 2345679",
-    //   email: "info@globaltechpartners.lk",
+      //   email: "info@globaltechpartners.lk",
     },
     {
       id: 14,
@@ -180,7 +182,7 @@ export default function CustomerTable() {
 
   // Handler functions
   const handleRowClick = (customerId: number): void => {
-    console.log("Row clicked, Customer ID:", customerId);
+    router.push(`/customers/customerDetail/${customerId}`);
     // Add your navigation logic here
     // Example: router.push(`/customers/${customerId}`);
   };
@@ -223,13 +225,13 @@ export default function CustomerTable() {
         <TableComponent>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-bold">Customer Code</TableHead>
-              <TableHead className="font-bold">Customer Name</TableHead>
-              <TableHead className="font-bold">Area</TableHead>
-              <TableHead className="font-bold">Route</TableHead>
-              <TableHead className="font-bold">Representative</TableHead>
-              <TableHead className="font-bold">Contact</TableHead>
-              <TableHead className="text-right font-bold">Actions</TableHead>
+              <TableHead className="font-bold w-1/9">Customer Code</TableHead>
+              <TableHead className="font-bold w-1/9">Customer Name</TableHead>
+              <TableHead className="font-bold w-1/9">Area</TableHead>
+              <TableHead className="font-bold w-1/9">Route</TableHead>
+              <TableHead className="font-bold w-1/9">Representative</TableHead>
+              <TableHead className="font-bold w-1/9">Contact</TableHead>
+              <TableHead className="text-right font-bold w-1/9">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -276,6 +278,7 @@ export default function CustomerTable() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
+                    
                   </div>
                 </TableCell>
               </TableRow>

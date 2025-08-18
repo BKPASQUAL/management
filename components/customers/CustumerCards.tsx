@@ -1,8 +1,16 @@
-import { Users, UserPlus, TrendingUp, Crown } from "lucide-react";
+import {
+  TrendingUp,
+  Crown,
+  DollarSign,
+  FileText,
+  Clock,
+  Users,
+} from "lucide-react";
+
 import React from "react";
 
 // TypeScript interfaces
-interface CustomerCard {
+interface FinancialCard {
   title: string;
   value: string;
   unit?: string;
@@ -10,52 +18,68 @@ interface CustomerCard {
   iconColor: string;
 }
 
-const CustomerCards: React.FC = () => {
-  const customerData: CustomerCard[] = [
+const FinancialCards: React.FC = () => {
+  const financialData: FinancialCard[] = [
     {
-      title: "Total Customers",
-      value: "1,245",
-      unit: "",
+      title: "Total Orders",
+      value: "47",
+      unit: "all time",
       icon: Users,
-      iconColor: "text-blue-500"
+      iconColor: "text-blue-500",
     },
     {
-      title: "New Customers",
-      value: "89",
-      unit: "this month",
-      icon: UserPlus,
-      iconColor: "text-green-500"
-    },
-    {
-      title: "Customer Growth",
-      value: "12.5",
+      title: "Change Last 3 Months",
+      value: "+23.5",
       unit: "%",
       icon: TrendingUp,
-      iconColor: "text-purple-500"
+      iconColor: "text-green-500",
     },
     {
-      title: "VIP Customers",
-      value: "156",
-      unit: "premium",
+      title: "Outstanding Amount",
+      value: "$2,340",
+      unit: "total due",
+      icon: DollarSign,
+      iconColor: "text-orange-500",
+    },
+    {
+      title: "Outstanding Bills",
+      value: "3",
+      unit: "invoices",
+      icon: FileText,
+      iconColor: "text-red-500",
+    },
+    {
+      title: "Over 45 Days Due",
+      value: "$890",
+      unit: "overdue",
+      icon: Clock,
+      iconColor: "text-red-600",
+    },
+    {
+      title: "Profit Last Month",
+      value: "$1,250",
+      unit: "from customer",
       icon: Crown,
-      iconColor: "text-yellow-500"
-    }
+      iconColor: "text-purple-500",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {customerData.map((card, index) => {
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {financialData.map((card, index) => {
         const IconComponent = card.icon;
         return (
           <div
             key={index}
-            className="border p-4 rounded-lg h-28 flex flex-col justify-between bg-white hover:shadow-md transition-shadow duration-200"
+            className="border p-4 rounded-lg h-28 flex flex-col justify-between bg-white "
           >
             <div className="flex justify-between items-start">
               <h1 className="font-semibold text-gray-600 text-sm leading-tight">
                 {card.title}
               </h1>
-              <IconComponent className={`w-4 h-4 ${card.iconColor} flex-shrink-0`} />
+              <IconComponent
+                className={`w-4 h-4 ${card.iconColor} flex-shrink-0`}
+              />
             </div>
             <div className="flex gap-2 items-end">
               <p className="text-xl font-bold text-gray-900">{card.value}</p>
@@ -70,4 +94,4 @@ const CustomerCards: React.FC = () => {
   );
 };
 
-export default CustomerCards;
+export default FinancialCards;
