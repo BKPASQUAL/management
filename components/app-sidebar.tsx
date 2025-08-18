@@ -22,6 +22,7 @@ import {
   Truck,
   FileText,
   Receipt,
+  UserCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -44,6 +45,11 @@ export function AppSidebar() {
       title: "Suppliers",
       icon: Truck,
       href: "/suppliers",
+    },
+     {
+      title: "Customers",
+      icon: UserCheck,
+      href: "/customers",
     },
     {
       title: "Users",
