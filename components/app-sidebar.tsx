@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Sidebar,
   SidebarContent,
@@ -7,6 +6,7 @@ import {
   SidebarGroup,
   SidebarHeader,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -20,6 +20,8 @@ import {
   Settings,
   BarChart3,
   Truck,
+  FileText,
+  Receipt,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,7 +41,7 @@ export function AppSidebar() {
       href: "/products",
     },
     {
-      title: "Suppliers", // <-- New menu item
+      title: "Suppliers",
       icon: Truck,
       href: "/suppliers",
     },
@@ -48,7 +50,6 @@ export function AppSidebar() {
       icon: Users,
       href: "/users",
     },
-
     {
       title: "Analytics",
       icon: BarChart3,
@@ -59,10 +60,18 @@ export function AppSidebar() {
       icon: Settings,
       href: "/settings",
     },
-     {
+  ];
+
+  const actionItems = [
+    {
       title: "Create Supplier Bill",
-      icon: Settings,
-      href: "/createSpplierBill",
+      icon: FileText,
+      href: "/createSupplierBill",
+    },
+    {
+      title: "Create Customer Bill",
+      icon: Receipt,
+      href: "/createCustomerBill",
     },
   ];
 
@@ -98,10 +107,41 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
+        {/* Navigation Section */}
+        <SidebarGroup className="mb-2">
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      tooltip={item.title}
+                      isActive={isActive}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Actions Section */}
+        <SidebarGroup className="mt-[-20px]">
+          <SidebarGroupLabel>Actions</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {actionItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
                   <SidebarMenuItem key={item.title}>
