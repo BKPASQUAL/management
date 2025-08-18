@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Plus, Edit, Trash2 } from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, Save, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,13 +21,15 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const frameworks = [
   { value: "next.js", label: "Next.js" },
@@ -35,6 +37,18 @@ const frameworks = [
   { value: "nuxt.js", label: "Nuxt.js" },
   { value: "remix", label: "Remix" },
   { value: "astro", label: "Astro" },
+];
+
+// Sample items database
+const itemsDatabase = [
+  { code: "ITM001", name: "Laptop Computer", price: 1200 },
+  { code: "ITM002", name: "Wireless Mouse", price: 25 },
+  { code: "ITM003", name: "Keyboard", price: 45 },
+  { code: "ITM004", name: "Monitor 24 inch", price: 300 },
+  { code: "ITM005", name: "USB Cable", price: 15 },
+  { code: "ITM006", name: "Printer", price: 250 },
+  { code: "ITM007", name: "Headphones", price: 80 },
+  { code: "ITM008", name: "Webcam", price: 60 },
 ];
 
 interface Item {
@@ -48,7 +62,7 @@ interface Item {
   freeItemQuantity?: number;
 }
 
-interface ItemFormData {
+interface NewItemRow {
   itemCode: string;
   itemName: string;
   price: string;
@@ -69,100 +83,188 @@ export default function DatePickerPage() {
 
   // Item table state
   const [items, setItems] = React.useState<Item[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = React.useState(false);
-  const [editingItem, setEditingItem] = React.useState<Item | null>(null);
   const [extraDiscount, setExtraDiscount] = React.useState<string>("0");
+  const [editingId, setEditingId] = React.useState<number | null>(null);
 
-  const [itemForm, setItemForm] = React.useState<ItemFormData>({
+  // New item row state
+  const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
     itemName: "",
     price: "",
-    quantity: "1",
+    quantity: "",
     discount: "",
     freeItemQuantity: "",
   });
+
+  // Dropdown states
+  const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
+  const [itemNameOpen, setItemNameOpen] = React.useState(false);
 
   const formatDate = (date: Date | undefined): string => {
     if (!date) return "Pick a date";
     return date.toLocaleDateString();
   };
 
-  const handleItemFormChange = (field: keyof ItemFormData, value: string) => {
-    setItemForm((prev) => ({ ...prev, [field]: value }));
-  };
-
+  // Calculate amount when price, quantity, or discount changes
   const calculateAmount = (
     price: number,
     quantity: number,
     discount: number
   ): number => {
     const subtotal = price * quantity;
-    return subtotal - (subtotal * discount) / 100;
+    const discountAmount = (subtotal * discount) / 100;
+    return subtotal - discountAmount;
   };
 
-  const handleAddItem = () => {
+  // Handle item code selection
+  const handleItemCodeSelect = (code: string) => {
+    const selectedItem = itemsDatabase.find((item) => item.code === code);
+    if (selectedItem) {
+      setNewItem({
+        ...newItem,
+        itemCode: code,
+        itemName: selectedItem.name,
+        price: selectedItem.price.toString(),
+      });
+    }
+    setItemCodeOpen(false);
+  };
+
+  // Handle item name selection
+  const handleItemNameSelect = (name: string) => {
+    const selectedItem = itemsDatabase.find((item) => item.name === name);
+    if (selectedItem) {
+      setNewItem({
+        ...newItem,
+        itemCode: selectedItem.code,
+        itemName: name,
+        price: selectedItem.price.toString(),
+      });
+    }
+    setItemNameOpen(false);
+  };
+
+  // Handle input changes
+  const handleInputChange = (field: keyof NewItemRow, value: string) => {
+    setNewItem({
+      ...newItem,
+      [field]: value,
+    });
+  };
+
+  // Handle edit input changes
+  const handleEditInputChange = (
+    id: number,
+    field: keyof Item,
+    value: string | number
+  ) => {
+    setItems(
+      items.map((item) => {
+        if (item.id === id) {
+          const updatedItem = { ...item, [field]: value };
+          // Recalculate amount if price, quantity, or discount changes
+          if (
+            field === "price" ||
+            field === "quantity" ||
+            field === "discount"
+          ) {
+            updatedItem.amount = calculateAmount(
+              field === "price" ? Number(value) : updatedItem.price,
+              field === "quantity" ? Number(value) : updatedItem.quantity,
+              field === "discount" ? Number(value) : updatedItem.discount
+            );
+          }
+          return updatedItem;
+        }
+        return item;
+      })
+    );
+  };
+
+  // Handle Enter key navigation
+  const handleKeyPress = (e: React.KeyboardEvent, nextField: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const nextElement = document.querySelector(
+        `[data-field="${nextField}"]`
+      ) as HTMLElement;
+      if (nextElement) {
+        nextElement.focus();
+      }
+    }
+  };
+
+  // Add item to the list
+  const addItem = () => {
     if (
-      !itemForm.itemCode ||
-      !itemForm.itemName ||
-      !itemForm.price ||
-      !itemForm.quantity
+      newItem.itemCode &&
+      newItem.itemName &&
+      newItem.price &&
+      newItem.quantity
     ) {
-      return;
+      const price = parseFloat(newItem.price) || 0;
+      const quantity = parseFloat(newItem.quantity) || 0;
+      const discount = parseFloat(newItem.discount) || 0;
+      const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
+
+      const amount = calculateAmount(price, quantity, discount);
+
+      const item: Item = {
+        id: Date.now(), // Simple ID generation
+        itemCode: newItem.itemCode,
+        itemName: newItem.itemName,
+        price,
+        quantity,
+        discount,
+        amount,
+        freeItemQuantity,
+      };
+
+      setItems([...items, item]);
+
+      // Reset the new item row
+      setNewItem({
+        itemCode: "",
+        itemName: "",
+        price: "",
+        quantity: "",
+        discount: "",
+        freeItemQuantity: "",
+      });
+
+      // Focus on the item code field for next entry
+      setTimeout(() => {
+        const itemCodeField = document.querySelector(
+          '[data-field="itemCode"]'
+        ) as HTMLElement;
+        if (itemCodeField) {
+          itemCodeField.focus();
+        }
+      }, 100);
     }
-
-    const price = parseFloat(itemForm.price) || 0;
-    const quantity = parseFloat(itemForm.quantity) || 1;
-    const discount = parseFloat(itemForm.discount) || 0;
-    const freeItemQuantity = parseFloat(itemForm.freeItemQuantity) || 0;
-    const amount = calculateAmount(price, quantity, discount);
-
-    const newItem: Item = {
-      id: editingItem ? editingItem.id : Date.now(),
-      itemCode: itemForm.itemCode,
-      itemName: itemForm.itemName,
-      price: price,
-      quantity: quantity,
-      discount: discount,
-      amount: amount,
-      freeItemQuantity: freeItemQuantity > 0 ? freeItemQuantity : undefined,
-    };
-
-    if (editingItem) {
-      setItems((prev) =>
-        prev.map((item) => (item.id === editingItem.id ? newItem : item))
-      );
-    } else {
-      setItems((prev) => [...prev, newItem]);
-    }
-
-    // Reset form
-    setItemForm({
-      itemCode: "",
-      itemName: "",
-      price: "",
-      quantity: "1",
-      discount: "",
-      freeItemQuantity: "",
-    });
-    setEditingItem(null);
-    setIsDialogOpen(false);
   };
 
-  const handleEditItem = (item: Item) => {
-    setEditingItem(item);
-    setItemForm({
-      itemCode: item.itemCode,
-      itemName: item.itemName,
-      price: item.price.toString(),
-      quantity: item.quantity.toString(),
-      discount: item.discount.toString(),
-      freeItemQuantity: item.freeItemQuantity?.toString() || "",
-    });
-    setIsDialogOpen(true);
+  // Handle Enter key on the last field to add item
+  const handleLastFieldEnter = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addItem();
+    }
   };
 
-  const handleDeleteItem = (id: number) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  // Delete item
+  const deleteItem = (id: number) => {
+    setItems(items.filter((item) => item.id !== id));
+  };
+
+  // Start editing an item
+  const startEdit = (id: number) => {
+    setEditingId(id);
+  };
+
+  // Stop editing an item
+  const stopEdit = () => {
+    setEditingId(null);
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
@@ -306,211 +408,346 @@ export default function DatePickerPage() {
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Items</h3>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                onClick={() => {
-                  setEditingItem(null);
-                  setItemForm({
-                    itemCode: "",
-                    itemName: "",
-                    price: "",
-                    quantity: "1",
-                    discount: "",
-                    freeItemQuantity: "",
-                  });
-                }}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Item
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingItem ? "Edit Item" : "Add New Item"}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="itemCode">Item Code *</Label>
-                    <Input
-                      id="itemCode"
-                      value={itemForm.itemCode}
-                      onChange={(e) =>
-                        handleItemFormChange("itemCode", e.target.value)
-                      }
-                      placeholder="Enter item code"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="itemName">Item Name *</Label>
-                    <Input
-                      id="itemName"
-                      value={itemForm.itemName}
-                      onChange={(e) =>
-                        handleItemFormChange("itemName", e.target.value)
-                      }
-                      placeholder="Enter item name"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={itemForm.price}
-                      onChange={(e) =>
-                        handleItemFormChange("price", e.target.value)
-                      }
-                      placeholder="Enter price"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity *</Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      value={itemForm.quantity}
-                      onChange={(e) =>
-                        handleItemFormChange("quantity", e.target.value)
-                      }
-                      placeholder="Enter quantity"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="discount">Discount (%)</Label>
-                    <Input
-                      id="discount"
-                      type="number"
-                      value={itemForm.discount}
-                      onChange={(e) =>
-                        handleItemFormChange("discount", e.target.value)
-                      }
-                      placeholder="Enter discount percentage"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="freeItemQuantity">Free Item Qty</Label>
-                    <Input
-                      id="freeItemQuantity"
-                      type="number"
-                      value={itemForm.freeItemQuantity}
-                      onChange={(e) =>
-                        handleItemFormChange("freeItemQuantity", e.target.value)
-                      }
-                      placeholder="Enter free quantity"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 mt-4">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddItem}>
-                    {editingItem ? "Update" : "Add"} Item
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex gap-x-2">
+            <Button variant="greenOutline" className="cursor-pointer">
+              <Save className=" h-4 w-4" /> Save Invoice
+            </Button>
+            <Button variant="blackOutline" className="cursor-pointer">
+              <Printer className=" h-4 w-4" /> Print Invoice
+            </Button>
+          </div>
         </div>
 
-        {/* Items Table */}
-        <div className="border rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                  Item Code
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-900">
-                  Item Name
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">
-                  Price
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">
-                  Quantity
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">
-                  Discount (%)
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">
-                  Free Qty
-                </th>
-                <th className="px-4 py-3 text-right text-sm font-medium text-gray-900">
-                  Amount
-                </th>
-                <th className="px-4 py-3 text-center text-sm font-medium text-gray-900">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {items.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-8 text-center text-gray-500"
-                  >
-                    No items added yet. Click "Add Item" to get started.
-                  </td>
-                </tr>
-              ) : (
-                items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.itemCode}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {item.itemName}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      ${item.price.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      {item.discount}%
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right">
-                      {item.freeItemQuantity || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900 text-right font-medium">
-                      ${item.amount.toFixed(2)}
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <div className="flex justify-center gap-2">
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader className="bg-gray-50 rounded-lg">
+              <TableRow>
+                <TableHead className="w-[200px] py-3 px-4">Item Code</TableHead>
+                <TableHead className="w-[300px]">Item Name</TableHead>
+                <TableHead className="w-[120px]">Unit Price</TableHead>
+                <TableHead className="w-[100px]">Quantity</TableHead>
+                <TableHead className="w-[120px]">Discount(%)</TableHead>
+                <TableHead className="w-[120px]">Free Item Qty</TableHead>
+                <TableHead className="w-[120px]">Amount</TableHead>
+                <TableHead className="w-[120px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {/* Existing Items */}
+              {items.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">
+                    {editingId === item.id ? (
+                      <Input
+                        value={item.itemCode}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "itemCode",
+                            e.target.value
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      item.itemCode
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        value={item.itemName}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "itemName",
+                            e.target.value
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      item.itemName
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.price}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "price",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `$${item.price.toFixed(2)}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "quantity",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      item.quantity
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.discount}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "discount",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `${item.discount}%`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.freeItemQuantity || 0}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "freeItemQuantity",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      item.freeItemQuantity || 0
+                    )}
+                  </TableCell>
+                  <TableCell>${item.amount.toFixed(2)}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {editingId === item.id ? (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEditItem(item)}
+                          onClick={stopEdit}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          <Save className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => startEdit(item.id)}
+                          className="text-blue-600 hover:text-blue-800"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteItem(item.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteItem(item.id)}
+                        className="text-red-600 hover:text-red-800"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+
+              {/* New Item Row */}
+              <TableRow className="bg-blue-50">
+                <TableCell className="font-medium">
+                  <Popover open={itemCodeOpen} onOpenChange={setItemCodeOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={itemCodeOpen}
+                        className="w-full justify-between h-10 px-3 text-sm"
+                        data-field="itemCode"
+                        onKeyDown={(e) => handleKeyPress(e, "itemName")}
+                      >
+                        {newItem.itemCode || "Select Code..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[200px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search item code..." />
+                        <CommandList>
+                          <CommandEmpty>No item found.</CommandEmpty>
+                          <CommandGroup>
+                            {itemsDatabase.map((item) => (
+                              <CommandItem
+                                key={item.code}
+                                value={item.code}
+                                onSelect={() => handleItemCodeSelect(item.code)}
+                              >
+                                {item.code}
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    newItem.itemCode === item.code
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </TableCell>
+                <TableCell>
+                  <Popover open={itemNameOpen} onOpenChange={setItemNameOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={itemNameOpen}
+                        className="w-full justify-between h-10 px-3 text-sm"
+                        data-field="itemName"
+                        onKeyDown={(e) => handleKeyPress(e, "price")}
+                      >
+                        {newItem.itemName || "Select Item..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[300px] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search item name..." />
+                        <CommandList>
+                          <CommandEmpty>No item found.</CommandEmpty>
+                          <CommandGroup>
+                            {itemsDatabase.map((item) => (
+                              <CommandItem
+                                key={item.name}
+                                value={item.name}
+                                onSelect={() => handleItemNameSelect(item.name)}
+                              >
+                                {item.name}
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    newItem.itemName === item.name
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newItem.price}
+                    onChange={(e) => handleInputChange("price", e.target.value)}
+                    data-field="price"
+                    onKeyDown={(e) => handleKeyPress(e, "quantity")}
+                    className="h-10"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={newItem.quantity}
+                    onChange={(e) =>
+                      handleInputChange("quantity", e.target.value)
+                    }
+                    data-field="quantity"
+                    onKeyDown={(e) => handleKeyPress(e, "discount")}
+                    className="h-10"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={newItem.discount}
+                    onChange={(e) =>
+                      handleInputChange("discount", e.target.value)
+                    }
+                    data-field="discount"
+                    onKeyDown={(e) => handleKeyPress(e, "freeItemQuantity")}
+                    className="h-10"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0"
+                    value={newItem.freeItemQuantity}
+                    onChange={(e) =>
+                      handleInputChange("freeItemQuantity", e.target.value)
+                    }
+                    data-field="freeItemQuantity"
+                    onKeyDown={handleLastFieldEnter}
+                    className="h-10"
+                  />
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm text-gray-600">
+                    $
+                    {newItem.price && newItem.quantity
+                      ? calculateAmount(
+                          parseFloat(newItem.price) || 0,
+                          parseFloat(newItem.quantity) || 0,
+                          parseFloat(newItem.discount) || 0
+                        ).toFixed(2)
+                      : "0.00"}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={addItem}
+                    disabled={
+                      !newItem.itemCode ||
+                      !newItem.itemName ||
+                      !newItem.price ||
+                      !newItem.quantity
+                    }
+                    className="text-green-600 hover:text-green-800"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         </div>
 
         {/* Total Section */}
@@ -526,7 +763,7 @@ export default function DatePickerPage() {
                 type="number"
                 value={extraDiscount}
                 onChange={(e) => setExtraDiscount(e.target.value)}
-                className="w-20 h-8 text-right"
+                className="w-20 h-8"
                 placeholder="0"
               />
             </div>
