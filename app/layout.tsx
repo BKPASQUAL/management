@@ -38,7 +38,7 @@ export default function RootLayout({
                 <PageTitle />
               </div>
               <div className="flex items-center space-x-20">
-                <Button variant="outline">Create Bill</Button>
+                {/* <Button variant="outline">Create Bill</Button> */}
 
                 {/* User Info Section */}
                 <div className="flex items-center space-x-3 mr-4">

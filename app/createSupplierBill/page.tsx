@@ -272,7 +272,7 @@ export default function DatePickerPage() {
   const finalTotal = subtotal - extraDiscountAmount;
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-row justify-between">
         <div className="space-y-2">
           <Label>Select Supplier</Label>
