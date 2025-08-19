@@ -13,7 +13,6 @@ import {
   DollarSign,
   Package,
   Users,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -53,23 +52,30 @@ const suppliers = [
     contact: "Sarah Johnson",
   },
   {
-    value: "global-imports",
-    label: "Global Imports Co",
+    value: "global-supplies",
+    label: "Global Supplies Inc",
     contact: "Mike Wilson",
   },
-  {
-    value: "office-supplies",
-    label: "Office Supplies Inc",
-    contact: "Lisa Brown",
-  },
-  { value: "digital-world", label: "Digital World", contact: "David Lee" },
 ];
 
 const paymentMethods = [
   { value: "cash", label: "Cash", icon: "💵" },
   { value: "check", label: "Check", icon: "📝" },
-  { value: "credit", label: "Credit Card", icon: "💳" },
   { value: "bank-transfer", label: "Bank Transfer", icon: "🏦" },
+  { value: "credit-card", label: "Credit Card", icon: "💳" },
+];
+
+const units = [
+  { value: "pcs", label: "Pieces (Pcs)" },
+  { value: "dz", label: "Dozen (Dz)" },
+  { value: "m", label: "Meter (M)" },
+  { value: "kg", label: "Kilogram (Kg)" },
+  { value: "ltr", label: "Liter (Ltr)" },
+  { value: "box", label: "Box" },
+  { value: "pack", label: "Pack" },
+  { value: "set", label: "Set" },
+  { value: "roll", label: "Roll" },
+  { value: "sheet", label: "Sheet" },
 ];
 
 const itemsDatabase = [
@@ -78,41 +84,36 @@ const itemsDatabase = [
     name: "MacBook Pro 16-inch",
     price: 2499,
     category: "Electronics",
+    unit: "pcs",
   },
   {
     code: "ITM002",
     name: "Wireless Magic Mouse",
     price: 79,
     category: "Accessories",
+    unit: "pcs",
   },
   {
     code: "ITM003",
-    name: "Magic Keyboard",
-    price: 199,
-    category: "Accessories",
+    name: "USB Cable 2M",
+    price: 25,
+    category: "Cables",
+    unit: "m",
   },
   {
     code: "ITM004",
-    name: "Studio Display 27-inch",
-    price: 1599,
-    category: "Electronics",
-  },
-  { code: "ITM005", name: "USB-C Cable 2m", price: 29, category: "Cables" },
-  {
-    code: "ITM006",
-    name: "LaserJet Printer",
+    name: "Office Chair",
     price: 299,
-    category: "Office Equipment",
-  },
-  { code: "ITM007", name: "AirPods Pro", price: 249, category: "Audio" },
-  { code: "ITM008", name: "HD Webcam", price: 129, category: "Electronics" },
-  {
-    code: "ITM009",
-    name: "Ergonomic Office Chair",
-    price: 399,
     category: "Furniture",
+    unit: "pcs",
   },
-  { code: "ITM010", name: "Standing Desk", price: 599, category: "Furniture" },
+  {
+    code: "ITM005",
+    name: "Copy Paper A4",
+    price: 45,
+    category: "Stationary",
+    unit: "pack",
+  },
 ];
 
 interface Item {
@@ -121,6 +122,7 @@ interface Item {
   itemName: string;
   price: number;
   quantity: number;
+  unit: string;
   discount: number;
   amount: number;
   freeItemQuantity?: number;
@@ -132,6 +134,7 @@ interface NewItemRow {
   itemName: string;
   price: string;
   quantity: string;
+  unit: string;
   discount: string;
   freeItemQuantity: string;
 }
@@ -158,11 +161,13 @@ export default function ResponsiveInvoiceApp() {
     itemName: "",
     price: "",
     quantity: "",
+    unit: "pcs",
     discount: "",
     freeItemQuantity: "",
   });
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
+  const [unitOpen, setUnitOpen] = React.useState(false);
 
   // Check screen size
   React.useEffect(() => {
@@ -202,6 +207,7 @@ export default function ResponsiveInvoiceApp() {
         itemCode: code,
         itemName: selectedItem.name,
         price: selectedItem.price.toString(),
+        unit: selectedItem.unit,
       });
     }
     setItemCodeOpen(false);
@@ -215,6 +221,7 @@ export default function ResponsiveInvoiceApp() {
         itemCode: selectedItem.code,
         itemName: name,
         price: selectedItem.price.toString(),
+        unit: selectedItem.unit,
       });
     }
     setItemNameOpen(false);
@@ -229,7 +236,8 @@ export default function ResponsiveInvoiceApp() {
       newItem.itemCode &&
       newItem.itemName &&
       newItem.price &&
-      newItem.quantity
+      newItem.quantity &&
+      newItem.unit
     ) {
       const price = parseFloat(newItem.price) || 0;
       const quantity = parseFloat(newItem.quantity) || 0;
@@ -246,6 +254,7 @@ export default function ResponsiveInvoiceApp() {
         itemName: newItem.itemName,
         price,
         quantity,
+        unit: newItem.unit,
         discount,
         amount: calculateAmount(price, quantity, discount),
         freeItemQuantity,
@@ -258,6 +267,7 @@ export default function ResponsiveInvoiceApp() {
         itemName: "",
         price: "",
         quantity: "",
+        unit: "pcs",
         discount: "",
         freeItemQuantity: "",
       });
@@ -303,6 +313,41 @@ export default function ResponsiveInvoiceApp() {
     );
   };
 
+  const saveInvoice = () => {
+    if (items.length === 0) {
+      alert("Please add at least one item to save the invoice.");
+      return;
+    }
+    if (!selectedSupplier) {
+      alert("Please select a supplier.");
+      return;
+    }
+    if (!paymentMethod) {
+      alert("Please select a payment method.");
+      return;
+    }
+
+    const invoiceData = {
+      invoiceNo,
+      supplier: suppliers.find((s) => s.value === selectedSupplier),
+      billingDate: billingDate.toISOString(),
+      paymentMethod: paymentMethods.find((p) => p.value === paymentMethod),
+      items,
+      subtotal,
+      extraDiscount: parseFloat(extraDiscount),
+      extraDiscountAmount,
+      finalTotal,
+      totalItems,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Here you would typically save to a backend or local storage
+    console.log("Invoice saved:", invoiceData);
+
+    // Show success message
+    alert(`Invoice ${invoiceNo} saved successfully!`);
+  };
+
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
@@ -316,11 +361,16 @@ export default function ResponsiveInvoiceApp() {
           <div>
             <h4 className="font-semibold text-sm">{item.itemName}</h4>
             <p className="text-xs text-gray-500">{item.itemCode}</p>
-            {item.category && (
-              <Badge variant="secondary" className="text-xs mt-1">
-                {item.category}
+            <div className="flex items-center gap-2 mt-1">
+              {item.category && (
+                <Badge variant="secondary" className="text-xs">
+                  {item.category}
+                </Badge>
+              )}
+              <Badge variant="outline" className="text-xs">
+                {units.find((u) => u.value === item.unit)?.label || item.unit}
               </Badge>
-            )}
+            </div>
           </div>
           <div className="flex gap-1">
             <Button
@@ -384,7 +434,9 @@ export default function ResponsiveInvoiceApp() {
                 className="h-8 mt-1"
               />
             ) : (
-              <p className="font-medium">{item.quantity}</p>
+              <p className="font-medium">
+                {item.quantity} {item.unit}
+              </p>
             )}
           </div>
           <div>
@@ -407,8 +459,32 @@ export default function ResponsiveInvoiceApp() {
             )}
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Amount</Label>
-            <p className="font-bold text-green-600">
+            <Label className="text-xs text-gray-500">Free Items</Label>
+            {editingId === item.id ? (
+              <Input
+                type="number"
+                value={item.freeItemQuantity || 0}
+                onChange={(e) =>
+                  handleEditInputChange(
+                    item.id,
+                    "freeItemQuantity",
+                    parseFloat(e.target.value) || 0
+                  )
+                }
+                className="h-8 mt-1"
+              />
+            ) : (
+              <p className="font-medium">
+                {item.freeItemQuantity || 0} {item.unit}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t">
+          <div className="flex justify-between items-center">
+            <Label className="text-sm font-medium">Amount</Label>
+            <p className="font-bold text-green-600 text-lg">
               ${item.amount.toFixed(2)}
             </p>
           </div>
@@ -417,7 +493,7 @@ export default function ResponsiveInvoiceApp() {
         {item.freeItemQuantity && item.freeItemQuantity > 0 && (
           <div className="mt-3 p-2 bg-green-50 rounded">
             <p className="text-xs text-green-700">
-              <strong>Free Items:</strong> {item.freeItemQuantity}
+              <strong>Free Items:</strong> {item.freeItemQuantity} {item.unit}
             </p>
           </div>
         )}
@@ -428,75 +504,6 @@ export default function ResponsiveInvoiceApp() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-                Invoice Manager
-              </h1>
-              <p className="text-gray-600 text-sm mt-1">
-                Create and manage your invoices efficiently
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Badge
-                variant="outline"
-                className="text-blue-600 border-blue-200"
-              >
-                #{invoiceNo}
-              </Badge>
-              <Badge variant="secondary">{formatDate(billingDate)}</Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    Total Items
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold">{totalItems}</p>
-                </div>
-                <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">Products</p>
-                  <p className="text-lg sm:text-2xl font-bold">
-                    {items.length}
-                  </p>
-                </div>
-                <Users className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="col-span-2">
-            <CardContent className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-gray-600">
-                    Total Amount
-                  </p>
-                  <p className="text-lg sm:text-2xl font-bold text-green-600">
-                    ${finalTotal.toFixed(2)}
-                  </p>
-                </div>
-                <DollarSign className="h-6 w-6 sm:h-8 sm:w-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Main Form */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -504,7 +511,7 @@ export default function ResponsiveInvoiceApp() {
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Select Supplier
+                Select Supplier *
               </Label>
               <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
                 <PopoverTrigger asChild>
@@ -547,7 +554,7 @@ export default function ResponsiveInvoiceApp() {
                             <div>
                               <p className="font-medium">{supplier.label}</p>
                               <p className="text-xs text-gray-500">
-                                {supplier.contact}
+                                Contact: {supplier.contact}
                               </p>
                             </div>
                             <Check
@@ -626,11 +633,20 @@ export default function ResponsiveInvoiceApp() {
               </p>
             </div>
             <div className="flex gap-2">
-              <Button className="bg-green-600 hover:bg-green-700 text-white">
+              <Button
+                onClick={saveInvoice}
+                className="bg-green-600 hover:bg-green-700 text-white"
+                disabled={items.length === 0}
+              >
                 <Save className="h-4 w-4 mr-2" />
                 Save Invoice
               </Button>
-              <Button variant="outline" className="border-gray-300">
+              <Button
+                variant="outline"
+                className="border-gray-300"
+                disabled={items.length === 0}
+                onClick={() => window.print()}
+              >
                 <Printer className="h-4 w-4 mr-2" />
                 Print
               </Button>
@@ -646,7 +662,7 @@ export default function ResponsiveInvoiceApp() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm">Item Code</Label>
                   <Popover open={itemCodeOpen} onOpenChange={setItemCodeOpen}>
@@ -685,6 +701,12 @@ export default function ResponsiveInvoiceApp() {
                                       className="text-xs"
                                     >
                                       {item.category}
+                                    </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {item.unit}
                                     </Badge>
                                     <span className="text-xs text-green-600 font-medium">
                                       ${item.price}
@@ -739,6 +761,12 @@ export default function ResponsiveInvoiceApp() {
                                     >
                                       {item.category}
                                     </Badge>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs"
+                                    >
+                                      {item.unit}
+                                    </Badge>
                                     <span className="text-xs text-green-600 font-medium">
                                       ${item.price}
                                     </span>
@@ -776,9 +804,60 @@ export default function ResponsiveInvoiceApp() {
                     className="h-10"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm">Unit</Label>
+                  <Popover open={unitOpen} onOpenChange={setUnitOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between h-10"
+                      >
+                        <span className="truncate">
+                          {newItem.unit
+                            ? units.find((unit) => unit.value === newItem.unit)
+                                ?.label
+                            : "Select unit..."}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search units..." />
+                        <CommandList>
+                          <CommandEmpty>No unit found.</CommandEmpty>
+                          <CommandGroup>
+                            {units.map((unit) => (
+                              <CommandItem
+                                key={unit.value}
+                                value={unit.value}
+                                onSelect={(currentValue) => {
+                                  handleInputChange("unit", currentValue);
+                                  setUnitOpen(false);
+                                }}
+                              >
+                                <span>{unit.label}</span>
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    newItem.unit === unit.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
                   <Label className="text-sm">Discount (%)</Label>
                   <Input
@@ -818,21 +897,25 @@ export default function ResponsiveInvoiceApp() {
                       : "0.00"}
                   </div>
                 </div>
-              </div>
 
-              <Button
-                onClick={addItem}
-                disabled={
-                  !newItem.itemCode ||
-                  !newItem.itemName ||
-                  !newItem.price ||
-                  !newItem.quantity
-                }
-                className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item to Invoice
-              </Button>
+                <div className="space-y-2">
+                  <Label className="text-sm">Actions</Label>
+                  <Button
+                    onClick={addItem}
+                    disabled={
+                      !newItem.itemCode ||
+                      !newItem.itemName ||
+                      !newItem.price ||
+                      !newItem.quantity ||
+                      !newItem.unit
+                    }
+                    className="w-full bg-blue-600 hover:bg-blue-700 h-10"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Item
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -860,16 +943,17 @@ export default function ResponsiveInvoiceApp() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gray-50">
-                        <TableHead className="w-[150px]">Code</TableHead>
+                        <TableHead className="w-[120px]">Code</TableHead>
                         <TableHead className="min-w-[200px]">
                           Item Name
                         </TableHead>
-                        <TableHead className="w-[120px]">Unit Price</TableHead>
-                        <TableHead className="w-[100px]">Qty</TableHead>
-                        <TableHead className="w-[100px]">Discount</TableHead>
-                        <TableHead className="w-[100px]">Free Qty</TableHead>
+                        <TableHead className="w-[100px]">Price</TableHead>
+                        <TableHead className="w-[80px]">Qty</TableHead>
+                        <TableHead className="w-[80px]">Unit</TableHead>
+                        <TableHead className="w-[80px]">Disc%</TableHead>
+                        <TableHead className="w-[80px]">Free</TableHead>
                         <TableHead className="w-[120px]">Amount</TableHead>
-                        <TableHead className="w-[120px]">Actions</TableHead>
+                        <TableHead className="w-[100px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -946,6 +1030,11 @@ export default function ResponsiveInvoiceApp() {
                             )}
                           </TableCell>
                           <TableCell>
+                            <Badge variant="outline" className="text-xs">
+                              {item.unit}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
                             {editingId === item.id ? (
                               <Input
                                 type="number"
@@ -978,7 +1067,9 @@ export default function ResponsiveInvoiceApp() {
                                 className="h-8"
                               />
                             ) : (
-                              <span>{item.freeItemQuantity || 0}</span>
+                              <span className="text-green-600">
+                                {item.freeItemQuantity || 0}
+                              </span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -1031,7 +1122,7 @@ export default function ResponsiveInvoiceApp() {
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <DollarSign className="h-5 w-5" />
-                Payment Method
+                Payment Method *
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1128,6 +1219,8 @@ export default function ResponsiveInvoiceApp() {
                     onChange={(e) => setExtraDiscount(e.target.value)}
                     className="w-20 h-8 text-right"
                     placeholder="0"
+                    min="0"
+                    max="100"
                   />
                   <span>%</span>
                 </div>
@@ -1160,17 +1253,19 @@ export default function ResponsiveInvoiceApp() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Button
             size="lg"
+            onClick={saveInvoice}
             className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
             disabled={items.length === 0}
           >
             <Save className="h-5 w-5 mr-2" />
-            Save & Generate Invoice
+            Save Invoice
           </Button>
           <Button
             variant="outline"
             size="lg"
             className="px-8 py-3 border-gray-300"
             disabled={items.length === 0}
+            onClick={() => window.print()}
           >
             <Printer className="h-5 w-5 mr-2" />
             Print Invoice
@@ -1180,19 +1275,22 @@ export default function ResponsiveInvoiceApp() {
             size="lg"
             className="px-8 py-3 text-gray-600"
             onClick={() => {
-              setItems([]);
-              setNewItem({
-                itemCode: "",
-                itemName: "",
-                price: "",
-                quantity: "",
-                discount: "",
-                freeItemQuantity: "",
-              });
-              setSelectedSupplier("");
-              setPaymentMethod("");
-              setExtraDiscount("0");
-              setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+              if (window.confirm("Are you sure you want to clear all data?")) {
+                setItems([]);
+                setNewItem({
+                  itemCode: "",
+                  itemName: "",
+                  price: "",
+                  quantity: "",
+                  unit: "pcs",
+                  discount: "",
+                  freeItemQuantity: "",
+                });
+                setSelectedSupplier("");
+                setPaymentMethod("");
+                setExtraDiscount("0");
+                setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+              }
             }}
           >
             <X className="h-5 w-5 mr-2" />
