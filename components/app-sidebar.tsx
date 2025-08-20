@@ -23,6 +23,7 @@ import {
   FileText,
   Receipt,
   UserCheck,
+  ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -46,7 +47,7 @@ export function AppSidebar() {
       icon: Truck,
       href: "/suppliers",
     },
-     {
+    {
       title: "Customers",
       icon: UserCheck,
       href: "/customers",
@@ -61,6 +62,12 @@ export function AppSidebar() {
       icon: BarChart3,
       href: "/analytics",
     },
+    {
+      title: "Orders",
+      icon: ShoppingCart,
+      href: "/orders",
+    },
+
     {
       title: "Settings",
       icon: Settings,
@@ -79,7 +86,6 @@ export function AppSidebar() {
       icon: Receipt,
       href: "/createCustomerBill",
     },
-    
   ];
 
   const handleSignOut = () => {
