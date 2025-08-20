@@ -94,7 +94,7 @@ export default function ProductLayout() {
             </div>
             <div className="p-2 sm:p-3">
               <div className="mb-1 flex justify-between">
-                <div>
+                <div className="w-5/7">
                   <h3 className="font-bold text-xs sm:text-sm md:text-xs lg:text-base text-gray-800 mb-1 truncate leading-tight">
                     {product.name}
                   </h3>
@@ -102,7 +102,7 @@ export default function ProductLayout() {
                     {product.price}
                   </p>
                 </div>
-                <div>
+                <div className="w-1/6 text-end">
                   <Button className="cursor-pointer" size="sm">+</Button>
                 </div>
               </div>
