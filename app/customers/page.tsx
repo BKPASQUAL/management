@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Filter, Plus } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import React, { useState } from "react";
 
 // Type definitions

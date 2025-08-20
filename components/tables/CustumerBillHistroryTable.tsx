@@ -2,9 +2,7 @@ import React from "react";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
-  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -92,17 +90,7 @@ const CustomerBillHistoryTable: React.FC = () => {
     }
   };
 
-  // Summary calculations with proper typing
-  const totalBills: number = billHistory.length;
-  const paidBills: number = billHistory.filter(
-    (bill: BillHistory) => bill.paymentStatus === "paid"
-  ).length;
-  const dueBills: number = billHistory.filter(
-    (bill: BillHistory) => bill.paymentStatus === "due"
-  ).length;
-  const returnBills: number = billHistory.filter(
-    (bill: BillHistory) => bill.transactionType === "return"
-  ).length;
+
 
   return (
     <div className="w-full">

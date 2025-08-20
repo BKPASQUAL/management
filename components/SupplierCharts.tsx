@@ -1,5 +1,5 @@
 import React from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell } from "recharts";
+import {  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area, BarChart, Bar } from "recharts";
 
 // Sample data for Sales & Bills Trend (Last 90 days)
 const salesTrendData = [
@@ -35,7 +35,6 @@ const creditCashFlowData = [
 ];
 
 // Colors for pie chart
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 export default function SupplierCharts() {
   return (

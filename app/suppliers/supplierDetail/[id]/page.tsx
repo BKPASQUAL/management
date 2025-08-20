@@ -1,5 +1,4 @@
 "use client";
-import ProductHistoryTable from "@/components/ProductHistoryTable";
 import SupplierBillHistory from "@/components/SupplierBillHistory";
 import SupplierCharts from "@/components/SupplierCharts";
 import {

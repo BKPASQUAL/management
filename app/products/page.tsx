@@ -194,10 +194,6 @@ export default function Page() {
     console.log("Delete product:", productId);
   };
 
-  const handleAddProduct = () => {
-    console.log("Add new product");
-  };
-
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
   };

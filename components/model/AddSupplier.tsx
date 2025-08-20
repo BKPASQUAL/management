@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, X, Camera } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -39,8 +38,7 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
     notes: "",
   });
 
-  const [images, setImages] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+ 
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

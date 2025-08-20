@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, Table, Trash2 } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
 import {
   Table as TableComponent,

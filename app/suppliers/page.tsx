@@ -37,7 +37,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import AddProductModal from "@/components/model/AddProduct";
 import AddSupplier from "@/components/model/AddSupplier";
 
 export default function Page() {
@@ -209,9 +208,9 @@ export default function Page() {
     console.log("Delete supplier:", supplierId);
   };
 
-  const handleAddSupplier = () => {
-    console.log("Add new supplier");
-  };
+  // const handleAddSupplier = () => {
+  //   console.log("Add new supplier");
+  // };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
