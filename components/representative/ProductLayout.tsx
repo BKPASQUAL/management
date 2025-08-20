@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "../ui/button";
 
 const products = [
   {
@@ -49,7 +50,7 @@ const products = [
     remainingQty: 18,
     image: "https://i.postimg.cc/v8rR0Kyd/Add-a-heading-7.png",
   },
-   {
+  {
     id: 7,
     name: "Green Tea Special",
     price: "Rs 15.75",
@@ -92,14 +93,20 @@ export default function ProductLayout() {
               />
             </div>
             <div className="p-2 sm:p-3">
-              <div className="mb-2">
-                <h3 className="font-bold text-xs sm:text-sm lg:text-base text-gray-800 mb-1 truncate leading-tight">
-                  {product.name}
-                </h3>
-                <p className="text-xs sm:text-sm lg:text-base font-semibold text-gray-900 mb-1">
-                  {product.price}
-                </p>
+              <div className="mb-1 flex justify-between">
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm lg:text-base text-gray-800 mb-1 truncate leading-tight">
+                    {product.name}
+                  </h3>
+                  <p className="text-xs sm:text-sm lg:text-base font-semibold text-green-600 mb-1">
+                    {product.price}
+                  </p>
+                </div>
+                <div>
+                  <Button className="cursor-pointer" size="sm">+</Button>
+                </div>
               </div>
+
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-0.5">
