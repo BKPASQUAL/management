@@ -103,7 +103,7 @@ export default function ProductLayout() {
                   </p>
                 </div>
                 <div className="w-1/6 flex justify-end">
-                  <div className="cursor-pointer w-4 h-4 bg-black text-white flex justify-center items-center rounded-xs text-xs" >+</div>
+                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-xs text-xs" >+</div>
                 </div>
               </div>
 
