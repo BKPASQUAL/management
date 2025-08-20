@@ -95,7 +95,7 @@ export default function ProductLayout() {
             <div className="p-2 sm:p-3">
               <div className="mb-1 flex justify-between">
                 <div>
-                  <h3 className="font-bold text-xs sm:text-sm lg:text-base text-gray-800 mb-1 truncate leading-tight">
+                  <h3 className="font-bold text-xs sm:text-sm md:text-xs lg:text-base text-gray-800 mb-1 truncate leading-tight">
                     {product.name}
                   </h3>
                   <p className="text-xs sm:text-sm lg:text-base font-semibold text-green-600 mb-1">
