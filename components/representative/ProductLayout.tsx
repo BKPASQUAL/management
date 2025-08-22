@@ -1,5 +1,71 @@
+"use client";
+
 import React from "react";
-import { Button } from "../ui/button";
+
+import { Check, ChevronsUpDown } from "lucide-react";
+
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+
+const frameworks = [
+  {
+    value: "next.js",
+    label: "Next.js",
+  },
+  {
+    value: "sveltekit",
+    label: "SvelteKit",
+  },
+  {
+    value: "nuxt.js",
+    label: "Nuxt.js",
+  },
+  {
+    value: "remix",
+    label: "Remix",
+  },
+  {
+    value: "astro",
+    label: "Astro",
+  },
+];
+
+const categories = [
+  {
+    value: "coffee",
+    label: "Coffee",
+  },
+  {
+    value: "tea",
+    label: "Tea",
+  },
+  {
+    value: "organic",
+    label: "Organic",
+  },
+  {
+    value: "herbal",
+    label: "Herbal",
+  },
+  {
+    value: "premium",
+    label: "Premium",
+  },
+];
 
 const products = [
   {
@@ -72,18 +138,276 @@ const products = [
     price: "Rs 22.25",
     packSize: "300g",
     remainingQty: 18,
-    image: "https://i.postimg.cc/L5McHtz7/Add-a-heading-4.png",
+    image:
+      "https://i.postimg.cc/m2LZymSw/Champika-Hardware-Logo-Flat-Vector-Style-3.png",
+  },
+  {
+    id: 10,
+    name: "Herbal Mix",
+    price: "Rs 22.25",
+    packSize: "300g",
+    remainingQty: 18,
+    image:
+      "https://i.postimg.cc/0jyvnmnX/Champika-Hardware-Logo-Flat-Vector-Style-1.png",
   },
 ];
 
 export default function ProductLayout() {
+  // Separate state for each popover to prevent conflicts
+  const [frameworkOpen, setFrameworkOpen] = React.useState(false);
+  const [frameworkValue, setFrameworkValue] = React.useState("");
+
+  const [categoryOpen, setCategoryOpen] = React.useState(false);
+  const [categoryValue, setCategoryValue] = React.useState("");
+
+  const [searchTerm, setSearchTerm] = React.useState("");
+
   return (
-    <div className="">
+    <div className="w-full">
+      {/* Desktop and Tablet Layout */}
+      <div className="hidden sm:flex sm:flex-row sm:justify-between sm:items-center sm:gap-4 mb-4">
+        <div className="w-full sm:w-auto sm:flex-1 sm:max-w-xs">
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+          {/* Framework Popover */}
+          <Popover open={frameworkOpen} onOpenChange={setFrameworkOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={frameworkOpen}
+                className="w-full sm:w-[200px] md:w-[250px] justify-between text-sm"
+              >
+                <span className="truncate">
+                  {frameworkValue
+                    ? frameworks.find(
+                        (framework) => framework.value === frameworkValue
+                      )?.label
+                    : "Select framework..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full sm:w-[200px] md:w-[250px] p-0">
+              <Command>
+                <CommandInput placeholder="Search framework..." />
+                <CommandList>
+                  <CommandEmpty>No framework found.</CommandEmpty>
+                  <CommandGroup>
+                    {frameworks.map((framework) => (
+                      <CommandItem
+                        key={framework.value}
+                        value={framework.value}
+                        onSelect={(currentValue) => {
+                          setFrameworkValue(
+                            currentValue === frameworkValue ? "" : currentValue
+                          );
+                          setFrameworkOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            frameworkValue === framework.value
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {framework.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Category Popover */}
+          <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={categoryOpen}
+                className="w-full sm:w-[200px] md:w-[250px] justify-between text-sm"
+              >
+                <span className="truncate">
+                  {categoryValue
+                    ? categories.find(
+                        (category) => category.value === categoryValue
+                      )?.label
+                    : "Select category..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full sm:w-[200px] md:w-[250px] p-0">
+              <Command>
+                <CommandInput placeholder="Search category..." />
+                <CommandList>
+                  <CommandEmpty>No category found.</CommandEmpty>
+                  <CommandGroup>
+                    {categories.map((category) => (
+                      <CommandItem
+                        key={category.value}
+                        value={category.value}
+                        onSelect={(currentValue) => {
+                          setCategoryValue(
+                            currentValue === categoryValue ? "" : currentValue
+                          );
+                          setCategoryOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            categoryValue === category.value
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {category.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="sm:hidden space-y-3 mb-4">
+        <div className="w-full">
+          <Input
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-3">
+          {/* Framework Popover - Mobile */}
+          <Popover open={frameworkOpen} onOpenChange={setFrameworkOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={frameworkOpen}
+                className="w-full justify-between text-sm"
+              >
+                <span className="truncate">
+                  {frameworkValue
+                    ? frameworks.find(
+                        (framework) => framework.value === frameworkValue
+                      )?.label
+                    : "Select framework..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search framework..." />
+                <CommandList>
+                  <CommandEmpty>No framework found.</CommandEmpty>
+                  <CommandGroup>
+                    {frameworks.map((framework) => (
+                      <CommandItem
+                        key={framework.value}
+                        value={framework.value}
+                        onSelect={(currentValue) => {
+                          setFrameworkValue(
+                            currentValue === frameworkValue ? "" : currentValue
+                          );
+                          setFrameworkOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            frameworkValue === framework.value
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {framework.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+
+          {/* Category Popover - Mobile */}
+          <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={categoryOpen}
+                className="w-full justify-between text-sm"
+              >
+                <span className="truncate">
+                  {categoryValue
+                    ? categories.find(
+                        (category) => category.value === categoryValue
+                      )?.label
+                    : "Select category..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0">
+              <Command>
+                <CommandInput placeholder="Search category..." />
+                <CommandList>
+                  <CommandEmpty>No category found.</CommandEmpty>
+                  <CommandGroup>
+                    {categories.map((category) => (
+                      <CommandItem
+                        key={category.value}
+                        value={category.value}
+                        onSelect={(currentValue) => {
+                          setCategoryValue(
+                            currentValue === categoryValue ? "" : currentValue
+                          );
+                          setCategoryOpen(false);
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            categoryValue === category.value
+                              ? "opacity-100"
+                              : "opacity-0"
+                          )}
+                        />
+                        {category.label}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2 sm:gap-4">
         {products.map((product) => (
           <div
             key={product.id}
-            className="border border-gray-200 bg-white rounded-sm overflow-hidden "
+            className="border border-gray-200 bg-white rounded-sm overflow-hidden"
           >
             <div className="">
               <img
@@ -103,7 +427,9 @@ export default function ProductLayout() {
                   </p>
                 </div>
                 <div className="w-1/6 flex justify-end">
-                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-xs text-xs" >+</div>
+                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-xl text-xs hover:bg-gray-800 transition-colors">
+                    +
+                  </div>
                 </div>
               </div>
 
