@@ -407,7 +407,7 @@ export default function ProductLayout() {
         {products.map((product) => (
           <div
             key={product.id}
-            className="border border-gray-200 bg-white rounded-sm overflow-hidden"
+            className="border border-gray-200 bg-white rounded-lg overflow-hidden shadow-xs"
           >
             <div className="">
               <img
@@ -419,15 +419,12 @@ export default function ProductLayout() {
             <div className="p-2 sm:p-3">
               <div className="mb-1 flex justify-between">
                 <div className="w-5/7">
-                  <h3 className="font-bold text-xs sm:text-sm md:text-xs lg:text-base text-gray-800 mb-1 truncate leading-tight">
+                  <h3 className="font-bold text-xs sm:text-sm md:text-xs lg:text-base text-gray-800  truncate leading-tight">
                     {product.name}
                   </h3>
-                  <p className="text-xs sm:text-sm lg:text-base font-semibold text-green-600 mb-1">
-                    {product.price}
-                  </p>
                 </div>
                 <div className="w-1/6 flex justify-end">
-                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-xl text-xs hover:bg-gray-800 transition-colors">
+                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-sm text-xs hover:bg-gray-800 transition-colors">
                     +
                   </div>
                 </div>
@@ -436,12 +433,13 @@ export default function ProductLayout() {
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-xs sm:text-sm text-gray-600 mb-0.5">
-                    {product.packSize}
+                    {/* {product.packSize} */}
+                    Orange
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Qty: {product.remainingQty}
+                  <p className="text-xs sm:text-sm lg:text-base font-semibold text-gray-500  ">
+                    {product.price}
                   </p>
                 </div>
               </div>

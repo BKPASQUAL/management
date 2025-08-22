@@ -45,7 +45,7 @@ export function AppSidebar() {
     {
       title: "Customers",
       icon: UserCheck,
-      href: "/customers",
+      href: "/representative/createCustomerBill",
     },
     {
       title: "Orders",
