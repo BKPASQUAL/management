@@ -1,14 +1,51 @@
-import React from "react";
+"use client"
+
+import React, { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar-rep";
 import { PageTitle } from "@/components/PageTitle";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart } from "lucide-react";
+import { CartProvider, useCart } from "@/components/representative/CartProvider";
+import CartSidebar from "@/components/representative/CartSidebar";
 
 const user = {
   name: "John Doe",
   role: "Administrator",
 };
 
-export default function Layout({ children }: { children: React.ReactNode }) {
+// Cart Icon Component
+function CartIcon() {
+  const { cartCount } = useCart();
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="relative p-2 hover:bg-gray-100"
+        onClick={() => setIsCartOpen(true)}
+      >
+        <ShoppingCart className="h-5 w-5 text-gray-700" />
+        {cartCount > 0 && (
+          <Badge
+            variant="destructive"
+            className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+          >
+            {cartCount > 99 ? "99+" : cartCount}
+          </Badge>
+        )}
+      </Button>
+
+      <CartSidebar open={isCartOpen} onOpenChange={setIsCartOpen} />
+    </>
+  );
+}
+
+// Main Layout Component
+function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="" suppressHydrationWarning={true}>
@@ -20,9 +57,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <SidebarTrigger className="text-black" />
                 <PageTitle />
               </div>
-              <div className="flex items-center space-x-20">
+
+              <div className="flex items-center space-x-4">
+                {/* Cart Icon */}
+                <CartIcon />
+
+                {/* User Profile */}
                 <div className="flex items-center space-x-3 mr-4">
-                  <div className="text-right">
+                  <div className="text-right hidden sm:block">
                     <div className="text-sm font-medium text-gray-900">
                       {user.name}
                     </div>
@@ -44,5 +86,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </SidebarProvider>
       </body>
     </html>
+  );
+}
+
+// Root Layout with Cart Provider
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <CartProvider>
+      <LayoutContent>{children}</LayoutContent>
+    </CartProvider>
   );
 }

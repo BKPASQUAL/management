@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 import { Check, ChevronsUpDown } from "lucide-react";
 
@@ -20,6 +20,16 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
+import AddCartModal from "../model/AddCartModel";
+
+interface Product {
+  id: number;
+  name: string;
+  price: string;
+  packSize: string;
+  remainingQty: number;
+  image: string;
+}
 
 const frameworks = [
   {
@@ -161,6 +171,8 @@ export default function ProductLayout() {
   const [categoryValue, setCategoryValue] = React.useState("");
 
   const [searchTerm, setSearchTerm] = React.useState("");
+  const [isAddCartOpen, setIsAddCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   return (
     <div className="w-full">
@@ -282,7 +294,6 @@ export default function ProductLayout() {
           </Popover>
         </div>
       </div>
-
       {/* Mobile Layout */}
       <div className="sm:hidden space-y-3 mb-4">
         <div className="w-full">
@@ -401,7 +412,6 @@ export default function ProductLayout() {
           </Popover>
         </div>
       </div>
-
       {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-2 sm:gap-4">
         {products.map((product) => (
@@ -416,7 +426,7 @@ export default function ProductLayout() {
                 className="w-full h-full object-cover"
               />
             </div>
-            <div className="p-2 sm:p-3">
+            <div className="p-1 sm:p-2">
               <div className="mb-1 flex justify-between">
                 <div className="w-5/7">
                   <h3 className="font-bold text-xs sm:text-sm md:text-xs lg:text-base text-gray-800  truncate leading-tight">
@@ -424,7 +434,13 @@ export default function ProductLayout() {
                   </h3>
                 </div>
                 <div className="w-1/6 flex justify-end">
-                  <div className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-sm text-xs hover:bg-gray-800 transition-colors">
+                  <div
+                    className="cursor-pointer w-6 h-6 bg-black text-white flex justify-center items-center rounded-sm text-xs hover:bg-gray-800 transition-colors"
+                    onClick={() => {
+                      setSelectedProduct(product); // Set the selected product
+                      setIsAddCartOpen(true);
+                    }}
+                  >
                     +
                   </div>
                 </div>
@@ -447,6 +463,14 @@ export default function ProductLayout() {
           </div>
         ))}
       </div>
+      <AddCartModal
+        open={isAddCartOpen}
+        onClose={() => {
+          setIsAddCartOpen(false);
+          setSelectedProduct(null); // Clear selected product when closing
+        }}
+        product={selectedProduct}
+      />
     </div>
   );
 }
