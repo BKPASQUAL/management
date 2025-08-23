@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddSupplierMutation } from "@/store/services/api";
+import { toast } from "react-toastify";
 
 interface AddSupplierProps {
   open: boolean;
@@ -54,6 +55,22 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
   };
 
   const handleSave = async () => {
+    // Basic validation
+    if (!formData.supplierName.trim()) {
+      toast.error("Supplier name is required!");
+      return;
+    }
+
+    if (!formData.contactPerson.trim()) {
+      toast.error("Contact person is required!");
+      return;
+    }
+
+    if (!formData.email.trim()) {
+      toast.error("Email is required!");
+      return;
+    }
+
     try {
       const supplierData = {
         supplier_name: formData.supplierName,
@@ -65,13 +82,36 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
         additional_notes: formData.notes || undefined,
       };
 
-      await addSupplier(supplierData).unwrap();
+      const result = await addSupplier(supplierData).unwrap();
 
-      console.log("Supplier added successfully!");
+      // Show success toast
+      toast.success("Supplier added successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+
       resetForm();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to add supplier:", err);
+
+      // Show error toast with more specific message
+      const errorMessage =
+        err?.data?.message ||
+        err?.message ||
+        "Failed to add supplier. Please try again.";
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -173,7 +213,6 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
           {/* Error Display */}
           {error && (
             <div className="text-red-500 text-sm p-3 bg-red-50 rounded-md">
-              {/* You might want to customize this based on your error structure */}
               Failed to add supplier. Please check your input and try again.
             </div>
           )}

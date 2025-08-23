@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // Define the Supplier interface
 export interface Supplier {
-  supplier_id?: number;
+  id?: number;
   supplier_name: string;
   contact_person: string;
   email: string;
@@ -13,20 +13,14 @@ export interface Supplier {
   additional_notes?: string;
 }
 
-export const api = createApi({
-  reducerPath: "api",
+export const supplierApi = createApi({
+  reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:3000/", // Replace with your actual base URL
   }),
   tagTypes: ["Supplier"],
   endpoints: (builder) => ({
     // Existing endpoints
-    getPosts: builder.query<any[], void>({
-      query: () => "posts",
-    }),
-    getPostById: builder.query<any, number>({
-      query: (id) => `posts/${id}`,
-    }),
 
     // Supplier endpoints
     addSupplier: builder.mutation<Supplier, Omit<Supplier, "id">>({
@@ -71,11 +65,9 @@ export const api = createApi({
 });
 
 export const {
-  useGetPostsQuery,
-  useGetPostByIdQuery,
   useAddSupplierMutation,
   useGetSuppliersQuery,
   useGetSupplierByIdQuery,
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
-} = api;
+} = supplierApi;

@@ -2,7 +2,8 @@
 import React from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientProvider from "./ClientProvider";  // <-- import
+import ClientProvider from "./ClientProvider"; // <-- import
+import { ToastContainer } from "react-toastify";
 
 const geistSans = Geist({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -20,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.className} ${geistMono.className}`}>
-        <ClientProvider>   {/* <-- wrap here */}
+        <ClientProvider>
+          {/* <-- wrap here */}
+          <ToastContainer />
           {children}
         </ClientProvider>
       </body>
