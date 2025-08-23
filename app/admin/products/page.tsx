@@ -5,10 +5,10 @@ import {
   Edit,
   Search,
   Trash2,
-  Phone,
-  Mail,
+  DollarSign,
+  Package,
   MapPin,
-  Building,
+  Hash,
 } from "lucide-react";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -37,7 +37,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import AddSupplier from "@/components/model/AddSupplier";
+import AddProductModal from "@/components/model/AddProduct";
 
 export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,172 +45,154 @@ export default function Page() {
   const router = useRouter();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  const sampleSuppliers = [
+  const sampleProducts = [
     {
       id: 1,
-      supplierName: "TechPro Electronics Ltd",
-      contactPerson: "John Smith",
-      email: "john.smith@techpro.com",
-      phone: "+1-555-0101",
-      supplierCode: "SUP001",
-      category: "Electronics",
-      location: "New York, USA",
+      name: "Wireless Headphones",
+      description: "Premium noise-cancelling headphones",
+      price: "$199.99",
+      quantity: 45,
+      sku: "WH001",
+      location: "Warehouse A",
     },
     {
       id: 2,
-      supplierName: "Global Components Inc",
-      contactPerson: "Sarah Johnson",
-      email: "s.johnson@globalcomp.com",
-      phone: "+1-555-0102",
-      supplierCode: "SUP002",
-      category: "Components",
-      location: "California, USA",
+      name: "Smart Watch",
+      description: "Fitness tracking smartwatch",
+      price: "$299.99",
+      quantity: 32,
+      sku: "SW002",
+      location: "Warehouse B",
     },
     {
       id: 3,
-      supplierName: "AudioMax Solutions",
-      contactPerson: "Michael Chen",
-      email: "m.chen@audiomax.com",
-      phone: "+1-555-0103",
-      supplierCode: "SUP003",
-      category: "Audio Equipment",
-      location: "Texas, USA",
+      name: "Bluetooth Speaker",
+      description: "Portable wireless speaker",
+      price: "$79.99",
+      quantity: 78,
+      sku: "BS003",
+      location: "Warehouse A",
     },
     {
       id: 4,
-      supplierName: "Cable Connect Corp",
-      contactPerson: "Emily Davis",
-      email: "e.davis@cableconnect.com",
-      phone: "+1-555-0104",
-      supplierCode: "SUP004",
-      category: "Cables & Accessories",
-      location: "Florida, USA",
+      name: "USB Cable",
+      description: "High-speed USB-C cable",
+      price: "$19.99",
+      quantity: 120,
+      sku: "UC004",
+      location: "Warehouse C",
     },
     {
       id: 5,
-      supplierName: "Peripheral Plus",
-      contactPerson: "David Wilson",
-      email: "d.wilson@peripheralplus.com",
-      phone: "+1-555-0105",
-      supplierCode: "SUP005",
-      category: "Computer Peripherals",
-      location: "Illinois, USA",
+      name: "Wireless Mouse",
+      description: "Ergonomic wireless mouse",
+      price: "$49.99",
+      quantity: 65,
+      sku: "WM005",
+      location: "Warehouse A",
     },
     {
       id: 6,
-      supplierName: "Gaming Gear Ltd",
-      contactPerson: "Lisa Anderson",
-      email: "l.anderson@gaminggear.com",
-      phone: "+1-555-0106",
-      supplierCode: "SUP006",
-      category: "Gaming Equipment",
-      location: "Washington, USA",
+      name: "Keyboard",
+      description: "Mechanical gaming keyboard",
+      price: "$129.99",
+      quantity: 28,
+      sku: "KB006",
+      location: "Warehouse B",
     },
     {
       id: 7,
-      supplierName: "Display Technologies",
-      contactPerson: "Robert Miller",
-      email: "r.miller@displaytech.com",
-      phone: "+1-555-0107",
-      supplierCode: "SUP007",
-      category: "Display & Monitors",
-      location: "Oregon, USA",
+      name: "Monitor",
+      description: "27-inch 4K display",
+      price: "$399.99",
+      quantity: 15,
+      sku: "MN007",
+      location: "Warehouse A",
     },
     {
       id: 8,
-      supplierName: "Vision Systems Pro",
-      contactPerson: "Amanda Taylor",
-      email: "a.taylor@visionsys.com",
-      phone: "+1-555-0108",
-      supplierCode: "SUP008",
-      category: "Cameras & Vision",
-      location: "Nevada, USA",
+      name: "Webcam",
+      description: "HD video conference camera",
+      price: "$89.99",
+      quantity: 42,
+      sku: "WC008",
+      location: "Warehouse C",
     },
     {
       id: 9,
-      supplierName: "Power Solutions Inc",
-      contactPerson: "James Brown",
-      email: "j.brown@powersolutions.com",
-      phone: "+1-555-0109",
-      supplierCode: "SUP009",
-      category: "Power & Charging",
-      location: "Arizona, USA",
+      name: "Power Bank",
+      description: "10000mAh portable charger",
+      price: "$39.99",
+      quantity: 95,
+      sku: "PB009",
+      location: "Warehouse A",
     },
     {
       id: 10,
-      supplierName: "Mobile Accessories Co",
-      contactPerson: "Jennifer White",
-      email: "j.white@mobileacc.com",
-      phone: "+1-555-0110",
-      supplierCode: "SUP010",
-      category: "Mobile Accessories",
-      location: "Colorado, USA",
+      name: "Phone Case",
+      description: "Protective silicone case",
+      price: "$24.99",
+      quantity: 150,
+      sku: "PC010",
+      location: "Warehouse B",
     },
     {
       id: 11,
-      supplierName: "Stand & Mount Systems",
-      contactPerson: "Kevin Garcia",
-      email: "k.garcia@standmount.com",
-      phone: "+1-555-0111",
-      supplierCode: "SUP011",
-      category: "Stands & Mounts",
-      location: "Utah, USA",
+      name: "Tablet Stand",
+      description: "Adjustable aluminum stand",
+      price: "$34.99",
+      quantity: 38,
+      sku: "TS011",
+      location: "Warehouse C",
     },
     {
       id: 12,
-      supplierName: "Hub Technologies",
-      contactPerson: "Maria Rodriguez",
-      email: "m.rodriguez@hubtech.com",
-      phone: "+1-555-0112",
-      supplierCode: "SUP012",
-      category: "Connectivity",
-      location: "Georgia, USA",
+      name: "USB Hub",
+      description: "7-port USB 3.0 hub",
+      price: "$29.99",
+      quantity: 56,
+      sku: "UH012",
+      location: "Warehouse A",
     },
     {
       id: 13,
-      supplierName: "Premium Stands Ltd",
-      contactPerson: "Daniel Lee",
-      email: "d.lee@premiumstands.com",
-      phone: "+1-555-0113",
-      supplierCode: "SUP013",
-      category: "Stands & Mounts",
-      location: "Michigan, USA",
+      name: "Tablet Stand Pro",
+      description: "Premium adjustable aluminum stand",
+      price: "$44.99",
+      quantity: 25,
+      sku: "TS013",
+      location: "Warehouse C",
     },
     {
       id: 14,
-      supplierName: "Universal Hubs Inc",
-      contactPerson: "Carol Martinez",
-      email: "c.martinez@universalhubs.com",
-      phone: "+1-555-0114",
-      supplierCode: "SUP014",
-      category: "Connectivity",
-      location: "Virginia, USA",
+      name: "USB Hub Pro",
+      description: "10-port USB 3.1 hub with charging",
+      price: "$49.99",
+      quantity: 33,
+      sku: "UH014",
+      location: "Warehouse A",
     },
   ];
 
   // Calculate pagination
-  const totalPages = Math.ceil(sampleSuppliers.length / itemsPerPage);
+  const totalPages = Math.ceil(sampleProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentSuppliers = sampleSuppliers.slice(startIndex, endIndex);
+  const currentProducts = sampleProducts.slice(startIndex, endIndex);
 
-  const handleRowClick = (supplierId: number) => {
-    router.push(`/suppliers/supplierDetail/${supplierId}`);
+  const handleRowClick = (productId: number) => {
+    router.push(`/admin/products/productDetail/${productId}`);
   };
 
-  const handleEdit = (e: React.MouseEvent, supplierId: number) => {
+  const handleEdit = (e: React.MouseEvent, productId: number) => {
     e.stopPropagation();
-    console.log("Edit supplier:", supplierId);
+    console.log("Edit product:", productId);
   };
 
-  const handleDelete = (e: React.MouseEvent, supplierId: number) => {
+  const handleDelete = (e: React.MouseEvent, productId: number) => {
     e.stopPropagation();
-    console.log("Delete supplier:", supplierId);
+    console.log("Delete product:", productId);
   };
-
-  // const handleAddSupplier = () => {
-  //   console.log("Add new supplier");
-  // };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -252,14 +234,21 @@ export default function Page() {
     return pages;
   };
 
+  // Get stock status color
+  const getStockStatus = (quantity: number) => {
+    if (quantity <= 20) return "text-red-600 bg-red-100";
+    if (quantity <= 50) return "text-yellow-600 bg-yellow-100";
+    return "text-green-600 bg-green-100";
+  };
+
   return (
     <div className="">
       {/* Header Section */}
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-bold text-xl lg:text-2xl">Supplier Management</h1>
+          <h1 className="font-bold text-xl lg:text-2xl">Product Management</h1>
           <p className="text-gray-500 text-sm lg:text-base">
-            Manage our suppliers easily and efficiently.
+            Efficiently manage and track products
           </p>
         </div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
@@ -270,7 +259,7 @@ export default function Page() {
             Generate Report
           </Button>
           <div className="border p-3 rounded-lg text-sm w-full sm:w-auto text-center">
-            Total Suppliers: {sampleSuppliers.length}
+            Total Products: {sampleProducts.length}
           </div>
         </div>
       </div>
@@ -285,22 +274,33 @@ export default function Page() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={18}
               />
-              <Input placeholder="Search Suppliers..." className="pl-10 h-9" />
+              <Input placeholder="Search products..." className="pl-10 h-9" />
             </div>
 
-            {/* Category Filter */}
-            <Select>
-              <SelectTrigger className="w-full sm:w-[180px] h-10">
-                <SelectValue placeholder="Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="electronics">Electronics</SelectItem>
-                <SelectItem value="components">Components</SelectItem>
-                <SelectItem value="audio">Audio Equipment</SelectItem>
-                <SelectItem value="gaming">Gaming Equipment</SelectItem>
-                <SelectItem value="accessories">Accessories</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <Select>
+                <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
+                  <SelectValue placeholder="Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="electronics">Electronics</SelectItem>
+                  <SelectItem value="accessories">Accessories</SelectItem>
+                  <SelectItem value="audio">Audio</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select>
+                <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
+                  <SelectValue placeholder="Suppliers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="supplier1">Supplier A</SelectItem>
+                  <SelectItem value="supplier2">Supplier B</SelectItem>
+                  <SelectItem value="supplier3">Supplier C</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {/* Add Button */}
@@ -309,7 +309,7 @@ export default function Page() {
               onClick={() => setIsAddModalOpen(true)}
               className="cursor-pointer w-full lg:w-auto"
             >
-              Add Supplier
+              Add Product
             </Button>
           </div>
         </div>
@@ -319,45 +319,49 @@ export default function Page() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-bold">Supplier Name</TableHead>
-                <TableHead className="font-bold">Contact Person</TableHead>
-                <TableHead className="font-bold">Email</TableHead>
-                <TableHead className="font-bold">Phone</TableHead>
-                <TableHead className="font-bold">Supplier Code</TableHead>
-                <TableHead className="font-bold">Category</TableHead>
+                <TableHead className="font-bold">Product Name</TableHead>
+                <TableHead className="font-bold">Description</TableHead>
+                <TableHead className="font-bold">Price</TableHead>
+                <TableHead className="font-bold">Quantity</TableHead>
+                <TableHead className="font-bold">SKU</TableHead>
                 <TableHead className="font-bold">Location</TableHead>
                 <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentSuppliers.map((supplier) => (
+              {currentProducts.map((product) => (
                 <TableRow
-                  key={supplier.id}
+                  key={product.id}
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(supplier.id)}
+                  onClick={() => handleRowClick(product.id)}
                 >
-                  <TableCell className="font-medium">
-                    {supplier.supplierName}
-                  </TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell className="text-gray-600">
-                    {supplier.contactPerson}
+                    {product.description}
                   </TableCell>
-                  <TableCell className="text-blue-600 hover:underline">
-                    {supplier.email}
+                  <TableCell className="font-semibold">
+                    {product.price}
                   </TableCell>
-                  <TableCell>{supplier.phone}</TableCell>
-                  <TableCell className="text-sm">
-                    {supplier.supplierCode}
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                        product.quantity
+                      )}`}
+                    >
+                      {product.quantity}
+                    </span>
                   </TableCell>
-                  <TableCell>{supplier.category}</TableCell>
-                  <TableCell>{supplier.location}</TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {product.sku}
+                  </TableCell>
+                  <TableCell>{product.location}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 cursor-pointer"
-                        onClick={(e) => handleEdit(e, supplier.id)}
+                        onClick={(e) => handleEdit(e, product.id)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -365,7 +369,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                        onClick={(e) => handleDelete(e, supplier.id)}
+                        onClick={(e) => handleDelete(e, product.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -382,42 +386,48 @@ export default function Page() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-bold">Supplier Info</TableHead>
-                <TableHead className="font-bold">Contact</TableHead>
-                <TableHead className="font-bold">Category</TableHead>
+                <TableHead className="font-bold">Product Info</TableHead>
+                <TableHead className="font-bold">Price & Stock</TableHead>
+                <TableHead className="font-bold">Location</TableHead>
                 <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentSuppliers.map((supplier) => (
+              {currentProducts.map((product) => (
                 <TableRow
-                  key={supplier.id}
+                  key={product.id}
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(supplier.id)}
+                  onClick={() => handleRowClick(product.id)}
                 >
                   <TableCell>
                     <div>
-                      <div className="font-medium">{supplier.supplierName}</div>
-                      <div className="text-sm text-gray-500">
-                        {supplier.supplierCode}
+                      <div className="font-medium">{product.name}</div>
+                      <div className="text-sm text-gray-500 truncate max-w-[200px]">
+                        {product.description}
+                      </div>
+                      <div className="text-xs font-mono text-gray-400 mt-1">
+                        SKU: {product.sku}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
-                      <div className="text-sm">{supplier.contactPerson}</div>
-                      <div className="text-xs text-blue-600">
-                        {supplier.email}
+                      <div className="font-semibold text-lg">
+                        {product.price}
+                      </div>
+                      <div className="text-sm">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                            product.quantity
+                          )}`}
+                        >
+                          Stock: {product.quantity}
+                        </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="text-sm">{supplier.category}</div>
-                      <div className="text-xs text-gray-500">
-                        {supplier.location}
-                      </div>
-                    </div>
+                    <div className="text-sm">{product.location}</div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -425,7 +435,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 cursor-pointer"
-                        onClick={(e) => handleEdit(e, supplier.id)}
+                        onClick={(e) => handleEdit(e, product.id)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -433,7 +443,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                        onClick={(e) => handleDelete(e, supplier.id)}
+                        onClick={(e) => handleDelete(e, product.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -447,19 +457,19 @@ export default function Page() {
 
         {/* Mobile View - Card Layout */}
         <div className="block md:hidden mt-4 space-y-4">
-          {currentSuppliers.map((supplier) => (
+          {currentProducts.map((product) => (
             <div
-              key={supplier.id}
+              key={product.id}
               className="border rounded-lg p-4 bg-white shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleRowClick(supplier.id)}
+              onClick={() => handleRowClick(product.id)}
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1">
                   <h3 className="font-medium text-lg leading-tight mb-1">
-                    {supplier.supplierName}
+                    {product.name}
                   </h3>
-                  <p className="text-sm text-gray-500 mb-2">
-                    Code: {supplier.supplierCode}
+                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">
+                    {product.description}
                   </p>
                 </div>
                 <div className="flex gap-2 ml-2">
@@ -467,7 +477,7 @@ export default function Page() {
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 cursor-pointer"
-                    onClick={(e) => handleEdit(e, supplier.id)}
+                    onClick={(e) => handleEdit(e, product.id)}
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
@@ -475,52 +485,54 @@ export default function Page() {
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                    onClick={(e) => handleDelete(e, supplier.id)}
+                    onClick={(e) => handleDelete(e, product.id)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                 <div className="flex items-center gap-2">
-                  <Building className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">
-                    {supplier.contactPerson}
+                  <DollarSign className="h-4 w-4 text-green-600" />
+                  <span className="font-semibold text-lg">{product.price}</span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Package className="h-4 w-4 text-gray-400" />
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                      product.quantity
+                    )}`}
+                  >
+                    {product.quantity}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <span className="text-blue-600">{supplier.email}</span>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">{supplier.phone}</span>
+                  <Hash className="h-4 w-4 text-gray-400" />
+                  <span className="font-mono text-xs text-gray-600">
+                    {product.sku}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-600">{supplier.location}</span>
+                  <span className="text-gray-600 text-xs">
+                    {product.location}
+                  </span>
                 </div>
-              </div>
-
-              <div className="mt-3 pt-2 border-t">
-                <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                  {supplier.category}
-                </span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Pagination */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6 ">
-          <div className="text-sm text-gray-500 text-center sm:text-left w-full">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6">
+          <div className="text-sm text-gray-500 text-center sm:text-left">
             Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleSuppliers.length)} of{" "}
-            {sampleSuppliers.length} Suppliers
+            {Math.min(endIndex, sampleProducts.length)} of{" "}
+            {sampleProducts.length} products
           </div>
 
           <Pagination className="justify-center sm:justify-end">
@@ -569,7 +581,7 @@ export default function Page() {
         </div>
       </div>
 
-      <AddSupplier
+      <AddProductModal
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
       />

@@ -35,43 +35,43 @@ export function AppSidebar() {
     {
       title: "Dashboard",
       icon: Home,
-      href: "/dashboard",
+      href: "/admin/dashboard",
     },
     {
       title: "Products",
       icon: Package,
-      href: "/products",
+      href: "/admin/products",
     },
     {
       title: "Suppliers",
       icon: Truck,
-      href: "/suppliers",
+      href: "/admin/suppliers",
     },
     {
       title: "Customers",
       icon: UserCheck,
-      href: "/customers",
+      href: "/admin/customers",
     },
     {
       title: "Users",
       icon: Users,
-      href: "/users",
+      href: "/admin/users",
     },
     {
       title: "Analytics",
       icon: BarChart3,
-      href: "/analytics",
+      href: "/admin/analytics",
     },
     {
       title: "Orders",
       icon: ShoppingCart,
-      href: "/orders",
+      href: "/admin/orders",
     },
 
     {
       title: "Settings",
       icon: Settings,
-      href: "/settings",
+      href: "/admin/settings",
     },
   ];
 
@@ -79,12 +79,12 @@ export function AppSidebar() {
     {
       title: "Create Supplier Bill",
       icon: FileText,
-      href: "/createSupplierBill",
+      href: "/admin/createSupplierBill",
     },
     {
       title: "Create Customer Bill",
       icon: Receipt,
-      href: "/createCustomerBill",
+      href: "/admin/createCustomerBill",
     },
   ];
 
