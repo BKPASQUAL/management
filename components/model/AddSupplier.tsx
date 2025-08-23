@@ -11,13 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { useAddSupplierMutation } from "@/store/services/api";
 
 interface AddSupplierProps {
   open: boolean;
@@ -27,18 +21,15 @@ interface AddSupplierProps {
 export default function AddSupplier({ open, onClose }: AddSupplierProps) {
   const [formData, setFormData] = useState({
     supplierName: "",
-    supplierCode: "",
     contactPerson: "",
     email: "",
     phone: "",
-    category: "",
-    location: "",
+    creditDays: "",
     address: "",
-    website: "",
     notes: "",
   });
 
- 
+  const [addSupplier, { isLoading, error }] = useAddSupplierMutation();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -50,35 +41,38 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
     }));
   };
 
-  const handleSelectChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      category: value,
-    }));
-  };
-
   const resetForm = () => {
     setFormData({
       supplierName: "",
-      supplierCode: "",
       contactPerson: "",
       email: "",
       phone: "",
-      category: "",
-      location: "",
+      creditDays: "",
       address: "",
-      website: "",
       notes: "",
     });
   };
 
-  const handleSave = () => {
-    const supplierData = {
-      ...formData,
-    };
-    console.log("Supplier added:", supplierData);
-    resetForm();
-    onClose();
+  const handleSave = async () => {
+    try {
+      const supplierData = {
+        supplier_name: formData.supplierName,
+        contact_person: formData.contactPerson,
+        email: formData.email,
+        phone_number: formData.phone,
+        credit_days: parseInt(formData.creditDays) || 0,
+        address: formData.address,
+        additional_notes: formData.notes || undefined,
+      };
+
+      await addSupplier(supplierData).unwrap();
+
+      console.log("Supplier added successfully!");
+      resetForm();
+      onClose();
+    } catch (err) {
+      console.error("Failed to add supplier:", err);
+    }
   };
 
   const handleCancel = () => {
@@ -115,13 +109,12 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
                 className="col-span-full text-sm sm:text-base h-10 sm:h-11"
                 required
               />
-              <Input
-                name="supplierCode"
-                placeholder="Supplier Code"
-                value={formData.supplierCode}
-                onChange={handleChange}
-                className="text-sm sm:text-base h-10 sm:h-11"
-              />
+            </div>
+          </div>
+
+          {/* Contact Information */}
+          <div className="space-y-3 sm:space-y-4">
+            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               <Input
                 name="contactPerson"
                 placeholder="Contact Person *"
@@ -130,12 +123,14 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
               />
-            </div>
-          </div>
-
-          {/* Contact Information */}
-          <div className="space-y-3 sm:space-y-4">
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+              <Input
+                name="phone"
+                placeholder="Phone Number"
+                value={formData.phone}
+                onChange={handleChange}
+                type="tel"
+                className="text-sm sm:text-base h-10 sm:h-11"
+              />
               <Input
                 name="email"
                 placeholder="Email Address *"
@@ -146,43 +141,12 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
                 className="text-sm sm:text-base h-10 sm:h-11"
               />
               <Input
-                name="phone"
-                placeholder="Phone Number"
-                value={formData.phone}
+                name="creditDays"
+                placeholder="Credit Days"
+                value={formData.creditDays}
                 onChange={handleChange}
-                type="tel"
-                className="text-sm sm:text-base h-10 sm:h-11"
-              />
-              <Select
-                onValueChange={handleSelectChange}
-                value={formData.category}
-              >
-                <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                  <SelectValue placeholder="Select Category" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 overflow-y-auto">
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="components">Components</SelectItem>
-                  <SelectItem value="audio">Audio Equipment</SelectItem>
-                  <SelectItem value="cables">Cables & Accessories</SelectItem>
-                  <SelectItem value="peripherals">
-                    Computer Peripherals
-                  </SelectItem>
-                  <SelectItem value="gaming">Gaming Equipment</SelectItem>
-                  <SelectItem value="display">Display & Monitors</SelectItem>
-                  <SelectItem value="cameras">Cameras & Vision</SelectItem>
-                  <SelectItem value="power">Power & Charging</SelectItem>
-                  <SelectItem value="mobile">Mobile Accessories</SelectItem>
-                  <SelectItem value="stands">Stands & Mounts</SelectItem>
-                  <SelectItem value="connectivity">Connectivity</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                name="website"
-                placeholder="Website URL (optional)"
-                value={formData.website}
-                onChange={handleChange}
-                type="url"
+                type="number"
+                min="0"
                 className="text-sm sm:text-base h-10 sm:h-11"
               />
             </div>
@@ -190,13 +154,6 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
 
           {/* Location Information */}
           <div className="space-y-3 sm:space-y-4">
-            <Input
-              name="location"
-              placeholder="Location (City, State/Country)"
-              value={formData.location}
-              onChange={handleChange}
-              className="text-sm sm:text-base h-10 sm:h-11"
-            />
             <Textarea
               name="address"
               placeholder="Full Address"
@@ -213,21 +170,30 @@ export default function AddSupplier({ open, onClose }: AddSupplierProps) {
             />
           </div>
 
+          {/* Error Display */}
+          {error && (
+            <div className="text-red-500 text-sm p-3 bg-red-50 rounded-md">
+              {/* You might want to customize this based on your error structure */}
+              Failed to add supplier. Please check your input and try again.
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 sm:gap-3 pt-4 border-t">
             <Button
               variant="outline"
               onClick={handleCancel}
+              disabled={isLoading}
               className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
               className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base"
             >
-              Save Supplier
+              {isLoading ? "Saving..." : "Save Supplier"}
             </Button>
           </div>
         </div>
