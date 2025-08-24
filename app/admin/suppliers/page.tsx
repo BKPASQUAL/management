@@ -10,16 +10,17 @@ import {
   MapPin,
   Building,
   Loader2,
+  Hash,
 } from "lucide-react";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+// import {
+//   Select,
+//   SelectContent,
+//   SelectItem,
+//   SelectTrigger,
+//   SelectValue,
+// } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -267,12 +268,12 @@ export default function Page() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="font-bold">Supplier Code</TableHead>
                   <TableHead className="font-bold">Supplier Name</TableHead>
                   <TableHead className="font-bold">Contact Person</TableHead>
                   <TableHead className="font-bold">Email</TableHead>
                   <TableHead className="font-bold">Phone</TableHead>
                   <TableHead className="font-bold">Credit Days</TableHead>
-                  <TableHead className="font-bold">Address</TableHead>
                   <TableHead className="text-right font-bold">
                     Actions
                   </TableHead>
@@ -285,6 +286,9 @@ export default function Page() {
                     className="cursor-pointer hover:bg-gray-50"
                     onClick={() => handleRowClick(supplier.supplier_id!)}
                   >
+                    <TableCell className="max-w-[200px] truncate">
+                      {supplier.supplier_code}
+                    </TableCell>
                     <TableCell className="font-medium">
                       {supplier.supplier_name}
                     </TableCell>
@@ -298,9 +302,7 @@ export default function Page() {
                     <TableCell className="text-sm">
                       {supplier.credit_days} days
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {supplier.address}
-                    </TableCell>
+
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button
@@ -358,7 +360,7 @@ export default function Page() {
                           {supplier.supplier_name}
                         </div>
                         <div className="text-sm text-gray-500 truncate max-w-[200px]">
-                          {supplier.address}
+                          {supplier.supplier_code}
                         </div>
                       </div>
                     </TableCell>
@@ -444,6 +446,13 @@ export default function Page() {
 
                 <div className="grid grid-cols-1 gap-2 text-sm">
                   <div className="flex items-center gap-2">
+                    <Hash className="h-4 w-4 text-gray-400" />
+                    <span className="text-gray-600 font-medium">
+                      {supplier.supplier_code}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-gray-400" />
                     <span className="text-gray-600">
                       {supplier.contact_person}
@@ -460,11 +469,6 @@ export default function Page() {
                     <span className="text-gray-600">
                       {supplier.phone_number}
                     </span>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-600">{supplier.address}</span>
                   </div>
                 </div>
 
