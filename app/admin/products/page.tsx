@@ -9,6 +9,7 @@ import {
   Package,
   MapPin,
   Hash,
+  Image as ImageIcon,
 } from "lucide-react";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -39,159 +40,122 @@ import {
 } from "@/components/ui/pagination";
 import AddProductModal from "@/components/model/AddProduct";
 
+import Image from "next/image";
+import {
+  useDeleteProductMutation,
+  useGetProductsQuery,
+} from "@/store/services/product";
+
+// Type definitions
+interface Product {
+  item_uuid: string;
+  item_name: string;
+  item_code: string;
+  description: string;
+  unit_type: string;
+  unit_quantity: string;
+  selling_price: string;
+  supplier_name: string;
+  category_name: string;
+  images?: string[];
+}
+
+interface ApiResponse {
+  data: Product[];
+}
+
+// Type for the query response - could be either format
+type ProductsQueryResponse = Product[] | ApiResponse | undefined;
+
 export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 11;
   const router = useRouter();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("");
 
-  const sampleProducts = [
-    {
-      id: 1,
-      name: "Wireless Headphones",
-      description: "Premium noise-cancelling headphones",
-      price: "$199.99",
-      quantity: 45,
-      sku: "WH001",
-      location: "Warehouse A",
-    },
-    {
-      id: 2,
-      name: "Smart Watch",
-      description: "Fitness tracking smartwatch",
-      price: "$299.99",
-      quantity: 32,
-      sku: "SW002",
-      location: "Warehouse B",
-    },
-    {
-      id: 3,
-      name: "Bluetooth Speaker",
-      description: "Portable wireless speaker",
-      price: "$79.99",
-      quantity: 78,
-      sku: "BS003",
-      location: "Warehouse A",
-    },
-    {
-      id: 4,
-      name: "USB Cable",
-      description: "High-speed USB-C cable",
-      price: "$19.99",
-      quantity: 120,
-      sku: "UC004",
-      location: "Warehouse C",
-    },
-    {
-      id: 5,
-      name: "Wireless Mouse",
-      description: "Ergonomic wireless mouse",
-      price: "$49.99",
-      quantity: 65,
-      sku: "WM005",
-      location: "Warehouse A",
-    },
-    {
-      id: 6,
-      name: "Keyboard",
-      description: "Mechanical gaming keyboard",
-      price: "$129.99",
-      quantity: 28,
-      sku: "KB006",
-      location: "Warehouse B",
-    },
-    {
-      id: 7,
-      name: "Monitor",
-      description: "27-inch 4K display",
-      price: "$399.99",
-      quantity: 15,
-      sku: "MN007",
-      location: "Warehouse A",
-    },
-    {
-      id: 8,
-      name: "Webcam",
-      description: "HD video conference camera",
-      price: "$89.99",
-      quantity: 42,
-      sku: "WC008",
-      location: "Warehouse C",
-    },
-    {
-      id: 9,
-      name: "Power Bank",
-      description: "10000mAh portable charger",
-      price: "$39.99",
-      quantity: 95,
-      sku: "PB009",
-      location: "Warehouse A",
-    },
-    {
-      id: 10,
-      name: "Phone Case",
-      description: "Protective silicone case",
-      price: "$24.99",
-      quantity: 150,
-      sku: "PC010",
-      location: "Warehouse B",
-    },
-    {
-      id: 11,
-      name: "Tablet Stand",
-      description: "Adjustable aluminum stand",
-      price: "$34.99",
-      quantity: 38,
-      sku: "TS011",
-      location: "Warehouse C",
-    },
-    {
-      id: 12,
-      name: "USB Hub",
-      description: "7-port USB 3.0 hub",
-      price: "$29.99",
-      quantity: 56,
-      sku: "UH012",
-      location: "Warehouse A",
-    },
-    {
-      id: 13,
-      name: "Tablet Stand Pro",
-      description: "Premium adjustable aluminum stand",
-      price: "$44.99",
-      quantity: 25,
-      sku: "TS013",
-      location: "Warehouse C",
-    },
-    {
-      id: 14,
-      name: "USB Hub Pro",
-      description: "10-port USB 3.1 hub with charging",
-      price: "$49.99",
-      quantity: 33,
-      sku: "UH014",
-      location: "Warehouse A",
-    },
-  ];
+  // Fetch products from API
+  const {
+    data: apiResponse,
+    isLoading,
+    error,
+  } = useGetProductsQuery() as {
+    data: ProductsQueryResponse;
+    isLoading: boolean;
+    error: any;
+  };
+  const [deleteProduct] = useDeleteProductMutation();
+
+  // Extract products from API response with proper type checking
+  const products: Product[] = (() => {
+    if (!apiResponse) return [];
+
+    // Check if apiResponse is an array (direct product array)
+    if (Array.isArray(apiResponse)) {
+      return apiResponse;
+    }
+
+    // Check if apiResponse has a data property (wrapped response)
+    if (
+      apiResponse &&
+      typeof apiResponse === "object" &&
+      "data" in apiResponse
+    ) {
+      return (apiResponse as ApiResponse).data || [];
+    }
+
+    return [];
+  })();
+
+  // Filter products based on search and filters
+  const filteredProducts = products.filter((product: Product) => {
+    const matchesSearch =
+      product.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.item_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      !categoryFilter || product.category_name === categoryFilter;
+    const matchesSupplier =
+      !supplierFilter || product.supplier_name === supplierFilter;
+
+    return matchesSearch && matchesCategory && matchesSupplier;
+  });
 
   // Calculate pagination
-  const totalPages = Math.ceil(sampleProducts.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentProducts = sampleProducts.slice(startIndex, endIndex);
+  const currentProducts = filteredProducts.slice(startIndex, endIndex);
 
-  const handleRowClick = (productId: number) => {
-    router.push(`/admin/products/productDetail/${productId}`);
+  // Get unique categories and suppliers for filters
+  const categories = [
+    ...new Set(products.map((p: Product) => p.category_name)),
+  ];
+  const suppliers = [...new Set(products.map((p: Product) => p.supplier_name))];
+
+  const handleRowClick = (itemUuid: string) => {
+    router.push(`/admin/products/productDetail/${itemUuid}`);
   };
 
-  const handleEdit = (e: React.MouseEvent, productId: number) => {
+  const handleEdit = (e: React.MouseEvent, itemUuid: string) => {
     e.stopPropagation();
-    console.log("Edit product:", productId);
+    console.log("Edit product:", itemUuid);
+    // Implement edit functionality
   };
 
-  const handleDelete = (e: React.MouseEvent, productId: number) => {
+  const handleDelete = async (e: React.MouseEvent, itemUuid: string) => {
     e.stopPropagation();
-    console.log("Delete product:", productId);
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await deleteProduct(itemUuid as any).unwrap();
+        console.log("Product deleted successfully");
+      } catch (error) {
+        console.error("Failed to delete product:", error);
+      }
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -234,12 +198,41 @@ export default function Page() {
     return pages;
   };
 
-  // Get stock status color
+  // Get stock status color (based on unit_quantity for now)
   const getStockStatus = (quantity: number) => {
-    if (quantity <= 20) return "text-red-600 bg-red-100";
-    if (quantity <= 50) return "text-yellow-600 bg-yellow-100";
+    if (quantity <= 5) return "text-red-600 bg-red-100";
+    if (quantity <= 10) return "text-yellow-600 bg-yellow-100";
     return "text-green-600 bg-green-100";
   };
+
+  // Handle image error with proper typing
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    const target = e.currentTarget;
+    const nextSibling = target.nextElementSibling as HTMLElement | null;
+
+    target.style.display = "none";
+    if (nextSibling) {
+      nextSibling.style.display = "flex";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg">Loading products...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-lg text-red-600">Error loading products</div>
+      </div>
+    );
+  }
 
   return (
     <div className="">
@@ -259,7 +252,7 @@ export default function Page() {
             Generate Report
           </Button>
           <div className="border p-3 rounded-lg text-sm w-full sm:w-auto text-center">
-            Total Products: {sampleProducts.length}
+            Total Products: {products.length}
           </div>
         </div>
       </div>
@@ -274,33 +267,44 @@ export default function Page() {
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                 size={18}
               />
-              <Input placeholder="Search products..." className="pl-10 h-9" />
+              <Input
+                placeholder="Search products..."
+                className="pl-10 h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
 
             {/* Filters */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-              <Select>
+            {/* <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
                   <SelectValue placeholder="Categories" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="electronics">Electronics</SelectItem>
-                  <SelectItem value="accessories">Accessories</SelectItem>
-                  <SelectItem value="audio">Audio</SelectItem>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category: string) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
-              <Select>
+              <Select value={supplierFilter} onValueChange={setSupplierFilter}>
                 <SelectTrigger className="w-full sm:w-[150px] lg:w-[180px] h-10">
                   <SelectValue placeholder="Suppliers" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="supplier1">Supplier A</SelectItem>
-                  <SelectItem value="supplier2">Supplier B</SelectItem>
-                  <SelectItem value="supplier3">Supplier C</SelectItem>
+                  <SelectItem value="">All Suppliers</SelectItem>
+                  {suppliers.map((supplier: string) => (
+                    <SelectItem key={supplier} value={supplier}>
+                      {supplier}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
           </div>
 
           {/* Add Button */}
@@ -319,49 +323,74 @@ export default function Page() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-bold">Product Name</TableHead>
-                <TableHead className="font-bold">Description</TableHead>
-                <TableHead className="font-bold">Price</TableHead>
-                <TableHead className="font-bold">Quantity</TableHead>
-                <TableHead className="font-bold">SKU</TableHead>
-                <TableHead className="font-bold">Location</TableHead>
-                <TableHead className="text-right font-bold">Actions</TableHead>
+                <TableHead className=" w-[5%] font-bold">Image</TableHead>
+                <TableHead className=" w-[10%] font-bold">Item Code</TableHead>
+                <TableHead className=" w-[15%] font-bold">Item Name</TableHead>
+                <TableHead className=" w-[10%] font-bold">Pack Type</TableHead>
+                <TableHead className=" w-[10%] font-bold">
+                  Unit Quantity
+                </TableHead>
+                <TableHead className=" w-[10%] font-bold">
+                  Selling Price
+                </TableHead>
+                {/* <TableHead className=" w-[10%] font-bold">
+                  Stockes
+                </TableHead> */}
+                <TableHead className=" w-[10%] font-bold">Supplier</TableHead>
+                <TableHead className=" w-[5%] text-right font-bold">
+                  Actions
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentProducts.map((product) => (
+              {currentProducts.map((product: Product) => (
                 <TableRow
-                  key={product.id}
+                  key={product.item_uuid}
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(product.id)}
+                  onClick={() => handleRowClick(product.item_uuid)}
                 >
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-gray-600">
-                    {product.description}
+                  <TableCell>
+                    <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                      {product.images && product.images.length > 0 ? (
+                        <img
+                          src={`${product.images[0]}`}
+                          alt={product.item_name}
+                          className="w-full h-full object-cover"
+                          onError={handleImageError}
+                        />
+                      ) : null}
+                      <ImageIcon className="h-6 w-6 text-gray-400" />
+                    </div>
                   </TableCell>
-                  <TableCell className="font-semibold">
-                    {product.price}
+                  <TableCell className="font-mono text-sm">
+                    {product.item_code}
+                  </TableCell>
+                  <TableCell className="font-medium">
+                    {product.item_name}
+                  </TableCell>
+                  <TableCell className="text-gray-600">
+                    {product.unit_type}
                   </TableCell>
                   <TableCell>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                        product.quantity
+                        parseFloat(product.unit_quantity)
                       )}`}
                     >
-                      {product.quantity}
+                      {product.unit_quantity}
                     </span>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {product.sku}
+                  <TableCell className="font-semibold">
+                    Rs. {parseFloat(product.selling_price).toFixed(2)}
                   </TableCell>
-                  <TableCell>{product.location}</TableCell>
+                  <TableCell>{product.supplier_name}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 cursor-pointer"
-                        onClick={(e) => handleEdit(e, product.id)}
+                        onClick={(e) => handleEdit(e, product.item_uuid)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -369,7 +398,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                        onClick={(e) => handleDelete(e, product.id)}
+                        onClick={(e) => handleDelete(e, product.item_uuid)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -388,46 +417,56 @@ export default function Page() {
               <TableRow>
                 <TableHead className="font-bold">Product Info</TableHead>
                 <TableHead className="font-bold">Price & Stock</TableHead>
-                <TableHead className="font-bold">Location</TableHead>
+                <TableHead className="font-bold">Supplier</TableHead>
                 <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {currentProducts.map((product) => (
+              {currentProducts.map((product: Product) => (
                 <TableRow
-                  key={product.id}
+                  key={product.item_uuid}
                   className="cursor-pointer hover:bg-gray-50"
-                  onClick={() => handleRowClick(product.id)}
+                  onClick={() => handleRowClick(product.item_uuid)}
                 >
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-[200px]">
-                        {product.description}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={`/images/${product.images[0]}`}
+                            alt={product.item_name}
+                            className="w-full h-full object-cover"
+                            onError={handleImageError}
+                          />
+                        ) : null}
+                        <ImageIcon className="h-5 w-5 text-gray-400" />
                       </div>
-                      <div className="text-xs font-mono text-gray-400 mt-1">
-                        SKU: {product.sku}
+                      <div>
+                        <div className="font-medium">{product.item_name}</div>
+                        <div className="text-xs font-mono text-gray-400 mt-1">
+                          {product.item_code}
+                        </div>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div>
                       <div className="font-semibold text-lg">
-                        {product.price}
+                        Rs. {parseFloat(product.selling_price).toFixed(2)}
                       </div>
                       <div className="text-sm">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                            product.quantity
+                            parseFloat(product.unit_quantity)
                           )}`}
                         >
-                          Stock: {product.quantity}
+                          {product.unit_quantity} {product.unit_type}
                         </span>
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm">{product.location}</div>
+                    <div className="text-sm">{product.supplier_name}</div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
@@ -435,7 +474,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 cursor-pointer"
-                        onClick={(e) => handleEdit(e, product.id)}
+                        onClick={(e) => handleEdit(e, product.item_uuid)}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -443,7 +482,7 @@ export default function Page() {
                         variant="outline"
                         size="sm"
                         className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                        onClick={(e) => handleDelete(e, product.id)}
+                        onClick={(e) => handleDelete(e, product.item_uuid)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -457,27 +496,40 @@ export default function Page() {
 
         {/* Mobile View - Card Layout */}
         <div className="block md:hidden mt-4 space-y-4">
-          {currentProducts.map((product) => (
+          {currentProducts.map((product: Product) => (
             <div
-              key={product.id}
+              key={product.item_uuid}
               className="border rounded-lg p-4 bg-white shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handleRowClick(product.id)}
+              onClick={() => handleRowClick(product.item_uuid)}
             >
               <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <h3 className="font-medium text-lg leading-tight mb-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                    {product.description}
-                  </p>
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                    {product.images && product.images.length > 0 ? (
+                      <img
+                        src={`/images/${product.images[0]}`}
+                        alt={product.item_name}
+                        className="w-full h-full object-cover"
+                        onError={handleImageError}
+                      />
+                    ) : null}
+                    <ImageIcon className="h-6 w-6 text-gray-400" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium text-lg leading-tight mb-1">
+                      {product.item_name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {product.description}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex gap-2 ml-2">
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 cursor-pointer"
-                    onClick={(e) => handleEdit(e, product.id)}
+                    onClick={(e) => handleEdit(e, product.item_uuid)}
                   >
                     <Edit className="h-3 w-3" />
                   </Button>
@@ -485,7 +537,7 @@ export default function Page() {
                     variant="outline"
                     size="sm"
                     className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
-                    onClick={(e) => handleDelete(e, product.id)}
+                    onClick={(e) => handleDelete(e, product.item_uuid)}
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -495,31 +547,33 @@ export default function Page() {
               <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-600" />
-                  <span className="font-semibold text-lg">{product.price}</span>
+                  <span className="font-semibold text-lg">
+                    Rs. {parseFloat(product.selling_price).toFixed(2)}
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-gray-400" />
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                      product.quantity
+                      parseFloat(product.unit_quantity)
                     )}`}
                   >
-                    {product.quantity}
+                    {product.unit_quantity}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <Hash className="h-4 w-4 text-gray-400" />
                   <span className="font-mono text-xs text-gray-600">
-                    {product.sku}
+                    {product.item_code}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-600 text-xs">
-                    {product.location}
+                    {product.supplier_name}
                   </span>
                 </div>
               </div>
@@ -531,53 +585,57 @@ export default function Page() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mt-6">
           <div className="text-sm text-gray-500 text-center sm:text-left">
             Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleProducts.length)} of{" "}
-            {sampleProducts.length} products
+            {Math.min(endIndex, filteredProducts.length)} of{" "}
+            {filteredProducts.length} products
           </div>
 
-          <Pagination className="justify-center sm:justify-end">
-            <PaginationContent className="flex-wrap">
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  className={
-                    currentPage === 1
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-
-              {getPageNumbers().map((page, index) => (
-                <PaginationItem key={index}>
-                  {page === "ellipsis" ? (
-                    <PaginationEllipsis />
-                  ) : (
-                    <PaginationLink
-                      onClick={() => handlePageChange(page as number)}
-                      isActive={currentPage === page}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  )}
+          {totalPages > 1 && (
+            <Pagination className="justify-center sm:justify-end">
+              <PaginationContent className="flex-wrap">
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() =>
+                      handlePageChange(Math.max(1, currentPage - 1))
+                    }
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
                 </PaginationItem>
-              ))}
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() =>
-                    handlePageChange(Math.min(totalPages, currentPage + 1))
-                  }
-                  className={
-                    currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
-                      : "cursor-pointer"
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+                {getPageNumbers().map((page, index) => (
+                  <PaginationItem key={index}>
+                    {page === "ellipsis" ? (
+                      <PaginationEllipsis />
+                    ) : (
+                      <PaginationLink
+                        onClick={() => handlePageChange(page as number)}
+                        isActive={currentPage === page}
+                        className="cursor-pointer"
+                      >
+                        {page}
+                      </PaginationLink>
+                    )}
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() =>
+                      handlePageChange(Math.min(totalPages, currentPage + 1))
+                    }
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-50"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          )}
         </div>
       </div>
 
