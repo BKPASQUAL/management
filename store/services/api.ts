@@ -32,14 +32,6 @@ export const api = createApi({
   }),
   tagTypes: ["Supplier"],
   endpoints: (builder) => ({
-    // Existing endpoints
-    getPosts: builder.query<any[], void>({
-      query: () => "posts",
-    }),
-    getPostById: builder.query<any, number>({
-      query: (id) => `posts/${id}`,
-    }),
-
     // Supplier endpoints - FIXED: Using CreateSupplierRequest for input
     addSupplier: builder.mutation<Supplier, CreateSupplierRequest>({
       query: (supplierData) => ({
@@ -83,8 +75,6 @@ export const api = createApi({
 });
 
 export const {
-  useGetPostsQuery,
-  useGetPostByIdQuery,
   useAddSupplierMutation,
   useGetSuppliersQuery,
   useGetSupplierByIdQuery,

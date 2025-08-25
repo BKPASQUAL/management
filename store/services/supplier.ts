@@ -13,15 +13,19 @@ export interface Supplier {
   additional_notes?: string;
 }
 
+// Dropdown supplier type (id + supplier_name only)
+export interface DropdownSupplier {
+  supplier_id: string | number; // can be uuid or number depending on backend
+  supplier_name: string;
+}
+
 export const supplierApi = createApi({
   reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3000/", // Replace with your actual base URL
+    baseUrl: "http://localhost:3001/", // ⚡ should point to your NestJS backend port
   }),
   tagTypes: ["Supplier"],
   endpoints: (builder) => ({
-    // Existing endpoints
-
     // Supplier endpoints
     addSupplier: builder.mutation<Supplier, Omit<Supplier, "id">>({
       query: (supplierData) => ({
@@ -61,6 +65,16 @@ export const supplierApi = createApi({
       }),
       invalidatesTags: ["Supplier"],
     }),
+
+    // ✅ Dropdown suppliers (only id + name)
+    getDropdownSuppliers: builder.query<DropdownSupplier[], void>({
+      query: () => "supplier/dropdown",
+      providesTags: ["Supplier"],
+      transformResponse: (response: {
+        data: DropdownSupplier[];
+        count: number;
+      }) => response.data, // pick only data array
+    }),
   }),
 });
 
@@ -70,4 +84,5 @@ export const {
   useGetSupplierByIdQuery,
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
+  useGetDropdownSuppliersQuery, // ✅ new hook
 } = supplierApi;

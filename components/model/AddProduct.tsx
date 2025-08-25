@@ -10,8 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Upload, X, Camera } from "lucide-react";
+import { useGetDropdownSuppliersQuery } from "@/store/services/supplier";
 
 interface AddProductModalProps {
   open: boolean;
@@ -25,6 +33,7 @@ export default function AddProductModal({
   const [formData, setFormData] = useState({
     name: "",
     productCode: "",
+    supplierId: "", // ✅ add this
     supplierName: "",
     costPrice: "",
     sellingPrice: "",
@@ -36,6 +45,7 @@ export default function AddProductModal({
 
   const [images, setImages] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const { data: suppliers, isLoading } = useGetDropdownSuppliersQuery();
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -108,6 +118,7 @@ export default function AddProductModal({
       name: "",
       productCode: "",
       supplierName: "",
+      supplierId: "",
       costPrice: "",
       sellingPrice: "",
       description: "",
@@ -148,7 +159,7 @@ export default function AddProductModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 sm:space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Basic Information */}
           <div className="space-y-3 sm:space-y-4">
             <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-2">
@@ -167,13 +178,39 @@ export default function AddProductModal({
                 onChange={handleChange}
                 className="text-sm sm:text-base h-10 sm:h-10"
               />
-              <Input
-                name="supplierName"
-                placeholder="Supplier Name"
-                value={formData.supplierName}
-                onChange={handleChange}
-                className="text-sm sm:text-base h-10 sm:h-10"
-              />
+              <Select
+                value={formData.supplierId}
+                onValueChange={(value) => {
+                  const selectedSupplier = suppliers?.find(
+                    (s) => s.supplier_id?.toString() === value
+                  );
+                  setFormData((prev) => ({
+                    ...prev,
+                    supplierId: value,
+                    supplierName: selectedSupplier?.supplier_name || "",
+                  }));
+                }}
+                required
+              >
+                <SelectTrigger className="text-sm sm:text-base h-10 sm:h-10 w-full">
+                  <SelectValue placeholder="Select Supplier" />
+                </SelectTrigger>
+                <SelectContent>
+                  {isLoading && (
+                    <SelectItem value="loading" disabled>
+                      Loading...
+                    </SelectItem>
+                  )}
+                  {suppliers?.map((supplier) => (
+                    <SelectItem
+                      key={supplier.supplier_id}
+                      value={supplier.supplier_id?.toString() || ""}
+                    >
+                      {supplier.supplier_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
