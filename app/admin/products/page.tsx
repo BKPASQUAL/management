@@ -507,7 +507,7 @@ export default function Page() {
                   <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
                     {product.images && product.images.length > 0 ? (
                       <img
-                        src={`/images/${product.images[0]}`}
+                        src={`${product.images[0]}`}
                         alt={product.item_name}
                         className="w-full h-full object-cover"
                         onError={handleImageError}

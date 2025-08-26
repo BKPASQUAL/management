@@ -30,14 +30,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useGetDropdownSuppliersQuery } from "@/store/services/supplier";
 
-const frameworks = [
-  { value: "next.js", label: "Next.js" },
-  { value: "sveltekit", label: "SvelteKit" },
-  { value: "nuxt.js", label: "Nuxt.js" },
-  { value: "remix", label: "Remix" },
-  { value: "astro", label: "Astro" },
-];
+// Import the API hook
 
 // Sample items database
 const itemsDatabase = [
@@ -72,8 +67,16 @@ interface NewItemRow {
 }
 
 export default function DatePickerPage() {
+  // Fetch suppliers from API
+  const {
+    data: suppliers = [],
+    isLoading: suppliersLoading,
+    error: suppliersError,
+  } = useGetDropdownSuppliersQuery();
+
   const [open, setOpen] = React.useState(false);
-  const [value, setValue] = React.useState("");
+  const [selectedSupplierId, setSelectedSupplierId] =
+    React.useState<string>("");
   const [billNo, setBillNo] = React.useState<string>("");
   const [billingDate, setBillingDate] = React.useState<Date | undefined>();
   const [receivedDate, setReceivedDate] = React.useState<Date | undefined>();
@@ -114,6 +117,21 @@ export default function DatePickerPage() {
     const subtotal = price * quantity;
     const discountAmount = (subtotal * discount) / 100;
     return subtotal - discountAmount;
+  };
+
+  // Handle supplier selection
+  const handleSupplierSelect = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
+    setOpen(false);
+  };
+
+  // Get selected supplier name for display
+  const getSelectedSupplierName = (): string => {
+    if (!selectedSupplierId) return "Select supplier...";
+    const supplier = suppliers.find(
+      (s) => s.supplier_id.toString() === selectedSupplierId
+    );
+    return supplier ? supplier.supplier_name : "Select supplier...";
   };
 
   // Handle item code selection
@@ -271,6 +289,11 @@ export default function DatePickerPage() {
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
 
+  // Handle loading and error states
+  if (suppliersError) {
+    console.error("Error loading suppliers:", suppliersError);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-row justify-between">
@@ -283,37 +306,39 @@ export default function DatePickerPage() {
                 role="combobox"
                 aria-expanded={open}
                 className="w-[350px] justify-between"
+                disabled={suppliersLoading}
               >
-                {value
-                  ? frameworks.find((framework) => framework.value === value)
-                      ?.label
-                  : "Select framework..."}
+                {suppliersLoading
+                  ? "Loading suppliers..."
+                  : getSelectedSupplierName()}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[350px] p-0">
               <Command>
                 <CommandInput
-                  placeholder="Search framework..."
+                  placeholder="Search supplier..."
                   className="h-9"
                 />
                 <CommandList>
-                  <CommandEmpty>No framework found.</CommandEmpty>
+                  <CommandEmpty>
+                    {suppliersLoading ? "Loading..." : "No supplier found."}
+                  </CommandEmpty>
                   <CommandGroup>
-                    {frameworks.map((framework) => (
+                    {suppliers.map((supplier) => (
                       <CommandItem
-                        key={framework.value}
-                        value={framework.value}
-                        onSelect={(currentValue: string) => {
-                          setValue(currentValue === value ? "" : currentValue);
-                          setOpen(false);
-                        }}
+                        key={supplier.supplier_id}
+                        value={supplier.supplier_name}
+                        onSelect={() =>
+                          handleSupplierSelect(supplier.supplier_id.toString())
+                        }
                       >
-                        {framework.label}
+                        {supplier.supplier_name}
                         <Check
                           className={cn(
                             "ml-auto h-4 w-4",
-                            value === framework.value
+                            selectedSupplierId ===
+                              supplier.supplier_id.toString()
                               ? "opacity-100"
                               : "opacity-0"
                           )}
@@ -325,6 +350,11 @@ export default function DatePickerPage() {
               </Command>
             </PopoverContent>
           </Popover>
+          {suppliersError && (
+            <p className="text-sm text-red-500">
+              Failed to load suppliers. Please try again.
+            </p>
+          )}
         </div>
 
         <div className="flex gap-x-4">
