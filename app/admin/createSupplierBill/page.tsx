@@ -61,6 +61,8 @@ interface Item {
   id: number;
   itemCode: string;
   itemName: string;
+  sellingPrice: number; // Added selling price to Item interface
+  mrp: number; // Added MRP to Item interface
   price: number;
   quantity: number;
   discount: number;
@@ -71,6 +73,8 @@ interface Item {
 interface NewItemRow {
   itemCode: string;
   itemName: string;
+  sellingPrice: string;
+  mrp: string;
   price: string;
   quantity: string;
   discount: string;
@@ -121,6 +125,8 @@ export default function DatePickerPage() {
     quantity: "",
     discount: "",
     freeItemQuantity: "",
+    sellingPrice: "",
+    mrp: "",
   });
 
   // Dropdown states
@@ -166,11 +172,14 @@ export default function DatePickerPage() {
     if (selectedProduct) {
       setNewItem({
         ...newItem,
-        itemCode: code,
+        itemCode: selectedProduct.item_code,
         itemName: selectedProduct.item_name,
-        price: selectedProduct.selling_price,
+        sellingPrice: selectedProduct.selling_price,
+        mrp: selectedProduct.minimum_selling_price,
+        price: selectedProduct.selling_price, // default as unit price
       });
     }
+
     setItemCodeOpen(false);
   };
 
@@ -184,6 +193,8 @@ export default function DatePickerPage() {
         ...newItem,
         itemCode: selectedProduct.item_code,
         itemName: name,
+        sellingPrice: selectedProduct.selling_price,
+        mrp: selectedProduct.minimum_selling_price,
         price: selectedProduct.selling_price,
       });
     }
@@ -252,6 +263,8 @@ export default function DatePickerPage() {
       const quantity = parseFloat(newItem.quantity) || 0;
       const discount = parseFloat(newItem.discount) || 0;
       const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
+      const sellingPrice = parseFloat(newItem.sellingPrice) || 0;
+      const mrp = parseFloat(newItem.mrp) || 0;
 
       const amount = calculateAmount(price, quantity, discount);
 
@@ -259,6 +272,8 @@ export default function DatePickerPage() {
         id: Date.now(), // Simple ID generation
         itemCode: newItem.itemCode,
         itemName: newItem.itemName,
+        sellingPrice,
+        mrp,
         price,
         quantity,
         discount,
@@ -276,6 +291,8 @@ export default function DatePickerPage() {
         quantity: "",
         discount: "",
         freeItemQuantity: "",
+        sellingPrice: "",
+        mrp: "",
       });
 
       // Show success toast for item addition
@@ -334,6 +351,8 @@ export default function DatePickerPage() {
       quantity: "",
       discount: "",
       freeItemQuantity: "",
+      sellingPrice: "",
+      mrp: "",
     });
     setOpen(false);
     setBillingDateOpen(false);
@@ -410,20 +429,22 @@ export default function DatePickerPage() {
 
       // ✅ Build DTO payload matching your CreateSupplierBillDto structure
       const payload: CreateSupplierBillDto = {
-        supplierId: selectedSupplierId, // ✅ string directly
+        supplierId: selectedSupplierId,
         billNo: billNo.trim(),
         billingDate: formatDateForBackend(billingDate),
         receivedDate: formatDateForBackend(receivedDate),
         items: items.map((item) => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
+          sellingPrice: item.sellingPrice, // ✅ include selling price
+          mrp: item.mrp, // ✅ include MRP
           price: item.price,
           quantity: item.quantity,
           discount: item.discount,
           amount: item.amount,
           freeItemQuantity: item.freeItemQuantity,
         })),
-        extraDiscount: extraDiscount,
+        extraDiscount,
         subtotal,
         extraDiscountAmount,
         finalTotal,
@@ -461,6 +482,7 @@ export default function DatePickerPage() {
       }
     }
   };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-row justify-between">
@@ -635,6 +657,8 @@ export default function DatePickerPage() {
               <TableRow>
                 <TableHead className="w-[200px] py-3 px-4">Item Code</TableHead>
                 <TableHead className="w-[300px]">Item Name</TableHead>
+                <TableHead className="w-[120px]">Selling Price</TableHead>
+                <TableHead className="w-[120px]">MRP</TableHead>
                 <TableHead className="w-[120px]">Unit Price</TableHead>
                 <TableHead className="w-[100px]">Quantity</TableHead>
                 <TableHead className="w-[120px]">Discount(%)</TableHead>
@@ -679,6 +703,42 @@ export default function DatePickerPage() {
                       />
                     ) : (
                       item.itemName
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.sellingPrice}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "sellingPrice",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `$${item.sellingPrice.toFixed(2)}`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.mrp}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "mrp",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `$${item.mrp.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>
@@ -847,6 +907,7 @@ export default function DatePickerPage() {
                     </PopoverContent>
                   </Popover>
                 </TableCell>
+
                 <TableCell>
                   <Popover open={itemNameOpen} onOpenChange={setItemNameOpen}>
                     <PopoverTrigger asChild>
@@ -905,6 +966,33 @@ export default function DatePickerPage() {
                     </PopoverContent>
                   </Popover>
                 </TableCell>
+
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newItem.sellingPrice}
+                    onChange={(e) =>
+                      handleInputChange("sellingPrice", e.target.value)
+                    }
+                    data-field="sellingPrice"
+                    onKeyDown={(e) => handleKeyPress(e, "mrp")}
+                    className="h-10 "
+                  />
+                </TableCell>
+
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newItem.mrp}
+                    onChange={(e) => handleInputChange("mrp", e.target.value)}
+                    data-field="mrp"
+                    onKeyDown={(e) => handleKeyPress(e, "price")}
+                    className="h-10 "
+                  />
+                </TableCell>
+
                 <TableCell>
                   <Input
                     type="number"
@@ -916,6 +1004,7 @@ export default function DatePickerPage() {
                     className="h-10"
                   />
                 </TableCell>
+
                 <TableCell>
                   <Input
                     type="number"
@@ -929,6 +1018,7 @@ export default function DatePickerPage() {
                     className="h-10"
                   />
                 </TableCell>
+
                 <TableCell>
                   <Input
                     type="number"
@@ -942,6 +1032,7 @@ export default function DatePickerPage() {
                     className="h-10"
                   />
                 </TableCell>
+
                 <TableCell>
                   <Input
                     type="number"
@@ -955,6 +1046,7 @@ export default function DatePickerPage() {
                     className="h-10"
                   />
                 </TableCell>
+
                 <TableCell>
                   <span className="text-sm text-gray-600">
                     $
@@ -967,6 +1059,7 @@ export default function DatePickerPage() {
                       : "0.00"}
                   </span>
                 </TableCell>
+
                 <TableCell>
                   <Button
                     variant="ghost"
