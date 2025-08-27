@@ -30,7 +30,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useGetDropdownSuppliersQuery } from "@/store/services/supplier";
+import {
+  useCreateSupplierBillMutation,
+  useGetDropdownSuppliersQuery,
+} from "@/store/services/supplier";
 import { useGetProductsQuery } from "@/store/services/product";
 
 // Updated Product interface to match your API response
@@ -80,6 +83,8 @@ export default function DatePickerPage() {
     isLoading: suppliersLoading,
     error: suppliersError,
   } = useGetDropdownSuppliersQuery();
+
+  const [createSupplierBill] = useCreateSupplierBillMutation();
 
   // Fetch products from API
   const {
@@ -318,6 +323,86 @@ export default function DatePickerPage() {
   if (productsError) {
     console.error("Error loading products:", productsError);
   }
+  const handleSaveInvoice = async () => {
+    try {
+      // ✅ Basic validation
+      if (!selectedSupplierId) {
+        console.error("⚠️ Please select a supplier!");
+        return;
+      }
+      if (!billNo) {
+        console.error("⚠️ Please enter a Bill Number!");
+        return;
+      }
+      if (!billingDate || !receivedDate) {
+        console.error("⚠️ Please select billing and received dates!");
+        return;
+      }
+      if (items.length === 0) {
+        console.error("⚠️ Please add at least one item!");
+        return;
+      }
+
+      // ✅ Format dates (yyyy-mm-dd)
+      const formatDateForBackend = (date: Date | undefined) => {
+        if (!date) return "";
+        return new Date(date).toISOString().split("T")[0];
+      };
+
+      // ✅ Get supplier name
+      const selectedSupplier = suppliers.find(
+        (s) => s.supplier_id.toString() === selectedSupplierId
+      );
+      const supplierName = selectedSupplier
+        ? selectedSupplier.supplier_name
+        : "";
+
+      // ✅ Transform UI items → backend DTO items (matching your SupplierBillItemDto structure)
+      const transformedItems = items.map((item) => ({
+        id: item.id,
+        itemCode: item.itemCode,
+        itemName: item.itemName,
+        price: item.price,
+        quantity: item.quantity,
+        discount: item.discount || 0,
+        amount: item.amount,
+        freeItemQuantity: item.freeItemQuantity || 0,
+      }));
+
+      // ✅ Calculate totals
+      const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
+      const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
+      const finalTotal = subtotal - extraDiscountAmount;
+
+      // ✅ Build DTO payload matching your CreateSupplierBillDto structure
+      const payload = {
+        supplierId: selectedSupplierId,
+        supplierName: supplierName,
+        billNo: billNo.trim(),
+        billingDate: formatDateForBackend(billingDate),
+        receivedDate: formatDateForBackend(receivedDate),
+        items: transformedItems,
+        extraDiscount: extraDiscount.toString(),
+        subtotal: subtotal,
+        extraDiscountAmount: extraDiscountAmount,
+        finalTotal: finalTotal,
+      };
+
+      console.log("🚀 Sending payload to backend:", payload);
+
+      // ✅ Send to backend
+      const response = await createSupplierBill(payload).unwrap();
+
+      console.log("✅ Backend response:", response);
+      // toast.success("Invoice saved successfully!");
+
+      // ✅ Reset form after saving (optional)
+      // resetForm();
+    } catch (error) {
+      console.error("❌ Error saving invoice:", error);
+      // toast.error("Failed to save invoice");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -464,7 +549,11 @@ export default function DatePickerPage() {
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Items</h3>
           <div className="flex gap-x-2">
-            <Button variant="greenOutline" className="cursor-pointer">
+            <Button
+              variant="greenOutline"
+              className="cursor-pointer"
+              onClick={handleSaveInvoice}
+            >
               <Save className=" h-4 w-4" /> Save Invoice
             </Button>
             <Button variant="blackOutline" className="cursor-pointer">
