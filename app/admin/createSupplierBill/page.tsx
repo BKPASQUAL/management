@@ -31,6 +31,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  CreateSupplierBillDto,
   useCreateSupplierBillMutation,
   useGetDropdownSuppliersQuery,
 } from "@/store/services/supplier";
@@ -349,43 +350,49 @@ export default function DatePickerPage() {
         return new Date(date).toISOString().split("T")[0];
       };
 
-      // ✅ Get supplier name
-      const selectedSupplier = suppliers.find(
-        (s) => s.supplier_id.toString() === selectedSupplierId
-      );
-      const supplierName = selectedSupplier
-        ? selectedSupplier.supplier_name
-        : "";
+      // ✅ Transform UI items → backend SupplierBillItem format
+      const transformedBillItems = items.map((item) => {
+        // Find the actual product to get the real item_id
+        const product = products.find((p) => p.item_code === item.itemCode);
+        if (!product) {
+          throw new Error(`Product not found for item code: ${item.itemCode}`);
+        }
 
-      // ✅ Transform UI items → backend DTO items (matching your SupplierBillItemDto structure)
-      const transformedItems = items.map((item) => ({
-        id: item.id,
-        itemCode: item.itemCode,
-        itemName: item.itemName,
-        price: item.price,
-        quantity: item.quantity,
-        discount: item.discount || 0,
-        amount: item.amount,
-        freeItemQuantity: item.freeItemQuantity || 0,
-      }));
+        return {
+          item_id: parseInt(product.item_uuid) || 0, // Use actual product ID from database
+          unit_price: item.price,
+          quantity: item.quantity,
+          discount_percentage: item.discount || 0,
+          free_item_quantity: item.freeItemQuantity || 0,
+        };
+      });
 
-      // ✅ Calculate totals
-      const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
-      const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
-      const finalTotal = subtotal - extraDiscountAmount;
+      // ✅ Validate supplier ID conversion
+      const supplierIdNum = parseInt(selectedSupplierId);
+      if (isNaN(supplierIdNum)) {
+        console.error("⚠️ Invalid supplier ID:", selectedSupplierId);
+        return;
+      }
 
       // ✅ Build DTO payload matching your CreateSupplierBillDto structure
-      const payload = {
-        supplierId: selectedSupplierId,
-        supplierName: supplierName,
+      const payload: CreateSupplierBillDto = {
+        supplierId: selectedSupplierId, // ✅ string directly
         billNo: billNo.trim(),
         billingDate: formatDateForBackend(billingDate),
         receivedDate: formatDateForBackend(receivedDate),
-        items: transformedItems,
-        extraDiscount: extraDiscount.toString(),
-        subtotal: subtotal,
-        extraDiscountAmount: extraDiscountAmount,
-        finalTotal: finalTotal,
+        items: items.map((item) => ({
+          itemCode: item.itemCode,
+          itemName: item.itemName,
+          price: item.price,
+          quantity: item.quantity,
+          discount: item.discount,
+          amount: item.amount,
+          freeItemQuantity: item.freeItemQuantity,
+        })),
+        extraDiscount: extraDiscount,
+        subtotal,
+        extraDiscountAmount,
+        finalTotal,
       };
 
       console.log("🚀 Sending payload to backend:", payload);
@@ -403,7 +410,6 @@ export default function DatePickerPage() {
       // toast.error("Failed to save invoice");
     }
   };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-row justify-between">

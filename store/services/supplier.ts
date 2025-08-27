@@ -28,13 +28,25 @@ export interface SupplierBillItem {
   free_item_quantity?: number;
 }
 
+// supplier.ts
 export interface CreateSupplierBillDto {
-  supplier_id: number;
-  bill_number: string;
-  billing_date: string;
-  received_date: string;
-  extra_discount_percentage?: number;
-  billItems: SupplierBillItem[];
+  supplierId: string; // backend expects this
+  billNo: string;
+  billingDate: string;
+  receivedDate: string;
+  items: {
+    itemCode: string;
+    itemName: string;
+    price: number;
+    quantity: number;
+    discount?: number;
+    amount: number;
+    freeItemQuantity?: number;
+  }[];
+  extraDiscount?: string;
+  subtotal: number;
+  extraDiscountAmount: number;
+  finalTotal: number;
 }
 
 export interface SupplierBillResponse {
@@ -100,7 +112,10 @@ export const supplierApi = createApi({
     }),
 
     // ✅ Supplier Bill endpoint
-    createSupplierBill: builder.mutation<SupplierBillResponse, CreateSupplierBillDto>({
+    createSupplierBill: builder.mutation<
+      SupplierBillResponse,
+      CreateSupplierBillDto
+    >({
       query: (billData) => ({
         url: "supplier-bills",
         method: "POST",
