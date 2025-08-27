@@ -1,8 +1,11 @@
+"use client";
+
 import React from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { PageTitle } from "@/components/PageTitle";
 import { CartProvider } from "@/components/representative/CartProvider";
+import { Toaster } from "sonner"; // ✅ import Toaster
 
 const user = {
   name: "John Doe",
@@ -48,6 +51,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <CartProvider>
       <LayoutContent>{children}</LayoutContent>
+      <Toaster richColors position="top-right" /> {/* ✅ Sonner Toaster */}
     </CartProvider>
   );
 }

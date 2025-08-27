@@ -21,7 +21,6 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-
 import {
   Table,
   TableBody,
@@ -30,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { toast } from "sonner";
 import {
   CreateSupplierBillDto,
   useCreateSupplierBillMutation,
@@ -85,7 +85,8 @@ export default function DatePickerPage() {
     error: suppliersError,
   } = useGetDropdownSuppliersQuery();
 
-  const [createSupplierBill] = useCreateSupplierBillMutation();
+  const [createSupplierBill, { isLoading: isCreating }] =
+    useCreateSupplierBillMutation();
 
   // Fetch products from API
   const {
@@ -277,6 +278,9 @@ export default function DatePickerPage() {
         freeItemQuantity: "",
       });
 
+      // Show success toast for item addition
+      toast.success("Item added successfully!");
+
       // Focus on the item code field for next entry
       setTimeout(() => {
         const itemCodeField = document.querySelector(
@@ -300,6 +304,7 @@ export default function DatePickerPage() {
   // Delete item
   const deleteItem = (id: number) => {
     setItems(items.filter((item) => item.id !== id));
+    toast.success("Item deleted successfully!");
   };
 
   // Start editing an item
@@ -310,6 +315,31 @@ export default function DatePickerPage() {
   // Stop editing an item
   const stopEdit = () => {
     setEditingId(null);
+    toast.success("Item updated successfully!");
+  };
+
+  // Reset form function
+  const resetForm = () => {
+    setSelectedSupplierId("");
+    setBillNo("");
+    setBillingDate(undefined);
+    setReceivedDate(undefined);
+    setItems([]);
+    setExtraDiscount("0");
+    setEditingId(null);
+    setNewItem({
+      itemCode: "",
+      itemName: "",
+      price: "",
+      quantity: "",
+      discount: "",
+      freeItemQuantity: "",
+    });
+    setOpen(false);
+    setBillingDateOpen(false);
+    setReceivedDateOpen(false);
+    setItemCodeOpen(false);
+    setItemNameOpen(false);
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
@@ -324,25 +354,29 @@ export default function DatePickerPage() {
   if (productsError) {
     console.error("Error loading products:", productsError);
   }
+
   const handleSaveInvoice = async () => {
     try {
-      // ✅ Basic validation
+      // ✅ Basic validation with toast messages
       if (!selectedSupplierId) {
-        console.error("⚠️ Please select a supplier!");
+        toast.error("Please select a supplier!");
         return;
       }
-      if (!billNo) {
-        console.error("⚠️ Please enter a Bill Number!");
+      if (!billNo.trim()) {
+        toast.error("Please enter a Bill Number!");
         return;
       }
       if (!billingDate || !receivedDate) {
-        console.error("⚠️ Please select billing and received dates!");
+        toast.error("Please select billing and received dates!");
         return;
       }
       if (items.length === 0) {
-        console.error("⚠️ Please add at least one item!");
+        toast.error("Please add at least one item!");
         return;
       }
+
+      // Show loading toast
+      toast.loading("Saving invoice...", { id: "save-invoice" });
 
       // ✅ Format dates (yyyy-mm-dd)
       const formatDateForBackend = (date: Date | undefined) => {
@@ -370,7 +404,7 @@ export default function DatePickerPage() {
       // ✅ Validate supplier ID conversion
       const supplierIdNum = parseInt(selectedSupplierId);
       if (isNaN(supplierIdNum)) {
-        console.error("⚠️ Invalid supplier ID:", selectedSupplierId);
+        toast.error("Invalid supplier ID");
         return;
       }
 
@@ -401,13 +435,30 @@ export default function DatePickerPage() {
       const response = await createSupplierBill(payload).unwrap();
 
       console.log("✅ Backend response:", response);
-      // toast.success("Invoice saved successfully!");
 
-      // ✅ Reset form after saving (optional)
-      // resetForm();
-    } catch (error) {
+      // Dismiss loading toast and show success
+      toast.dismiss("save-invoice");
+      toast.success("Invoice saved successfully!", {
+        description: `Bill No: ${billNo} has been created`,
+        duration: 4000,
+      });
+
+      // ✅ Reset form after successful save
+      resetForm();
+    } catch (error: any) {
+      // Dismiss loading toast and show error
+      toast.dismiss("save-invoice");
+
       console.error("❌ Error saving invoice:", error);
-      // toast.error("Failed to save invoice");
+
+      // More specific error messages
+      if (error?.data?.message) {
+        toast.error(`Failed to save invoice: ${error.data.message}`);
+      } else if (error?.message) {
+        toast.error(`Failed to save invoice: ${error.message}`);
+      } else {
+        toast.error("Failed to save invoice. Please try again.");
+      }
     }
   };
   return (
