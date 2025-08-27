@@ -18,6 +18,26 @@ export interface Product {
   images: string[];
 }
 
+export interface BillProduct {
+  item_uuid: string;
+  item_code: string;
+  item_name: string;
+  description: string;
+  additional_notes?: string;
+  cost_price: string;
+  selling_price: string;
+  rep_commision: string;
+  minimum_selling_price: string;
+  unit_type: string;
+  unit_quantity: string;
+  supplier_id: number;
+  supplier_name: string;
+  category_id: number;
+  category_name: string;
+  images: string[];
+}
+
+
 // Define the request type for creating a product
 export type CreateProductRequest = Omit<Product, "item_code"> & {
   item_code?: string; // Optional if backend auto-generates
@@ -31,7 +51,7 @@ export const productApi = createApi({
   tagTypes: ["Product"],
   endpoints: (builder) => ({
     // Fetch all products
-    getProducts: builder.query<Product[], void>({
+    getProducts: builder.query<{ data: BillProduct[] }, void>({
       query: () => "item",
       providesTags: ["Product"],
     }),

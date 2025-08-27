@@ -31,20 +31,27 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useGetDropdownSuppliersQuery } from "@/store/services/supplier";
+import { useGetProductsQuery } from "@/store/services/product";
 
-// Import the API hook
-
-// Sample items database
-const itemsDatabase = [
-  { code: "ITM001", name: "Laptop Computer", price: 1200 },
-  { code: "ITM002", name: "Wireless Mouse", price: 25 },
-  { code: "ITM003", name: "Keyboard", price: 45 },
-  { code: "ITM004", name: "Monitor 24 inch", price: 300 },
-  { code: "ITM005", name: "USB Cable", price: 15 },
-  { code: "ITM006", name: "Printer", price: 250 },
-  { code: "ITM007", name: "Headphones", price: 80 },
-  { code: "ITM008", name: "Webcam", price: 60 },
-];
+// Updated Product interface to match your API response
+interface Product {
+  item_uuid: string;
+  item_code: string;
+  item_name: string;
+  description: string;
+  additional_notes?: string;
+  cost_price: string;
+  selling_price: string;
+  rep_commision: string;
+  minimum_selling_price: string;
+  unit_type: string;
+  unit_quantity: string;
+  supplier_id: number;
+  supplier_name: string;
+  category_id: number;
+  category_name: string;
+  images: string[];
+}
 
 interface Item {
   id: number;
@@ -73,6 +80,16 @@ export default function DatePickerPage() {
     isLoading: suppliersLoading,
     error: suppliersError,
   } = useGetDropdownSuppliersQuery();
+
+  // Fetch products from API
+  const {
+    data: productsResponse,
+    isLoading: productsLoading,
+    error: productsError,
+  } = useGetProductsQuery();
+
+  // Extract products from the API response
+  const products: Product[] = productsResponse?.data || [];
 
   const [open, setOpen] = React.useState(false);
   const [selectedSupplierId, setSelectedSupplierId] =
@@ -136,13 +153,15 @@ export default function DatePickerPage() {
 
   // Handle item code selection
   const handleItemCodeSelect = (code: string) => {
-    const selectedItem = itemsDatabase.find((item) => item.code === code);
-    if (selectedItem) {
+    const selectedProduct = products.find(
+      (product) => product.item_code === code
+    );
+    if (selectedProduct) {
       setNewItem({
         ...newItem,
         itemCode: code,
-        itemName: selectedItem.name,
-        price: selectedItem.price.toString(),
+        itemName: selectedProduct.item_name,
+        price: selectedProduct.selling_price,
       });
     }
     setItemCodeOpen(false);
@@ -150,13 +169,15 @@ export default function DatePickerPage() {
 
   // Handle item name selection
   const handleItemNameSelect = (name: string) => {
-    const selectedItem = itemsDatabase.find((item) => item.name === name);
-    if (selectedItem) {
+    const selectedProduct = products.find(
+      (product) => product.item_name === name
+    );
+    if (selectedProduct) {
       setNewItem({
         ...newItem,
-        itemCode: selectedItem.code,
+        itemCode: selectedProduct.item_code,
         itemName: name,
-        price: selectedItem.price.toString(),
+        price: selectedProduct.selling_price,
       });
     }
     setItemNameOpen(false);
@@ -292,6 +313,10 @@ export default function DatePickerPage() {
   // Handle loading and error states
   if (suppliersError) {
     console.error("Error loading suppliers:", suppliersError);
+  }
+
+  if (productsError) {
+    console.error("Error loading products:", productsError);
   }
 
   return (
@@ -447,6 +472,16 @@ export default function DatePickerPage() {
             </Button>
           </div>
         </div>
+
+        {/* Show loading or error states for products */}
+        {productsLoading && (
+          <div className="text-center py-1">Loading products...</div>
+        )}
+        {productsError && (
+          <div className="text-center py-4 text-red-500">
+            Failed to load products. Please try again.
+          </div>
+        )}
 
         <div className="border rounded-lg">
           <Table>
@@ -619,8 +654,10 @@ export default function DatePickerPage() {
                         className="w-full justify-between h-10 px-3 text-sm"
                         data-field="itemCode"
                         onKeyDown={(e) => handleKeyPress(e, "itemName")}
+                        disabled={productsLoading}
                       >
-                        {newItem.itemCode || "Select Code..."}
+                        {newItem.itemCode ||
+                          (productsLoading ? "Loading..." : "Select Code...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -628,19 +665,30 @@ export default function DatePickerPage() {
                       <Command>
                         <CommandInput placeholder="Search item code..." />
                         <CommandList>
-                          <CommandEmpty>No item found.</CommandEmpty>
+                          <CommandEmpty>
+                            {productsLoading ? "Loading..." : "No item found."}
+                          </CommandEmpty>
                           <CommandGroup>
-                            {itemsDatabase.map((item) => (
+                            {products.map((product) => (
                               <CommandItem
-                                key={item.code}
-                                value={item.code}
-                                onSelect={() => handleItemCodeSelect(item.code)}
+                                key={product.item_uuid}
+                                value={product.item_code}
+                                onSelect={() =>
+                                  handleItemCodeSelect(product.item_code)
+                                }
                               >
-                                {item.code}
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {product.item_code}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {product.item_name}
+                                  </span>
+                                </div>
                                 <Check
                                   className={cn(
                                     "ml-auto h-4 w-4",
-                                    newItem.itemCode === item.code
+                                    newItem.itemCode === product.item_code
                                       ? "opacity-100"
                                       : "opacity-0"
                                   )}
@@ -663,8 +711,10 @@ export default function DatePickerPage() {
                         className="w-full justify-between h-10 px-3 text-sm"
                         data-field="itemName"
                         onKeyDown={(e) => handleKeyPress(e, "price")}
+                        disabled={productsLoading}
                       >
-                        {newItem.itemName || "Select Item..."}
+                        {newItem.itemName ||
+                          (productsLoading ? "Loading..." : "Select Item...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -672,19 +722,31 @@ export default function DatePickerPage() {
                       <Command>
                         <CommandInput placeholder="Search item name..." />
                         <CommandList>
-                          <CommandEmpty>No item found.</CommandEmpty>
+                          <CommandEmpty>
+                            {productsLoading ? "Loading..." : "No item found."}
+                          </CommandEmpty>
                           <CommandGroup>
-                            {itemsDatabase.map((item) => (
+                            {products.map((product) => (
                               <CommandItem
-                                key={item.name}
-                                value={item.name}
-                                onSelect={() => handleItemNameSelect(item.name)}
+                                key={product.item_uuid}
+                                value={product.item_name}
+                                onSelect={() =>
+                                  handleItemNameSelect(product.item_name)
+                                }
                               >
-                                {item.name}
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {product.item_name}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {product.item_code} - $
+                                    {product.selling_price}
+                                  </span>
+                                </div>
                                 <Check
                                   className={cn(
                                     "ml-auto h-4 w-4",
-                                    newItem.itemName === item.name
+                                    newItem.itemName === product.item_name
                                       ? "opacity-100"
                                       : "opacity-0"
                                   )}
@@ -768,7 +830,8 @@ export default function DatePickerPage() {
                       !newItem.itemCode ||
                       !newItem.itemName ||
                       !newItem.price ||
-                      !newItem.quantity
+                      !newItem.quantity ||
+                      productsLoading
                     }
                     className="text-green-600 hover:text-green-800"
                   >

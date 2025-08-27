@@ -19,12 +19,35 @@ export interface DropdownSupplier {
   supplier_name: string;
 }
 
+// Supplier Bill interfaces
+export interface SupplierBillItem {
+  item_id: number;
+  unit_price: number;
+  quantity: number;
+  discount_percentage?: number;
+  free_item_quantity?: number;
+}
+
+export interface CreateSupplierBillDto {
+  supplier_id: number;
+  bill_number: string;
+  billing_date: string;
+  received_date: string;
+  extra_discount_percentage?: number;
+  billItems: SupplierBillItem[];
+}
+
+export interface SupplierBillResponse {
+  statusCode: number;
+  message: string;
+}
+
 export const supplierApi = createApi({
   reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:3001/", // ⚡ should point to your NestJS backend port
   }),
-  tagTypes: ["Supplier"],
+  tagTypes: ["Supplier", "SupplierBill"],
   endpoints: (builder) => ({
     // Supplier endpoints
     addSupplier: builder.mutation<Supplier, Omit<Supplier, "id">>({
@@ -73,7 +96,17 @@ export const supplierApi = createApi({
       transformResponse: (response: {
         data: DropdownSupplier[];
         count: number;
-      }) => response.data, // pick only data array
+      }) => response.data,
+    }),
+
+    // ✅ Supplier Bill endpoint
+    createSupplierBill: builder.mutation<SupplierBillResponse, CreateSupplierBillDto>({
+      query: (billData) => ({
+        url: "supplier-bills",
+        method: "POST",
+        body: billData,
+      }),
+      invalidatesTags: ["SupplierBill"],
     }),
   }),
 });
@@ -84,5 +117,6 @@ export const {
   useGetSupplierByIdQuery,
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
-  useGetDropdownSuppliersQuery, // ✅ new hook
+  useGetDropdownSuppliersQuery,
+  useCreateSupplierBillMutation, // ✅ new hook for supplier bill
 } = supplierApi;
