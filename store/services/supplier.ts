@@ -26,6 +26,7 @@ export interface SupplierBillItem {
   quantity: number;
   discount_percentage?: number;
   free_item_quantity?: number;
+  mrp: string;
 }
 
 // supplier.ts
@@ -42,6 +43,7 @@ export interface CreateSupplierBillDto {
     discount?: number;
     amount: number;
     freeItemQuantity?: number;
+    mrp: number;
   }[];
   extraDiscount?: string;
   subtotal: number;

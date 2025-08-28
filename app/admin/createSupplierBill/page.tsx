@@ -55,17 +55,19 @@ interface Product {
   category_id: number;
   category_name: string;
   images: string[];
+  mrp: string;
 }
 
 interface Item {
   id: number;
   itemCode: string;
   itemName: string;
-  sellingPrice: number; // Added selling price to Item interface
-  mrp: number; // Added MRP to Item interface
+  sellingPrice: number;
+  mrp: number;
   price: number;
   quantity: number;
   discount: number;
+  discountAmount: number; // Added discount amount field
   amount: number;
   freeItemQuantity?: number;
 }
@@ -78,6 +80,7 @@ interface NewItemRow {
   price: string;
   quantity: string;
   discount: string;
+  discountAmount: string; // Added discount amount field
   freeItemQuantity: string;
 }
 
@@ -124,6 +127,7 @@ export default function DatePickerPage() {
     price: "",
     quantity: "",
     discount: "",
+    discountAmount: "",
     freeItemQuantity: "",
     sellingPrice: "",
     mrp: "",
@@ -133,26 +137,72 @@ export default function DatePickerPage() {
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
 
+  // Filter products by selected supplier
+  const filteredProducts = React.useMemo(() => {
+    if (!selectedSupplierId) return [];
+    return products.filter(
+      (product) => product.supplier_id.toString() === selectedSupplierId
+    );
+  }, [products, selectedSupplierId]);
+
   const formatDate = (date: Date | undefined): string => {
     if (!date) return "Pick a date";
     return date.toLocaleDateString();
   };
 
-  // Calculate amount when price, quantity, or discount changes
+  // Calculate amount when price, quantity, discount, or discount amount changes
   const calculateAmount = (
     price: number,
     quantity: number,
-    discount: number
+    discount: number,
+    discountAmount: number = 0
   ): number => {
     const subtotal = price * quantity;
-    const discountAmount = (subtotal * discount) / 100;
-    return subtotal - discountAmount;
+    // Use discount amount if provided, otherwise use percentage
+    const finalDiscountAmount =
+      discountAmount > 0 ? discountAmount : (subtotal * discount) / 100;
+    return subtotal - finalDiscountAmount;
+  };
+
+  // Calculate discount percentage from amount
+  const calculateDiscountPercentage = (
+    price: number,
+    quantity: number,
+    discountAmount: number
+  ): number => {
+    const subtotal = price * quantity;
+    if (subtotal === 0) return 0;
+    return (discountAmount / subtotal) * 100;
+  };
+
+  // Calculate discount amount from percentage
+  const calculateDiscountAmount = (
+    price: number,
+    quantity: number,
+    discountPercentage: number
+  ): number => {
+    const subtotal = price * quantity;
+    return (subtotal * discountPercentage) / 100;
   };
 
   // Handle supplier selection
   const handleSupplierSelect = (supplierId: string) => {
     setSelectedSupplierId(supplierId);
     setOpen(false);
+
+    // Clear existing items and new item form when supplier changes
+    setItems([]);
+    setNewItem({
+      itemCode: "",
+      itemName: "",
+      price: "",
+      quantity: "",
+      discount: "",
+      discountAmount: "",
+      freeItemQuantity: "",
+      sellingPrice: "",
+      mrp: "",
+    });
   };
 
   // Get selected supplier name for display
@@ -166,7 +216,7 @@ export default function DatePickerPage() {
 
   // Handle item code selection
   const handleItemCodeSelect = (code: string) => {
-    const selectedProduct = products.find(
+    const selectedProduct = filteredProducts.find(
       (product) => product.item_code === code
     );
     if (selectedProduct) {
@@ -175,8 +225,8 @@ export default function DatePickerPage() {
         itemCode: selectedProduct.item_code,
         itemName: selectedProduct.item_name,
         sellingPrice: selectedProduct.selling_price,
-        mrp: selectedProduct.minimum_selling_price,
-        price: selectedProduct.selling_price, // default as unit price
+        mrp: selectedProduct.mrp,
+        price: selectedProduct.cost_price,
       });
     }
 
@@ -185,7 +235,7 @@ export default function DatePickerPage() {
 
   // Handle item name selection
   const handleItemNameSelect = (name: string) => {
-    const selectedProduct = products.find(
+    const selectedProduct = filteredProducts.find(
       (product) => product.item_name === name
     );
     if (selectedProduct) {
@@ -194,22 +244,46 @@ export default function DatePickerPage() {
         itemCode: selectedProduct.item_code,
         itemName: name,
         sellingPrice: selectedProduct.selling_price,
-        mrp: selectedProduct.minimum_selling_price,
-        price: selectedProduct.selling_price,
+        mrp: selectedProduct.mrp,
+        price: selectedProduct.cost_price,
       });
     }
     setItemNameOpen(false);
   };
 
-  // Handle input changes
+  // Handle input changes with auto-calculation for discount
   const handleInputChange = (field: keyof NewItemRow, value: string) => {
-    setNewItem({
-      ...newItem,
-      [field]: value,
-    });
+    const updatedItem = { ...newItem, [field]: value };
+
+    const price = parseFloat(updatedItem.price) || 0;
+    const quantity = parseFloat(updatedItem.quantity) || 0;
+
+    // Auto-calculate discount amount when percentage changes
+    if (field === "discount") {
+      const discountPercentage = parseFloat(value) || 0;
+      const discountAmount = calculateDiscountAmount(
+        price,
+        quantity,
+        discountPercentage
+      );
+      updatedItem.discountAmount = discountAmount.toFixed(2);
+    }
+
+    // Auto-calculate discount percentage when amount changes
+    if (field === "discountAmount") {
+      const discountAmount = parseFloat(value) || 0;
+      const discountPercentage = calculateDiscountPercentage(
+        price,
+        quantity,
+        discountAmount
+      );
+      updatedItem.discount = discountPercentage.toFixed(2);
+    }
+
+    setNewItem(updatedItem);
   };
 
-  // Handle edit input changes
+  // Handle edit input changes with auto-calculation
   const handleEditInputChange = (
     id: number,
     field: keyof Item,
@@ -219,18 +293,50 @@ export default function DatePickerPage() {
       items.map((item) => {
         if (item.id === id) {
           const updatedItem = { ...item, [field]: value };
-          // Recalculate amount if price, quantity, or discount changes
+
+          const price = field === "price" ? Number(value) : updatedItem.price;
+          const quantity =
+            field === "quantity" ? Number(value) : updatedItem.quantity;
+
+          // Auto-calculate discount amount when percentage changes
+          if (field === "discount") {
+            const discountPercentage = Number(value);
+            const discountAmount = calculateDiscountAmount(
+              price,
+              quantity,
+              discountPercentage
+            );
+            updatedItem.discountAmount = discountAmount;
+          }
+
+          // Auto-calculate discount percentage when amount changes
+          if (field === "discountAmount") {
+            const discountAmount = Number(value);
+            const discountPercentage = calculateDiscountPercentage(
+              price,
+              quantity,
+              discountAmount
+            );
+            updatedItem.discount = discountPercentage;
+          }
+
+          // Recalculate amount if price, quantity, discount, or discount amount changes
           if (
             field === "price" ||
             field === "quantity" ||
-            field === "discount"
+            field === "discount" ||
+            field === "discountAmount"
           ) {
             updatedItem.amount = calculateAmount(
-              field === "price" ? Number(value) : updatedItem.price,
-              field === "quantity" ? Number(value) : updatedItem.quantity,
-              field === "discount" ? Number(value) : updatedItem.discount
+              price,
+              quantity,
+              field === "discount" ? Number(value) : updatedItem.discount,
+              field === "discountAmount"
+                ? Number(value)
+                : updatedItem.discountAmount
             );
           }
+
           return updatedItem;
         }
         return item;
@@ -262,14 +368,15 @@ export default function DatePickerPage() {
       const price = parseFloat(newItem.price) || 0;
       const quantity = parseFloat(newItem.quantity) || 0;
       const discount = parseFloat(newItem.discount) || 0;
+      const discountAmount = parseFloat(newItem.discountAmount) || 0;
       const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
       const sellingPrice = parseFloat(newItem.sellingPrice) || 0;
       const mrp = parseFloat(newItem.mrp) || 0;
 
-      const amount = calculateAmount(price, quantity, discount);
+      const amount = calculateAmount(price, quantity, discount, discountAmount);
 
       const item: Item = {
-        id: Date.now(), // Simple ID generation
+        id: Date.now(),
         itemCode: newItem.itemCode,
         itemName: newItem.itemName,
         sellingPrice,
@@ -277,6 +384,7 @@ export default function DatePickerPage() {
         price,
         quantity,
         discount,
+        discountAmount,
         amount,
         freeItemQuantity,
       };
@@ -290,12 +398,12 @@ export default function DatePickerPage() {
         price: "",
         quantity: "",
         discount: "",
+        discountAmount: "",
         freeItemQuantity: "",
         sellingPrice: "",
         mrp: "",
       });
 
-      // Show success toast for item addition
       toast.success("Item added successfully!");
 
       // Focus on the item code field for next entry
@@ -350,6 +458,7 @@ export default function DatePickerPage() {
       price: "",
       quantity: "",
       discount: "",
+      discountAmount: "",
       freeItemQuantity: "",
       sellingPrice: "",
       mrp: "",
@@ -376,7 +485,6 @@ export default function DatePickerPage() {
 
   const handleSaveInvoice = async () => {
     try {
-      // ✅ Basic validation with toast messages
       if (!selectedSupplierId) {
         toast.error("Please select a supplier!");
         return;
@@ -394,25 +502,23 @@ export default function DatePickerPage() {
         return;
       }
 
-      // Show loading toast
       toast.loading("Saving invoice...", { id: "save-invoice" });
 
-      // ✅ Format dates (yyyy-mm-dd)
       const formatDateForBackend = (date: Date | undefined) => {
         if (!date) return "";
         return new Date(date).toISOString().split("T")[0];
       };
 
-      // ✅ Transform UI items → backend SupplierBillItem format
       const transformedBillItems = items.map((item) => {
-        // Find the actual product to get the real item_id
-        const product = products.find((p) => p.item_code === item.itemCode);
+        const product = filteredProducts.find(
+          (p) => p.item_code === item.itemCode
+        );
         if (!product) {
           throw new Error(`Product not found for item code: ${item.itemCode}`);
         }
 
         return {
-          item_id: parseInt(product.item_uuid) || 0, // Use actual product ID from database
+          item_id: parseInt(product.item_uuid) || 0,
           unit_price: item.price,
           quantity: item.quantity,
           discount_percentage: item.discount || 0,
@@ -420,14 +526,12 @@ export default function DatePickerPage() {
         };
       });
 
-      // ✅ Validate supplier ID conversion
       const supplierIdNum = parseInt(selectedSupplierId);
       if (isNaN(supplierIdNum)) {
         toast.error("Invalid supplier ID");
         return;
       }
 
-      // ✅ Build DTO payload matching your CreateSupplierBillDto structure
       const payload: CreateSupplierBillDto = {
         supplierId: selectedSupplierId,
         billNo: billNo.trim(),
@@ -436,11 +540,12 @@ export default function DatePickerPage() {
         items: items.map((item) => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
-          sellingPrice: item.sellingPrice, // ✅ include selling price
-          mrp: item.mrp, // ✅ include MRP
+          sellingPrice: item.sellingPrice,
+          mrp: item.mrp,
           price: item.price,
           quantity: item.quantity,
           discount: item.discount,
+          discountAmount: item.discountAmount,
           amount: item.amount,
           freeItemQuantity: item.freeItemQuantity,
         })),
@@ -452,27 +557,22 @@ export default function DatePickerPage() {
 
       console.log("🚀 Sending payload to backend:", payload);
 
-      // ✅ Send to backend
       const response = await createSupplierBill(payload).unwrap();
 
       console.log("✅ Backend response:", response);
 
-      // Dismiss loading toast and show success
       toast.dismiss("save-invoice");
       toast.success("Invoice saved successfully!", {
         description: `Bill No: ${billNo} has been created`,
         duration: 4000,
       });
 
-      // ✅ Reset form after successful save
       resetForm();
     } catch (error: any) {
-      // Dismiss loading toast and show error
       toast.dismiss("save-invoice");
 
       console.error("❌ Error saving invoice:", error);
 
-      // More specific error messages
       if (error?.data?.message) {
         toast.error(`Failed to save invoice: ${error.data.message}`);
       } else if (error?.message) {
@@ -651,20 +751,32 @@ export default function DatePickerPage() {
           </div>
         )}
 
+        {/* Show message when supplier is selected but has no products */}
+        {selectedSupplierId &&
+          !productsLoading &&
+          filteredProducts.length === 0 && (
+            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+              No products found for the selected supplier
+            </div>
+          )}
+
+        {/* Show table only when supplier is selected and has products */}
+        {/* { filteredProducts.length > 0 && ( */}
         <div className="border rounded-lg">
           <Table>
             <TableHeader className="bg-gray-50 rounded-lg">
               <TableRow>
-                <TableHead className="w-[200px] py-3 px-4">Item Code</TableHead>
-                <TableHead className="w-[300px]">Item Name</TableHead>
-                <TableHead className="w-[120px]">Selling Price</TableHead>
-                <TableHead className="w-[120px]">MRP</TableHead>
-                <TableHead className="w-[120px]">Unit Price</TableHead>
-                <TableHead className="w-[100px]">Quantity</TableHead>
-                <TableHead className="w-[120px]">Discount(%)</TableHead>
-                <TableHead className="w-[120px]">Free Item Qty</TableHead>
-                <TableHead className="w-[120px]">Amount</TableHead>
-                <TableHead className="w-[120px]">Action</TableHead>
+                <TableHead className="w-[150px] py-3 px-4">Item Code</TableHead>
+                <TableHead className="w-[200px]">Item Name</TableHead>
+                <TableHead className="w-[100px]">MRP</TableHead>
+                <TableHead className="w-[100px]">Unit Price</TableHead>
+                <TableHead className="w-[80px]">Quantity</TableHead>
+                <TableHead className="w-[100px]">Discount(%)</TableHead>
+                <TableHead className="w-[100px]">Discount Amount</TableHead>
+                <TableHead className="w-[100px]">Free Item Qty</TableHead>
+                <TableHead className="w-[100px]">Selling Price</TableHead>
+                <TableHead className="w-[100px]">Amount</TableHead>
+                <TableHead className="w-[100px]">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -703,24 +815,6 @@ export default function DatePickerPage() {
                       />
                     ) : (
                       item.itemName
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.sellingPrice}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "sellingPrice",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `$${item.sellingPrice.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>
@@ -792,7 +886,25 @@ export default function DatePickerPage() {
                         className="h-8"
                       />
                     ) : (
-                      `${item.discount}%`
+                      `${item.discount.toFixed(2)}%`
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.discountAmount}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "discountAmount",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `$${item.discountAmount.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>
@@ -811,6 +923,24 @@ export default function DatePickerPage() {
                       />
                     ) : (
                       item.freeItemQuantity || 0
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {editingId === item.id ? (
+                      <Input
+                        type="number"
+                        value={item.sellingPrice}
+                        onChange={(e) =>
+                          handleEditInputChange(
+                            item.id,
+                            "sellingPrice",
+                            parseFloat(e.target.value) || 0
+                          )
+                        }
+                        className="h-8"
+                      />
+                    ) : (
+                      `$${item.sellingPrice.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>${item.amount.toFixed(2)}</TableCell>
@@ -860,10 +990,16 @@ export default function DatePickerPage() {
                         className="w-full justify-between h-10 px-3 text-sm"
                         data-field="itemCode"
                         onKeyDown={(e) => handleKeyPress(e, "itemName")}
-                        disabled={productsLoading}
+                        disabled={
+                          productsLoading || filteredProducts.length === 0
+                        }
                       >
                         {newItem.itemCode ||
-                          (productsLoading ? "Loading..." : "Select Code...")}
+                          (productsLoading
+                            ? "Loading..."
+                            : filteredProducts.length === 0
+                            ? "No items available"
+                            : "Select Code...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -875,7 +1011,7 @@ export default function DatePickerPage() {
                             {productsLoading ? "Loading..." : "No item found."}
                           </CommandEmpty>
                           <CommandGroup>
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                               <CommandItem
                                 key={product.item_uuid}
                                 value={product.item_code}
@@ -918,10 +1054,16 @@ export default function DatePickerPage() {
                         className="w-full justify-between h-10 px-3 text-sm"
                         data-field="itemName"
                         onKeyDown={(e) => handleKeyPress(e, "price")}
-                        disabled={productsLoading}
+                        disabled={
+                          productsLoading || filteredProducts.length === 0
+                        }
                       >
                         {newItem.itemName ||
-                          (productsLoading ? "Loading..." : "Select Item...")}
+                          (productsLoading
+                            ? "Loading..."
+                            : filteredProducts.length === 0
+                            ? "No items available"
+                            : "Select Item...")}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -933,7 +1075,7 @@ export default function DatePickerPage() {
                             {productsLoading ? "Loading..." : "No item found."}
                           </CommandEmpty>
                           <CommandGroup>
-                            {products.map((product) => (
+                            {filteredProducts.map((product) => (
                               <CommandItem
                                 key={product.item_uuid}
                                 value={product.item_name}
@@ -966,21 +1108,6 @@ export default function DatePickerPage() {
                     </PopoverContent>
                   </Popover>
                 </TableCell>
-
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newItem.sellingPrice}
-                    onChange={(e) =>
-                      handleInputChange("sellingPrice", e.target.value)
-                    }
-                    data-field="sellingPrice"
-                    onKeyDown={(e) => handleKeyPress(e, "mrp")}
-                    className="h-10 "
-                  />
-                </TableCell>
-
                 <TableCell>
                   <Input
                     type="number"
@@ -989,10 +1116,12 @@ export default function DatePickerPage() {
                     onChange={(e) => handleInputChange("mrp", e.target.value)}
                     data-field="mrp"
                     onKeyDown={(e) => handleKeyPress(e, "price")}
-                    className="h-10 "
+                    className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
                   />
                 </TableCell>
-
                 <TableCell>
                   <Input
                     type="number"
@@ -1002,9 +1131,11 @@ export default function DatePickerPage() {
                     data-field="price"
                     onKeyDown={(e) => handleKeyPress(e, "quantity")}
                     className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
                   />
                 </TableCell>
-
                 <TableCell>
                   <Input
                     type="number"
@@ -1016,9 +1147,11 @@ export default function DatePickerPage() {
                     data-field="quantity"
                     onKeyDown={(e) => handleKeyPress(e, "discount")}
                     className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
                   />
                 </TableCell>
-
                 <TableCell>
                   <Input
                     type="number"
@@ -1028,11 +1161,29 @@ export default function DatePickerPage() {
                       handleInputChange("discount", e.target.value)
                     }
                     data-field="discount"
-                    onKeyDown={(e) => handleKeyPress(e, "freeItemQuantity")}
+                    onKeyDown={(e) => handleKeyPress(e, "discountAmount")}
                     className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
                   />
                 </TableCell>
-
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newItem.discountAmount}
+                    onChange={(e) =>
+                      handleInputChange("discountAmount", e.target.value)
+                    }
+                    data-field="discountAmount"
+                    onKeyDown={(e) => handleKeyPress(e, "freeItemQuantity")}
+                    className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
+                  />
+                </TableCell>
                 <TableCell>
                   <Input
                     type="number"
@@ -1044,9 +1195,27 @@ export default function DatePickerPage() {
                     data-field="freeItemQuantity"
                     onKeyDown={handleLastFieldEnter}
                     className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
                   />
                 </TableCell>
-
+                <TableCell>
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={newItem.sellingPrice}
+                    onChange={(e) =>
+                      handleInputChange("sellingPrice", e.target.value)
+                    }
+                    data-field="sellingPrice"
+                    onKeyDown={(e) => handleKeyPress(e, "mrp")}
+                    className="h-10"
+                    disabled={
+                      !selectedSupplierId || filteredProducts.length === 0
+                    }
+                  />
+                </TableCell>
                 <TableCell>
                   <span className="text-sm text-gray-600">
                     $
@@ -1054,7 +1223,8 @@ export default function DatePickerPage() {
                       ? calculateAmount(
                           parseFloat(newItem.price) || 0,
                           parseFloat(newItem.quantity) || 0,
-                          parseFloat(newItem.discount) || 0
+                          parseFloat(newItem.discount) || 0,
+                          parseFloat(newItem.discountAmount) || 0
                         ).toFixed(2)
                       : "0.00"}
                   </span>
@@ -1070,7 +1240,9 @@ export default function DatePickerPage() {
                       !newItem.itemName ||
                       !newItem.price ||
                       !newItem.quantity ||
-                      productsLoading
+                      productsLoading ||
+                      !selectedSupplierId ||
+                      filteredProducts.length === 0
                     }
                     className="text-green-600 hover:text-green-800"
                   >
@@ -1082,34 +1254,36 @@ export default function DatePickerPage() {
           </Table>
         </div>
 
-        {/* Total Section */}
-        <div className="flex justify-end">
-          <div className="w-80 space-y-3 bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between text-sm">
-              <span>Subtotal:</span>
-              <span>${subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between items-center text-sm">
-              <span>Extra Discount (%):</span>
-              <Input
-                type="number"
-                value={extraDiscount}
-                onChange={(e) => setExtraDiscount(e.target.value)}
-                className="w-20 h-8"
-                placeholder="0"
-              />
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>Discount Amount:</span>
-              <span>-${extraDiscountAmount.toFixed(2)}</span>
-            </div>
-            <hr />
-            <div className="flex justify-between text-lg font-bold">
-              <span>Final Total:</span>
-              <span>${finalTotal.toFixed(2)}</span>
+        {/* Total Section - Only show when there are items */}
+        {items.length > 0 && (
+          <div className="flex justify-end">
+            <div className="w-80 space-y-3 bg-gray-50 p-4 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span>Extra Discount (%):</span>
+                <Input
+                  type="number"
+                  value={extraDiscount}
+                  onChange={(e) => setExtraDiscount(e.target.value)}
+                  className="w-20 h-8"
+                  placeholder="0"
+                />
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Discount Amount:</span>
+                <span>-${extraDiscountAmount.toFixed(2)}</span>
+              </div>
+              <hr />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Final Total:</span>
+                <span>${finalTotal.toFixed(2)}</span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

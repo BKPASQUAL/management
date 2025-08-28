@@ -69,7 +69,7 @@ type ProductsQueryResponse = Product[] | ApiResponse | undefined;
 
 export default function Page() {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 11;
+  const itemsPerPage = 10;
   const router = useRouter();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -237,7 +237,7 @@ export default function Page() {
   return (
     <div className="">
       {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-4">
         <div>
           <h1 className="font-bold text-xl lg:text-2xl">Product Management</h1>
           <p className="text-gray-500 text-sm lg:text-base">
@@ -319,7 +319,7 @@ export default function Page() {
         </div>
 
         {/* Desktop Table View (hidden on mobile/tablet) */}
-        <div className="hidden xl:block mt-4">
+        <div className="hidden xl:block mt-2">
           <Table>
             <TableHeader>
               <TableRow>
@@ -350,7 +350,7 @@ export default function Page() {
                   onClick={() => handleRowClick(product.item_uuid)}
                 >
                   <TableCell>
-                    <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
+                    <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center overflow-hidden">
                       {product.images && product.images.length > 0 ? (
                         <img
                           src={`${product.images[0]}`}
@@ -513,7 +513,7 @@ export default function Page() {
                         onError={handleImageError}
                       />
                     ) : null}
-                    <ImageIcon className="h-6 w-6 text-gray-400" />
+                    <ImageIcon className="h-5 w-5 text-gray-400" />
                   </div>
                   <div className="flex-1">
                     <h3 className="font-medium text-lg leading-tight mb-1">

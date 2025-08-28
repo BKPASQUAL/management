@@ -41,6 +41,7 @@ export default function AddProductModal({
     supplier_id: "",
     supplierName: "",
     cost_price: "",
+    mrp: "",
     selling_price: "",
     description: "",
     rep_commision: "",
@@ -141,6 +142,7 @@ export default function AddProductModal({
       supplierName: "",
       supplier_id: "",
       cost_price: "",
+      mrp: "",
       selling_price: "",
       description: "",
       rep_commision: "",
@@ -174,6 +176,7 @@ export default function AddProductModal({
         item_code: formData.item_code.trim() || undefined, // Let backend auto-generate if empty
         description: formData.description.trim(),
         additional_notes: formData.additional_notes.trim(),
+        mrp: formData.mrp || "0", // Keep as string
         cost_price: parseFloat(formData.cost_price) || 0,
         selling_price: parseFloat(formData.selling_price),
         rep_commision: parseFloat(formData.rep_commision) || 0,
@@ -192,6 +195,7 @@ export default function AddProductModal({
       toast.success("Product created successfully!");
       resetForm();
       onClose();
+      console.log("data", productData);
     } catch (error) {
       console.error("Error creating product:", error);
       toast.error("Failed to create product. Please try again.");
@@ -315,37 +319,49 @@ export default function AddProductModal({
           <div className="space-y-3 sm:space-y-3">
             <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
               <Input
-                name="cost_price"
-                placeholder="Cost Price"
-                value={formData.cost_price}
+                name="mrp"
+                placeholder="MRP"
+                value={formData.mrp}
                 onChange={handleChange}
                 type="text"
                 inputMode="decimal"
                 className="text-sm sm:text-base h-10 sm:h-10"
               />
+
+              <div className="flex gap-x-2">
+                <Input
+                  name="cost_price"
+                  placeholder="Cost Price"
+                  value={formData.cost_price}
+                  onChange={handleChange}
+                  type="text"
+                  inputMode="decimal"
+                  className="text-sm sm:text-base h-10 sm:h-10"
+                />
+                <Input
+                  name="selling_price"
+                  placeholder="Selling Price *"
+                  value={formData.selling_price}
+                  onChange={handleChange}
+                  type="text"
+                  inputMode="decimal"
+                  required
+                  className="text-sm sm:text-base h-10 sm:h-10"
+                />
+              </div>
               <Input
-                name="selling_price"
-                placeholder="Selling Price *"
-                value={formData.selling_price}
+                name="minimum_selling_price"
+                placeholder="Minimum Selling Price"
+                value={formData.minimum_selling_price}
                 onChange={handleChange}
                 type="text"
                 inputMode="decimal"
-                required
                 className="text-sm sm:text-base h-10 sm:h-10"
               />
               <Input
                 name="rep_commision"
                 placeholder="Rep Commission (%)"
                 value={formData.rep_commision}
-                onChange={handleChange}
-                type="text"
-                inputMode="decimal"
-                className="text-sm sm:text-base h-10 sm:h-10"
-              />
-              <Input
-                name="minimum_selling_price"
-                placeholder="Minimum Selling Price"
-                value={formData.minimum_selling_price}
                 onChange={handleChange}
                 type="text"
                 inputMode="decimal"

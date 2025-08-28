@@ -16,6 +16,7 @@ export interface Product {
   supplier_id: number;
   category_id: number;
   images: string[];
+  mrp: string;
 }
 
 export interface BillProduct {
@@ -35,8 +36,9 @@ export interface BillProduct {
   category_id: number;
   category_name: string;
   images: string[];
-}
+  mrp: string;
 
+}
 
 // Define the request type for creating a product
 export type CreateProductRequest = Omit<Product, "item_code"> & {
