@@ -29,6 +29,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   CreateSupplierBillDto,
@@ -587,58 +594,77 @@ export default function DatePickerPage() {
     <div className="space-y-6">
       <div className="flex flex-row justify-between">
         <div className="space-y-2">
-          <Label>Select Supplier</Label>
-          <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-[350px] justify-between"
-                disabled={suppliersLoading}
-              >
-                {suppliersLoading
-                  ? "Loading suppliers..."
-                  : getSelectedSupplierName()}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[350px] p-0">
-              <Command>
-                <CommandInput
-                  placeholder="Search supplier..."
-                  className="h-9"
-                />
-                <CommandList>
-                  <CommandEmpty>
-                    {suppliersLoading ? "Loading..." : "No supplier found."}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {suppliers.map((supplier) => (
-                      <CommandItem
-                        key={supplier.supplier_id}
-                        value={supplier.supplier_name}
-                        onSelect={() =>
-                          handleSupplierSelect(supplier.supplier_id.toString())
-                        }
-                      >
-                        {supplier.supplier_name}
-                        <Check
-                          className={cn(
-                            "ml-auto h-4 w-4",
-                            selectedSupplierId ===
-                              supplier.supplier_id.toString()
-                              ? "opacity-100"
-                              : "opacity-0"
-                          )}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="flex gap-x-4">
+            <div className="space-y-2">
+              <Label>Select Supplier</Label>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className="w-[350px] justify-between"
+                    disabled={suppliersLoading}
+                  >
+                    {suppliersLoading
+                      ? "Loading suppliers..."
+                      : getSelectedSupplierName()}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[350px] p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search supplier..."
+                      className="h-9"
+                    />
+                    <CommandList>
+                      <CommandEmpty>
+                        {suppliersLoading ? "Loading..." : "No supplier found."}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {suppliers.map((supplier) => (
+                          <CommandItem
+                            key={supplier.supplier_id}
+                            value={supplier.supplier_name}
+                            onSelect={() =>
+                              handleSupplierSelect(
+                                supplier.supplier_id.toString()
+                              )
+                            }
+                          >
+                            {supplier.supplier_name}
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                selectedSupplierId ===
+                                  supplier.supplier_id.toString()
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="space-y-2">
+              <Label>Select Shop</Label>
+              <Select defaultValue="apple">
+                <SelectTrigger className="w-[220px]">
+                  <SelectValue placeholder="Select a fruit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="apple">Champika Hardware</SelectItem>
+                  <SelectItem value="banana">Bawantha Hardware</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           {suppliersError && (
             <p className="text-sm text-red-500">
               Failed to load suppliers. Please try again.
