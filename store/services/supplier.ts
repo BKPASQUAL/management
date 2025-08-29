@@ -49,6 +49,7 @@ export interface CreateSupplierBillDto {
   subtotal: number;
   extraDiscountAmount: number;
   finalTotal: number;
+  shopId:number;
 }
 
 export interface SupplierBillResponse {

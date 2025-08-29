@@ -63,6 +63,7 @@ interface Product {
   category_name: string;
   images: string[];
   mrp: string;
+  shopId: number;
 }
 
 interface Item {
@@ -115,6 +116,10 @@ export default function DatePickerPage() {
   const [open, setOpen] = React.useState(false);
   const [selectedSupplierId, setSelectedSupplierId] =
     React.useState<string>("");
+
+  // Add shop state
+  const [shop, setShop] = React.useState<string>("1");
+
   const [billNo, setBillNo] = React.useState<string>("");
   const [billingDate, setBillingDate] = React.useState<Date | undefined>();
   const [receivedDate, setReceivedDate] = React.useState<Date | undefined>();
@@ -126,6 +131,11 @@ export default function DatePickerPage() {
   const [items, setItems] = React.useState<Item[]>([]);
   const [extraDiscount, setExtraDiscount] = React.useState<string>("0");
   const [editingId, setEditingId] = React.useState<number | null>(null);
+
+  const shops = [
+    { id: "1", name: "Champika Hardware" },
+    { id: "2", name: "Bawantha Hardware" },
+  ];
 
   // New item row state
   const [newItem, setNewItem] = React.useState<NewItemRow>({
@@ -210,6 +220,11 @@ export default function DatePickerPage() {
       sellingPrice: "",
       mrp: "",
     });
+  };
+
+  // Handle shop selection
+  const handleShopChange = (shopId: string) => {
+    setShop(shopId);
   };
 
   // Get selected supplier name for display
@@ -453,6 +468,7 @@ export default function DatePickerPage() {
   // Reset form function
   const resetForm = () => {
     setSelectedSupplierId("");
+    setShop("");
     setBillNo("");
     setBillingDate(undefined);
     setReceivedDate(undefined);
@@ -496,6 +512,10 @@ export default function DatePickerPage() {
         toast.error("Please select a supplier!");
         return;
       }
+      if (!shop) {
+        toast.error("Please select a shop!");
+        return;
+      }
       if (!billNo.trim()) {
         toast.error("Please enter a Bill Number!");
         return;
@@ -516,22 +536,22 @@ export default function DatePickerPage() {
         return new Date(date).toISOString().split("T")[0];
       };
 
-      const transformedBillItems = items.map((item) => {
-        const product = filteredProducts.find(
-          (p) => p.item_code === item.itemCode
-        );
-        if (!product) {
-          throw new Error(`Product not found for item code: ${item.itemCode}`);
-        }
+      // const transformedBillItems = items.map((item) => {
+      //   const product = filteredProducts.find(
+      //     (p) => p.item_code === item.itemCode
+      //   );
+      //   if (!product) {
+      //     throw new Error(`Product not found for item code: ${item.itemCode}`);
+      //   }
 
-        return {
-          item_id: parseInt(product.item_uuid) || 0,
-          unit_price: item.price,
-          quantity: item.quantity,
-          discount_percentage: item.discount || 0,
-          free_item_quantity: item.freeItemQuantity || 0,
-        };
-      });
+      //   return {
+      //     item_id: parseInt(product.item_uuid) || 0,
+      //     unit_price: item.price,
+      //     quantity: item.quantity,
+      //     discount_percentage: item.discount || 0,
+      //     free_item_quantity: item.freeItemQuantity || 0,
+      //   };
+      // });
 
       const supplierIdNum = parseInt(selectedSupplierId);
       if (isNaN(supplierIdNum)) {
@@ -541,6 +561,7 @@ export default function DatePickerPage() {
 
       const payload: CreateSupplierBillDto = {
         supplierId: selectedSupplierId,
+        shopId: Number(shop),
         billNo: billNo.trim(),
         billingDate: formatDateForBackend(billingDate),
         receivedDate: formatDateForBackend(receivedDate),
@@ -653,13 +674,19 @@ export default function DatePickerPage() {
             </div>
             <div className="space-y-2">
               <Label>Select Shop</Label>
-              <Select defaultValue="apple">
+              <Select
+                value={shop}
+                onValueChange={handleShopChange}
+              >
                 <SelectTrigger className="w-[220px]">
-                  <SelectValue placeholder="Select a fruit" />
+                  <SelectValue placeholder="Select a shop" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="apple">Champika Hardware</SelectItem>
-                  <SelectItem value="banana">Bawantha Hardware</SelectItem>
+                  {shops.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -798,7 +825,7 @@ export default function DatePickerPage() {
                 <TableHead className="w-[100px]">Unit Price</TableHead>
                 <TableHead className="w-[80px]">Quantity</TableHead>
                 <TableHead className="w-[100px]">Discount(%)</TableHead>
-                <TableHead className="w-[100px]">Discount Amount</TableHead>
+                <TableHead className="w-[100px]">D. Amount</TableHead>
                 <TableHead className="w-[100px]">Free Item Qty</TableHead>
                 <TableHead className="w-[100px]">Selling Price</TableHead>
                 <TableHead className="w-[100px]">Amount</TableHead>
@@ -930,7 +957,7 @@ export default function DatePickerPage() {
                         className="h-8"
                       />
                     ) : (
-                      `$${item.discountAmount.toFixed(2)}`
+                      `${item.discountAmount.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>
@@ -966,7 +993,7 @@ export default function DatePickerPage() {
                         className="h-8"
                       />
                     ) : (
-                      `$${item.sellingPrice.toFixed(2)}`
+                      `${item.sellingPrice.toFixed(2)}`
                     )}
                   </TableCell>
                   <TableCell>${item.amount.toFixed(2)}</TableCell>

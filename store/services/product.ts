@@ -37,7 +37,7 @@ export interface BillProduct {
   category_name: string;
   images: string[];
   mrp: string;
-
+  shopId: number;
 }
 
 // Define the request type for creating a product
