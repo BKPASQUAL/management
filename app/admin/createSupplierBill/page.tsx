@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import {
   CreateSupplierBillDto,
   useCreateSupplierBillMutation,
+  useGetAllBusinessQuery,
   useGetDropdownSuppliersQuery,
 } from "@/store/services/supplier";
 import { useGetProductsQuery } from "@/store/services/product";
@@ -109,6 +110,11 @@ export default function DatePickerPage() {
     isLoading: productsLoading,
     error: productsError,
   } = useGetProductsQuery();
+  const {
+    data: businesses = [],
+    isLoading: businessesLoading,
+    error: businessesError,
+  } = useGetAllBusinessQuery();
 
   // Extract products from the API response
   const products: Product[] = productsResponse?.data || [];
@@ -132,10 +138,10 @@ export default function DatePickerPage() {
   const [extraDiscount, setExtraDiscount] = React.useState<string>("0");
   const [editingId, setEditingId] = React.useState<number | null>(null);
 
-  const shops = [
-    { id: "1", name: "Champika Hardware" },
-    { id: "2", name: "Bawantha Hardware" },
-  ];
+  const shops = businesses.map((b) => ({
+    id: b.business_id?.toString() ?? "",
+    name: b.business_name,
+  }));
 
   // New item row state
   const [newItem, setNewItem] = React.useState<NewItemRow>({
@@ -674,10 +680,7 @@ export default function DatePickerPage() {
             </div>
             <div className="space-y-2">
               <Label>Select Shop</Label>
-              <Select
-                value={shop}
-                onValueChange={handleShopChange}
-              >
+              <Select value={shop} onValueChange={handleShopChange}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Select a shop" />
                 </SelectTrigger>

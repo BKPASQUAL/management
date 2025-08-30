@@ -1,7 +1,7 @@
 // src/store/services/api.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Define the Supplier interface
+// Supplier interface
 export interface Supplier {
   id?: number;
   supplier_name: string;
@@ -29,7 +29,6 @@ export interface SupplierBillItem {
   mrp: string;
 }
 
-// supplier.ts
 export interface CreateSupplierBillDto {
   supplierId: string; // backend expects this
   billNo: string;
@@ -49,7 +48,7 @@ export interface CreateSupplierBillDto {
   subtotal: number;
   extraDiscountAmount: number;
   finalTotal: number;
-  shopId:number;
+  shopId: number;
 }
 
 export interface SupplierBillResponse {
@@ -57,12 +56,18 @@ export interface SupplierBillResponse {
   message: string;
 }
 
+// Business interface
+export interface Business {
+  business_id?: number;
+  business_name: string;
+}
+
 export const supplierApi = createApi({
   reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/", // ⚡ should point to your NestJS backend port
+    baseUrl: "http://localhost:3001/", // ⚡ NestJS backend port
   }),
-  tagTypes: ["Supplier", "SupplierBill"],
+  tagTypes: ["Supplier", "SupplierBill", "Business"],
   endpoints: (builder) => ({
     // Supplier endpoints
     addSupplier: builder.mutation<Supplier, Omit<Supplier, "id">>({
@@ -126,6 +131,13 @@ export const supplierApi = createApi({
       }),
       invalidatesTags: ["SupplierBill"],
     }),
+
+    // ✅ Business endpoint
+    getAllBusiness: builder.query<Business[], void>({
+      query: () => "business",
+      providesTags: ["Business"],
+      transformResponse: (response: { data: Business[] }) => response.data,
+    }),
   }),
 });
 
@@ -136,5 +148,6 @@ export const {
   useUpdateSupplierMutation,
   useDeleteSupplierMutation,
   useGetDropdownSuppliersQuery,
-  useCreateSupplierBillMutation, // ✅ new hook for supplier bill
+  useCreateSupplierBillMutation,
+  useGetAllBusinessQuery, // ✅ new hook for businesses
 } = supplierApi;
