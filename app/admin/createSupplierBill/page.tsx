@@ -1,41 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { Calendar, Plus, Edit, Trash2, Save, Printer } from "lucide-react";
+import { Calendar, Plus, Edit, Trash2, Save, Printer, Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Check, ChevronsUpDown } from "lucide-react";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
   CreateSupplierBillDto,
@@ -45,7 +20,6 @@ import {
 } from "@/store/services/supplier";
 import { useGetProductsQuery } from "@/store/services/product";
 
-// Updated Product interface to match your API response
 interface Product {
   item_uuid: string;
   item_code: string;
@@ -76,195 +50,91 @@ interface Item {
   price: number;
   quantity: number;
   discount: number;
-  discountAmount: number; // Added discount amount field
+  discountAmount: number;
   amount: number;
   freeItemQuantity?: number;
 }
 
-interface NewItemRow {
-  itemCode: string;
-  itemName: string;
-  sellingPrice: string;
-  mrp: string;
-  price: string;
-  quantity: string;
-  discount: string;
-  discountAmount: string; // Added discount amount field
-  freeItemQuantity: string;
-}
+const initialNewItem = {
+  itemCode: "", itemName: "", sellingPrice: "", mrp: "", price: "", 
+  quantity: "", discount: "", discountAmount: "", freeItemQuantity: ""
+};
 
 export default function DatePickerPage() {
-  // Fetch suppliers from API
-  const {
-    data: suppliers = [],
-    isLoading: suppliersLoading,
-    error: suppliersError,
-  } = useGetDropdownSuppliersQuery();
+  const { data: suppliers = [], isLoading: suppliersLoading, error: suppliersError } = useGetDropdownSuppliersQuery();
+  const [createSupplierBill, { isLoading: isCreating }] = useCreateSupplierBillMutation();
+  const { data: productsResponse, isLoading: productsLoading, error: productsError } = useGetProductsQuery();
+  const { data: businesses = [], isLoading: businessesLoading, error: businessesError } = useGetAllBusinessQuery();
 
-  const [createSupplierBill, { isLoading: isCreating }] =
-    useCreateSupplierBillMutation();
-
-  // Fetch products from API
-  const {
-    data: productsResponse,
-    isLoading: productsLoading,
-    error: productsError,
-  } = useGetProductsQuery();
-
-  const {
-    data: businesses = [], // already an array
-    isLoading: businessesLoading,
-    error: businessesError,
-  } = useGetAllBusinessQuery();
-
-  console.log("businesses", businesses); // will show the array directly
-
-  // Extract products from the API response
   const products: Product[] = productsResponse?.data || [];
-
+  
+  // State management
   const [open, setOpen] = React.useState(false);
-  const [selectedSupplierId, setSelectedSupplierId] =
-    React.useState<string>("");
-
-  // Add shop state
-const [shop, setShop] = React.useState<string>("");
-
+  const [selectedSupplierId, setSelectedSupplierId] = React.useState<string>("");
+  const [shop, setShop] = React.useState<string>("");
   const [billNo, setBillNo] = React.useState<string>("");
   const [billingDate, setBillingDate] = React.useState<Date | undefined>();
   const [receivedDate, setReceivedDate] = React.useState<Date | undefined>();
   const [billingDateOpen, setBillingDateOpen] = React.useState<boolean>(false);
-  const [receivedDateOpen, setReceivedDateOpen] =
-    React.useState<boolean>(false);
-
-  // Item table state
+  const [receivedDateOpen, setReceivedDateOpen] = React.useState<boolean>(false);
   const [items, setItems] = React.useState<Item[]>([]);
   const [extraDiscount, setExtraDiscount] = React.useState<string>("0");
   const [editingId, setEditingId] = React.useState<number | null>(null);
+  const [newItem, setNewItem] = React.useState(initialNewItem);
+  const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
+  const [itemNameOpen, setItemNameOpen] = React.useState(false);
 
   const shops = businesses.map((loc) => ({
     id: loc.location_id?.toString() ?? "",
     name: loc.location_name,
   }));
 
-  // Ensure default shop selection
-  React.useEffect(() => {
-    if (businesses.length > 0 && !shop) {
-      const firstShopId = businesses[0].location_id?.toString() ?? "";
-      setShop(firstShopId);
-    }
-  }, [businesses, shop, setShop]);
-
-//   React.useEffect(() => {
-//   if (businesses.length > 0 && !shop) {
-//     const firstShopId = businesses[0].location_id?.toString() ?? "";
-//     setShop(firstShopId);
-//   }
-  
-// }, [businesses, shop]);
-
-  // Handle shop selection
-  const handleShopChange = (selectedId: string) => {
-    console.log("Selected shop id:", selectedId);
-    setShop(selectedId);
-  };
-
-  const [newItem, setNewItem] = React.useState<NewItemRow>({
-    itemCode: "",
-    itemName: "",
-    price: "",
-    quantity: "",
-    discount: "",
-    discountAmount: "",
-    freeItemQuantity: "",
-    sellingPrice: "",
-    mrp: "",
-  });
-
-  // Dropdown states
-  const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
-  const [itemNameOpen, setItemNameOpen] = React.useState(false);
-
-  // Filter products by selected supplier
   const filteredProducts = React.useMemo(() => {
-    if (!selectedSupplierId) return [];
-    return products.filter(
-      (product) => product.supplier_id.toString() === selectedSupplierId
-    );
+    return selectedSupplierId ? products.filter(p => p.supplier_id.toString() === selectedSupplierId) : [];
   }, [products, selectedSupplierId]);
 
-  const formatDate = (date: Date | undefined): string => {
-    if (!date) return "Pick a date";
-    return date.toLocaleDateString();
-  };
+  // Initialize default shop
+  React.useEffect(() => {
+    if (businesses.length > 0 && !shop) {
+      setShop(businesses[0].location_id?.toString() ?? "");
+    }
+  }, [businesses, shop]);
 
-  // Calculate amount when price, quantity, discount, or discount amount changes
-  const calculateAmount = (
-    price: number,
-    quantity: number,
-    discount: number,
-    discountAmount: number = 0
-  ): number => {
+  // Utility functions
+  const formatDate = (date: Date | undefined): string => date ? date.toLocaleDateString() : "Pick a date";
+  
+  const calculateAmount = (price: number, quantity: number, discount: number, discountAmount: number = 0): number => {
     const subtotal = price * quantity;
-    // Use discount amount if provided, otherwise use percentage
-    const finalDiscountAmount =
-      discountAmount > 0 ? discountAmount : (subtotal * discount) / 100;
+    const finalDiscountAmount = discountAmount > 0 ? discountAmount : (subtotal * discount) / 100;
     return subtotal - finalDiscountAmount;
   };
 
-  // Calculate discount percentage from amount
-  const calculateDiscountPercentage = (
-    price: number,
-    quantity: number,
-    discountAmount: number
-  ): number => {
+  const calculateDiscountPercentage = (price: number, quantity: number, discountAmount: number): number => {
     const subtotal = price * quantity;
-    if (subtotal === 0) return 0;
-    return (discountAmount / subtotal) * 100;
+    return subtotal === 0 ? 0 : (discountAmount / subtotal) * 100;
   };
 
-  // Calculate discount amount from percentage
-  const calculateDiscountAmount = (
-    price: number,
-    quantity: number,
-    discountPercentage: number
-  ): number => {
-    const subtotal = price * quantity;
-    return (subtotal * discountPercentage) / 100;
+  const calculateDiscountAmount = (price: number, quantity: number, discountPercentage: number): number => {
+    return (price * quantity * discountPercentage) / 100;
   };
 
-  // Handle supplier selection
+  // Event handlers
   const handleSupplierSelect = (supplierId: string) => {
     setSelectedSupplierId(supplierId);
     setOpen(false);
-
-    // Clear existing items and new item form when supplier changes
     setItems([]);
-    setNewItem({
-      itemCode: "",
-      itemName: "",
-      price: "",
-      quantity: "",
-      discount: "",
-      discountAmount: "",
-      freeItemQuantity: "",
-      sellingPrice: "",
-      mrp: "",
-    });
+    setNewItem(initialNewItem);
   };
 
-  // Get selected supplier name for display
   const getSelectedSupplierName = (): string => {
     if (!selectedSupplierId) return "Select supplier...";
-    const supplier = suppliers.find(
-      (s) => s.supplier_id.toString() === selectedSupplierId
-    );
+    const supplier = suppliers.find(s => s.supplier_id.toString() === selectedSupplierId);
     return supplier ? supplier.supplier_name : "Select supplier...";
   };
 
-  // Handle item code selection
-  const handleItemCodeSelect = (code: string) => {
-    const selectedProduct = filteredProducts.find(
-      (product) => product.item_code === code
+  const handleItemSelect = (type: 'code' | 'name', value: string) => {
+    const selectedProduct = filteredProducts.find(p => 
+      type === 'code' ? p.item_code === value : p.item_name === value
     );
     if (selectedProduct) {
       setNewItem({
@@ -276,221 +146,98 @@ const [shop, setShop] = React.useState<string>("");
         price: selectedProduct.cost_price,
       });
     }
-
-    setItemCodeOpen(false);
+    type === 'code' ? setItemCodeOpen(false) : setItemNameOpen(false);
   };
 
-  // Handle item name selection
-  const handleItemNameSelect = (name: string) => {
-    const selectedProduct = filteredProducts.find(
-      (product) => product.item_name === name
-    );
-    if (selectedProduct) {
-      setNewItem({
-        ...newItem,
-        itemCode: selectedProduct.item_code,
-        itemName: name,
-        sellingPrice: selectedProduct.selling_price,
-        mrp: selectedProduct.mrp,
-        price: selectedProduct.cost_price,
-      });
-    }
-    setItemNameOpen(false);
-  };
-
-  // Handle input changes with auto-calculation for discount
-  const handleInputChange = (field: keyof NewItemRow, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     const updatedItem = { ...newItem, [field]: value };
-
     const price = parseFloat(updatedItem.price) || 0;
     const quantity = parseFloat(updatedItem.quantity) || 0;
 
-    // Auto-calculate discount amount when percentage changes
     if (field === "discount") {
       const discountPercentage = parseFloat(value) || 0;
-      const discountAmount = calculateDiscountAmount(
-        price,
-        quantity,
-        discountPercentage
-      );
-      updatedItem.discountAmount = discountAmount.toFixed(2);
+      updatedItem.discountAmount = calculateDiscountAmount(price, quantity, discountPercentage).toFixed(2);
     }
 
-    // Auto-calculate discount percentage when amount changes
     if (field === "discountAmount") {
       const discountAmount = parseFloat(value) || 0;
-      const discountPercentage = calculateDiscountPercentage(
-        price,
-        quantity,
-        discountAmount
-      );
-      updatedItem.discount = discountPercentage.toFixed(2);
+      updatedItem.discount = calculateDiscountPercentage(price, quantity, discountAmount).toFixed(2);
     }
 
     setNewItem(updatedItem);
   };
 
-  // Handle edit input changes with auto-calculation
-  const handleEditInputChange = (
-    id: number,
-    field: keyof Item,
-    value: string | number
-  ) => {
-    setItems(
-      items.map((item) => {
-        if (item.id === id) {
-          const updatedItem = { ...item, [field]: value };
+  const handleEditInputChange = (id: number, field: keyof Item, value: string | number) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const updatedItem = { ...item, [field]: value };
+        const price = field === "price" ? Number(value) : updatedItem.price;
+        const quantity = field === "quantity" ? Number(value) : updatedItem.quantity;
 
-          const price = field === "price" ? Number(value) : updatedItem.price;
-          const quantity =
-            field === "quantity" ? Number(value) : updatedItem.quantity;
-
-          // Auto-calculate discount amount when percentage changes
-          if (field === "discount") {
-            const discountPercentage = Number(value);
-            const discountAmount = calculateDiscountAmount(
-              price,
-              quantity,
-              discountPercentage
-            );
-            updatedItem.discountAmount = discountAmount;
-          }
-
-          // Auto-calculate discount percentage when amount changes
-          if (field === "discountAmount") {
-            const discountAmount = Number(value);
-            const discountPercentage = calculateDiscountPercentage(
-              price,
-              quantity,
-              discountAmount
-            );
-            updatedItem.discount = discountPercentage;
-          }
-
-          // Recalculate amount if price, quantity, discount, or discount amount changes
-          if (
-            field === "price" ||
-            field === "quantity" ||
-            field === "discount" ||
-            field === "discountAmount"
-          ) {
-            updatedItem.amount = calculateAmount(
-              price,
-              quantity,
-              field === "discount" ? Number(value) : updatedItem.discount,
-              field === "discountAmount"
-                ? Number(value)
-                : updatedItem.discountAmount
-            );
-          }
-
-          return updatedItem;
+        if (field === "discount") {
+          updatedItem.discountAmount = calculateDiscountAmount(price, quantity, Number(value));
         }
-        return item;
-      })
-    );
+
+        if (field === "discountAmount") {
+          updatedItem.discount = calculateDiscountPercentage(price, quantity, Number(value));
+        }
+
+        if (["price", "quantity", "discount", "discountAmount"].includes(field as string)) {
+          updatedItem.amount = calculateAmount(
+            price, quantity,
+            field === "discount" ? Number(value) : updatedItem.discount,
+            field === "discountAmount" ? Number(value) : updatedItem.discountAmount
+          );
+        }
+
+        return updatedItem;
+      }
+      return item;
+    }));
   };
 
-  // Handle Enter key navigation
   const handleKeyPress = (e: React.KeyboardEvent, nextField: string) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const nextElement = document.querySelector(
-        `[data-field="${nextField}"]`
-      ) as HTMLElement;
-      if (nextElement) {
-        nextElement.focus();
-      }
+      const nextElement = document.querySelector(`[data-field="${nextField}"]`) as HTMLElement;
+      nextElement?.focus();
     }
   };
 
-  // Add item to the list
   const addItem = () => {
-    if (
-      newItem.itemCode &&
-      newItem.itemName &&
-      newItem.price &&
-      newItem.quantity
-    ) {
+    if (newItem.itemCode && newItem.itemName && newItem.price && newItem.quantity) {
       const price = parseFloat(newItem.price) || 0;
       const quantity = parseFloat(newItem.quantity) || 0;
       const discount = parseFloat(newItem.discount) || 0;
       const discountAmount = parseFloat(newItem.discountAmount) || 0;
-      const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
-      const sellingPrice = parseFloat(newItem.sellingPrice) || 0;
-      const mrp = parseFloat(newItem.mrp) || 0;
-
       const amount = calculateAmount(price, quantity, discount, discountAmount);
 
       const item: Item = {
         id: Date.now(),
         itemCode: newItem.itemCode,
         itemName: newItem.itemName,
-        sellingPrice,
-        mrp,
-        price,
-        quantity,
-        discount,
-        discountAmount,
-        amount,
-        freeItemQuantity,
+        sellingPrice: parseFloat(newItem.sellingPrice) || 0,
+        mrp: parseFloat(newItem.mrp) || 0,
+        price, quantity, discount, discountAmount, amount,
+        freeItemQuantity: parseFloat(newItem.freeItemQuantity) || 0,
       };
 
       setItems([...items, item]);
-
-      // Reset the new item row
-      setNewItem({
-        itemCode: "",
-        itemName: "",
-        price: "",
-        quantity: "",
-        discount: "",
-        discountAmount: "",
-        freeItemQuantity: "",
-        sellingPrice: "",
-        mrp: "",
-      });
-
+      setNewItem(initialNewItem);
       toast.success("Item added successfully!");
 
-      // Focus on the item code field for next entry
       setTimeout(() => {
-        const itemCodeField = document.querySelector(
-          '[data-field="itemCode"]'
-        ) as HTMLElement;
-        if (itemCodeField) {
-          itemCodeField.focus();
-        }
+        const itemCodeField = document.querySelector('[data-field="itemCode"]') as HTMLElement;
+        itemCodeField?.focus();
       }, 100);
     }
   };
 
-  // Handle Enter key on the last field to add item
-  const handleLastFieldEnter = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addItem();
-    }
-  };
-
-  // Delete item
   const deleteItem = (id: number) => {
-    setItems(items.filter((item) => item.id !== id));
+    setItems(items.filter(item => item.id !== id));
     toast.success("Item deleted successfully!");
   };
 
-  // Start editing an item
-  const startEdit = (id: number) => {
-    setEditingId(id);
-  };
-
-  // Stop editing an item
-  const stopEdit = () => {
-    setEditingId(null);
-    toast.success("Item updated successfully!");
-  };
-
-  // Reset form function
   const resetForm = () => {
     setSelectedSupplierId("");
     setShop("");
@@ -500,89 +247,34 @@ const [shop, setShop] = React.useState<string>("");
     setItems([]);
     setExtraDiscount("0");
     setEditingId(null);
-    setNewItem({
-      itemCode: "",
-      itemName: "",
-      price: "",
-      quantity: "",
-      discount: "",
-      discountAmount: "",
-      freeItemQuantity: "",
-      sellingPrice: "",
-      mrp: "",
-    });
-    setOpen(false);
-    setBillingDateOpen(false);
-    setReceivedDateOpen(false);
-    setItemCodeOpen(false);
-    setItemNameOpen(false);
+    setNewItem(initialNewItem);
+    [setOpen, setBillingDateOpen, setReceivedDateOpen, setItemCodeOpen, setItemNameOpen].forEach(setter => setter(false));
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
 
-  // Handle loading and error states
-  if (suppliersError) {
-    console.error("Error loading suppliers:", suppliersError);
-  }
-
-  if (productsError) {
-    console.error("Error loading products:", productsError);
-  }
-
   const handleSaveInvoice = async () => {
     try {
-      if (!selectedSupplierId) {
-        toast.error("Please select a supplier!");
-        return;
-      }
-      if (!shop) {
-        toast.error("Please select a shop!");
-        return;
-      }
-      if (!billNo.trim()) {
-        toast.error("Please enter a Bill Number!");
-        return;
-      }
-      if (!billingDate || !receivedDate) {
-        toast.error("Please select billing and received dates!");
-        return;
-      }
-      if (items.length === 0) {
-        toast.error("Please add at least one item!");
+      const validations = [
+        { condition: !selectedSupplierId, message: "Please select a supplier!" },
+        { condition: !shop, message: "Please select a shop!" },
+        { condition: !billNo.trim(), message: "Please enter a Bill Number!" },
+        { condition: !billingDate || !receivedDate, message: "Please select billing and received dates!" },
+        { condition: items.length === 0, message: "Please add at least one item!" }
+      ];
+
+      const failedValidation = validations.find(v => v.condition);
+      if (failedValidation) {
+        toast.error(failedValidation.message);
         return;
       }
 
       toast.loading("Saving invoice...", { id: "save-invoice" });
 
-      const formatDateForBackend = (date: Date | undefined) => {
-        if (!date) return "";
-        return new Date(date).toISOString().split("T")[0];
-      };
-
-      // const transformedBillItems = items.map((item) => {
-      //   const product = filteredProducts.find(
-      //     (p) => p.item_code === item.itemCode
-      //   );
-      //   if (!product) {
-      //     throw new Error(`Product not found for item code: ${item.itemCode}`);
-      //   }
-
-      //   return {
-      //     item_id: parseInt(product.item_uuid) || 0,
-      //     unit_price: item.price,
-      //     quantity: item.quantity,
-      //     discount_percentage: item.discount || 0,
-      //     free_item_quantity: item.freeItemQuantity || 0,
-      //   };
-      // });
-
-      const supplierIdNum = parseInt(selectedSupplierId);
-      if (isNaN(supplierIdNum)) {
-        toast.error("Invalid supplier ID");
-        return;
-      }
+      const formatDateForBackend = (date: Date | undefined) => 
+        date ? new Date(date).toISOString().split("T")[0] : "";
 
       const payload: CreateSupplierBillDto = {
         supplierId: selectedSupplierId,
@@ -590,7 +282,7 @@ const [shop, setShop] = React.useState<string>("");
         billNo: billNo.trim(),
         billingDate: formatDateForBackend(billingDate),
         receivedDate: formatDateForBackend(receivedDate),
-        items: items.map((item) => ({
+        items: items.map(item => ({
           itemCode: item.itemCode,
           itemName: item.itemName,
           sellingPrice: item.sellingPrice,
@@ -608,11 +300,7 @@ const [shop, setShop] = React.useState<string>("");
         finalTotal,
       };
 
-      console.log("🚀 Sending payload to backend:", payload);
-
       const response = await createSupplierBill(payload).unwrap();
-
-      console.log("✅ Backend response:", response);
 
       toast.dismiss("save-invoice");
       toast.success("Invoice saved successfully!", {
@@ -623,18 +311,90 @@ const [shop, setShop] = React.useState<string>("");
       resetForm();
     } catch (error: any) {
       toast.dismiss("save-invoice");
-
-      console.error("❌ Error saving invoice:", error);
-
-      if (error?.data?.message) {
-        toast.error(`Failed to save invoice: ${error.data.message}`);
-      } else if (error?.message) {
-        toast.error(`Failed to save invoice: ${error.message}`);
-      } else {
-        toast.error("Failed to save invoice. Please try again.");
-      }
+      const errorMessage = error?.data?.message || error?.message || "Failed to save invoice. Please try again.";
+      toast.error(`Failed to save invoice: ${errorMessage}`);
     }
   };
+
+  const renderDropdown = (
+    open: boolean,
+    setOpen: (open: boolean) => void,
+    value: string,
+    placeholder: string,
+    options: any[],
+    onSelect: (value: string) => void,
+    getOptionValue: (option: any) => string,
+    getOptionLabel: (option: any) => string,
+    searchPlaceholder: string,
+    width: string = "w-full",
+    disabled: boolean = false
+  ) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={`${width} justify-between h-10 px-3 text-sm`}
+          disabled={disabled}
+        >
+          {value || placeholder}
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0">
+        <Command>
+          <CommandInput placeholder={searchPlaceholder} />
+          <CommandList>
+            <CommandEmpty>{disabled ? "Loading..." : "No items found."}</CommandEmpty>
+            <CommandGroup>
+              {options.map((option, index) => (
+                <CommandItem
+                  key={index}
+                  value={getOptionLabel(option)}
+                  onSelect={() => onSelect(getOptionValue(option))}
+                >
+                  {getOptionLabel(option)}
+                  <Check className={cn("ml-auto h-4 w-4", value === getOptionValue(option) ? "opacity-100" : "opacity-0")} />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+
+  const renderDatePicker = (
+    date: Date | undefined,
+    setDate: (date: Date | undefined) => void,
+    open: boolean,
+    setOpen: (open: boolean) => void,
+    label: string
+  ) => (
+    <div className="w-[250px] space-y-2">
+      <Label>{label}</Label>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn("w-full justify-start text-left font-normal", !date && "text-muted-foreground")}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            {formatDate(date)}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <CalendarComponent
+            mode="single"
+            selected={date}
+            onSelect={(date) => { setDate(date); setOpen(false); }}
+            initialFocus
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -643,86 +403,31 @@ const [shop, setShop] = React.useState<string>("");
           <div className="flex gap-x-4">
             <div className="space-y-2">
               <Label>Select Supplier</Label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-[350px] justify-between"
-                    disabled={suppliersLoading}
-                  >
-                    {suppliersLoading
-                      ? "Loading suppliers..."
-                      : getSelectedSupplierName()}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[350px] p-0">
-                  <Command>
-                    <CommandInput
-                      placeholder="Search supplier..."
-                      className="h-9"
-                    />
-                    <CommandList>
-                      <CommandEmpty>
-                        {suppliersLoading ? "Loading..." : "No supplier found."}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {suppliers.map((supplier) => (
-                          <CommandItem
-                            key={supplier.supplier_id}
-                            value={supplier.supplier_name}
-                            onSelect={() =>
-                              handleSupplierSelect(
-                                supplier.supplier_id.toString()
-                              )
-                            }
-                          >
-                            {supplier.supplier_name}
-                            <Check
-                              className={cn(
-                                "ml-auto h-4 w-4",
-                                selectedSupplierId ===
-                                  supplier.supplier_id.toString()
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              {renderDropdown(
+                open, setOpen, getSelectedSupplierName(), "Select supplier...",
+                suppliers, handleSupplierSelect,
+                (s) => s.supplier_id.toString(), (s) => s.supplier_name,
+                "Search supplier...", "w-[350px]", suppliersLoading
+              )}
             </div>
             <div className="space-y-2">
               <Label>Select Shop</Label>
-              <Select value={shop} onValueChange={handleShopChange}>
+              <Select value={shop} onValueChange={setShop}>
                 <SelectTrigger className="w-[220px]">
                   <SelectValue placeholder="Select a shop" />
                 </SelectTrigger>
                 <SelectContent>
                   {shops.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
-          {suppliersError && (
-            <p className="text-sm text-red-500">
-              Failed to load suppliers. Please try again.
-            </p>
-          )}
+          {suppliersError && <p className="text-sm text-red-500">Failed to load suppliers. Please try again.</p>}
         </div>
 
         <div className="flex gap-x-4">
-          {/* Bill Number Input */}
           <div className="w-[250px] space-y-2">
             <Label htmlFor="billNo">Bill Number</Label>
             <Input
@@ -730,322 +435,106 @@ const [shop, setShop] = React.useState<string>("");
               type="text"
               placeholder="Enter bill number"
               value={billNo}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setBillNo(e.target.value)
-              }
+              onChange={(e) => setBillNo(e.target.value)}
               className="w-full"
             />
           </div>
-          {/* Billing Date */}
-          <div className="w-[250px] space-y-2">
-            <Label>Billing Date</Label>
-            <Popover open={billingDateOpen} onOpenChange={setBillingDateOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !billingDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formatDate(billingDate)}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={billingDate}
-                  onSelect={(date: Date | undefined) => {
-                    setBillingDate(date);
-                    setBillingDateOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Received Date */}
-          <div className="w-[250px] space-y-2">
-            <Label>Received Date</Label>
-            <Popover open={receivedDateOpen} onOpenChange={setReceivedDateOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !receivedDate && "text-muted-foreground"
-                  )}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formatDate(receivedDate)}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={receivedDate}
-                  onSelect={(date: Date | undefined) => {
-                    setReceivedDate(date);
-                    setReceivedDateOpen(false);
-                  }}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+          {renderDatePicker(billingDate, setBillingDate, billingDateOpen, setBillingDateOpen, "Billing Date")}
+          {renderDatePicker(receivedDate, setReceivedDate, receivedDateOpen, setReceivedDateOpen, "Received Date")}
         </div>
       </div>
 
-      {/* Item Table Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h3 className="text-lg font-semibold">Items</h3>
           <div className="flex gap-x-2">
-            <Button
-              variant="greenOutline"
-              className="cursor-pointer"
-              onClick={handleSaveInvoice}
-            >
-              <Save className=" h-4 w-4" /> Save Invoice
+            <Button variant="greenOutline" onClick={handleSaveInvoice}>
+              <Save className="h-4 w-4" /> Save Invoice
             </Button>
-            <Button variant="blackOutline" className="cursor-pointer">
-              <Printer className=" h-4 w-4" /> Print Invoice
+            <Button variant="blackOutline">
+              <Printer className="h-4 w-4" /> Print Invoice
             </Button>
           </div>
         </div>
 
-        {/* Show loading or error states for products */}
-        {productsLoading && (
-          <div className="text-center py-1">Loading products...</div>
-        )}
-        {productsError && (
-          <div className="text-center py-4 text-red-500">
-            Failed to load products. Please try again.
+        {productsLoading && <div className="text-center py-1">Loading products...</div>}
+        {productsError && <div className="text-center py-4 text-red-500">Failed to load products. Please try again.</div>}
+        {selectedSupplierId && !productsLoading && filteredProducts.length === 0 && (
+          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
+            No products found for the selected supplier
           </div>
         )}
 
-        {/* Show message when supplier is selected but has no products */}
-        {selectedSupplierId &&
-          !productsLoading &&
-          filteredProducts.length === 0 && (
-            <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">
-              No products found for the selected supplier
-            </div>
-          )}
-
-        {/* Show table only when supplier is selected and has products */}
-        {/* { filteredProducts.length > 0 && ( */}
         <div className="border rounded-lg">
           <Table>
             <TableHeader className="bg-gray-50 rounded-lg">
               <TableRow>
-                <TableHead className="w-[150px] py-3 px-4">Item Code</TableHead>
-                <TableHead className="w-[200px]">Item Name</TableHead>
-                <TableHead className="w-[100px]">MRP</TableHead>
-                <TableHead className="w-[100px]">Unit Price</TableHead>
-                <TableHead className="w-[80px]">Quantity</TableHead>
-                <TableHead className="w-[100px]">Discount(%)</TableHead>
-                <TableHead className="w-[100px]">D. Amount</TableHead>
-                <TableHead className="w-[100px]">Free Item Qty</TableHead>
-                <TableHead className="w-[100px]">Selling Price</TableHead>
-                <TableHead className="w-[100px]">Amount</TableHead>
-                <TableHead className="w-[100px]">Action</TableHead>
+                {["Item Code", "Item Name", "MRP", "Unit Price", "Quantity", "Discount(%)", "D. Amount", "Free Item Qty", "Selling Price", "Amount", "Action"].map((header, i) => (
+                  <TableHead key={i} className={i === 0 ? "w-[150px] py-3 px-4" : "w-[100px]"}>{header}</TableHead>
+                ))}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {/* Existing Items */}
               {items.map((item) => (
                 <TableRow key={item.id}>
                   <TableCell className="font-medium">
                     {editingId === item.id ? (
-                      <Input
-                        value={item.itemCode}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "itemCode",
-                            e.target.value
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      item.itemCode
-                    )}
+                      <Input value={item.itemCode} onChange={(e) => handleEditInputChange(item.id, "itemCode", e.target.value)} className="h-8" />
+                    ) : item.itemCode}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        value={item.itemName}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "itemName",
-                            e.target.value
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      item.itemName
-                    )}
+                      <Input value={item.itemName} onChange={(e) => handleEditInputChange(item.id, "itemName", e.target.value)} className="h-8" />
+                    ) : item.itemName}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.mrp}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "mrp",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `$${item.mrp.toFixed(2)}`
-                    )}
+                      <Input type="number" value={item.mrp} onChange={(e) => handleEditInputChange(item.id, "mrp", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : `$${item.mrp.toFixed(2)}`}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.price}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "price",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `$${item.price.toFixed(2)}`
-                    )}
+                      <Input type="number" value={item.price} onChange={(e) => handleEditInputChange(item.id, "price", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : `$${item.price.toFixed(2)}`}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "quantity",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      item.quantity
-                    )}
+                      <Input type="number" value={item.quantity} onChange={(e) => handleEditInputChange(item.id, "quantity", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : item.quantity}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.discount}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "discount",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `${item.discount.toFixed(2)}%`
-                    )}
+                      <Input type="number" value={item.discount} onChange={(e) => handleEditInputChange(item.id, "discount", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : `${item.discount.toFixed(2)}%`}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.discountAmount}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "discountAmount",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `${item.discountAmount.toFixed(2)}`
-                    )}
+                      <Input type="number" value={item.discountAmount} onChange={(e) => handleEditInputChange(item.id, "discountAmount", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : `${item.discountAmount.toFixed(2)}`}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.freeItemQuantity || 0}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "freeItemQuantity",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      item.freeItemQuantity || 0
-                    )}
+                      <Input type="number" value={item.freeItemQuantity || 0} onChange={(e) => handleEditInputChange(item.id, "freeItemQuantity", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : item.freeItemQuantity || 0}
                   </TableCell>
                   <TableCell>
                     {editingId === item.id ? (
-                      <Input
-                        type="number"
-                        value={item.sellingPrice}
-                        onChange={(e) =>
-                          handleEditInputChange(
-                            item.id,
-                            "sellingPrice",
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        className="h-8"
-                      />
-                    ) : (
-                      `${item.sellingPrice.toFixed(2)}`
-                    )}
+                      <Input type="number" value={item.sellingPrice} onChange={(e) => handleEditInputChange(item.id, "sellingPrice", parseFloat(e.target.value) || 0)} className="h-8" />
+                    ) : `${item.sellingPrice.toFixed(2)}`}
                   </TableCell>
                   <TableCell>${item.amount.toFixed(2)}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
                       {editingId === item.id ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={stopEdit}
-                          className="text-green-600 hover:text-green-800"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)} className="text-green-600 hover:text-green-800">
                           <Save className="h-4 w-4" />
                         </Button>
                       ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => startEdit(item.id)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(item.id)} className="text-blue-600 hover:text-blue-800">
                           <Edit className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteItem(item.id)}
-                        className="text-red-600 hover:text-red-800"
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => deleteItem(item.id)} className="text-red-600 hover:text-red-800">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1053,272 +542,55 @@ const [shop, setShop] = React.useState<string>("");
                 </TableRow>
               ))}
 
-              {/* New Item Row */}
               <TableRow className="bg-blue-50">
                 <TableCell className="font-medium">
-                  <Popover open={itemCodeOpen} onOpenChange={setItemCodeOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={itemCodeOpen}
-                        className="w-full justify-between h-10 px-3 text-sm"
-                        data-field="itemCode"
-                        onKeyDown={(e) => handleKeyPress(e, "itemName")}
-                        disabled={
-                          productsLoading || filteredProducts.length === 0
-                        }
-                      >
-                        {newItem.itemCode ||
-                          (productsLoading
-                            ? "Loading..."
-                            : filteredProducts.length === 0
-                            ? "No items available"
-                            : "Select Code...")}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[200px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search item code..." />
-                        <CommandList>
-                          <CommandEmpty>
-                            {productsLoading ? "Loading..." : "No item found."}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {filteredProducts.map((product) => (
-                              <CommandItem
-                                key={product.item_uuid}
-                                value={product.item_code}
-                                onSelect={() =>
-                                  handleItemCodeSelect(product.item_code)
-                                }
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {product.item_code}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {product.item_name}
-                                  </span>
-                                </div>
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    newItem.itemCode === product.item_code
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </TableCell>
-
-                <TableCell>
-                  <Popover open={itemNameOpen} onOpenChange={setItemNameOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={itemNameOpen}
-                        className="w-full justify-between h-10 px-3 text-sm"
-                        data-field="itemName"
-                        onKeyDown={(e) => handleKeyPress(e, "price")}
-                        disabled={
-                          productsLoading || filteredProducts.length === 0
-                        }
-                      >
-                        {newItem.itemName ||
-                          (productsLoading
-                            ? "Loading..."
-                            : filteredProducts.length === 0
-                            ? "No items available"
-                            : "Select Item...")}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search item name..." />
-                        <CommandList>
-                          <CommandEmpty>
-                            {productsLoading ? "Loading..." : "No item found."}
-                          </CommandEmpty>
-                          <CommandGroup>
-                            {filteredProducts.map((product) => (
-                              <CommandItem
-                                key={product.item_uuid}
-                                value={product.item_name}
-                                onSelect={() =>
-                                  handleItemNameSelect(product.item_name)
-                                }
-                              >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
-                                    {product.item_name}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {product.item_code} - $
-                                    {product.selling_price}
-                                  </span>
-                                </div>
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    newItem.itemName === product.item_name
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  {renderDropdown(
+                    itemCodeOpen, setItemCodeOpen, newItem.itemCode, "Select Code...",
+                    filteredProducts, (code) => handleItemSelect('code', code),
+                    (p) => p.item_code, (p) => p.item_code,
+                    "Search item code...", "w-full",
+                    productsLoading || filteredProducts.length === 0
+                  )}
                 </TableCell>
                 <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newItem.mrp}
-                    onChange={(e) => handleInputChange("mrp", e.target.value)}
-                    data-field="mrp"
-                    onKeyDown={(e) => handleKeyPress(e, "price")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
+                  {renderDropdown(
+                    itemNameOpen, setItemNameOpen, newItem.itemName, "Select Item...",
+                    filteredProducts, (name) => handleItemSelect('name', name),
+                    (p) => p.item_name, (p) => p.item_name,
+                    "Search item name...", "w-full",
+                    productsLoading || filteredProducts.length === 0
+                  )}
                 </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newItem.price}
-                    onChange={(e) => handleInputChange("price", e.target.value)}
-                    data-field="price"
-                    onKeyDown={(e) => handleKeyPress(e, "quantity")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={newItem.quantity}
-                    onChange={(e) =>
-                      handleInputChange("quantity", e.target.value)
-                    }
-                    data-field="quantity"
-                    onKeyDown={(e) => handleKeyPress(e, "discount")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={newItem.discount}
-                    onChange={(e) =>
-                      handleInputChange("discount", e.target.value)
-                    }
-                    data-field="discount"
-                    onKeyDown={(e) => handleKeyPress(e, "discountAmount")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newItem.discountAmount}
-                    onChange={(e) =>
-                      handleInputChange("discountAmount", e.target.value)
-                    }
-                    data-field="discountAmount"
-                    onKeyDown={(e) => handleKeyPress(e, "freeItemQuantity")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0"
-                    value={newItem.freeItemQuantity}
-                    onChange={(e) =>
-                      handleInputChange("freeItemQuantity", e.target.value)
-                    }
-                    data-field="freeItemQuantity"
-                    onKeyDown={handleLastFieldEnter}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    placeholder="0.00"
-                    value={newItem.sellingPrice}
-                    onChange={(e) =>
-                      handleInputChange("sellingPrice", e.target.value)
-                    }
-                    data-field="sellingPrice"
-                    onKeyDown={(e) => handleKeyPress(e, "mrp")}
-                    className="h-10"
-                    disabled={
-                      !selectedSupplierId || filteredProducts.length === 0
-                    }
-                  />
-                </TableCell>
+                {["mrp", "price", "quantity", "discount", "discountAmount", "freeItemQuantity", "sellingPrice"].map((field, i) => (
+                  <TableCell key={field}>
+                    <Input
+                      type="number"
+                      placeholder={field === "quantity" || field === "freeItemQuantity" ? "0" : "0.00"}
+                      value={newItem[field as keyof typeof newItem]}
+                      onChange={(e) => handleInputChange(field, e.target.value)}
+                      data-field={field}
+                      onKeyDown={i === 6 ? (e) => e.key === "Enter" && addItem() : (e) => handleKeyPress(e, ["price", "quantity", "discount", "discountAmount", "freeItemQuantity", "sellingPrice"][i + 1] || "mrp")}
+                      className="h-10"
+                      disabled={!selectedSupplierId || filteredProducts.length === 0}
+                    />
+                  </TableCell>
+                ))}
                 <TableCell>
                   <span className="text-sm text-gray-600">
-                    $
-                    {newItem.price && newItem.quantity
-                      ? calculateAmount(
-                          parseFloat(newItem.price) || 0,
-                          parseFloat(newItem.quantity) || 0,
-                          parseFloat(newItem.discount) || 0,
-                          parseFloat(newItem.discountAmount) || 0
-                        ).toFixed(2)
-                      : "0.00"}
+                    ${newItem.price && newItem.quantity ? calculateAmount(
+                      parseFloat(newItem.price) || 0,
+                      parseFloat(newItem.quantity) || 0,
+                      parseFloat(newItem.discount) || 0,
+                      parseFloat(newItem.discountAmount) || 0
+                    ).toFixed(2) : "0.00"}
                   </span>
                 </TableCell>
-
                 <TableCell>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={addItem}
-                    disabled={
-                      !newItem.itemCode ||
-                      !newItem.itemName ||
-                      !newItem.price ||
-                      !newItem.quantity ||
-                      productsLoading ||
-                      !selectedSupplierId ||
-                      filteredProducts.length === 0
-                    }
+                    disabled={!newItem.itemCode || !newItem.itemName || !newItem.price || !newItem.quantity || productsLoading || !selectedSupplierId || filteredProducts.length === 0}
                     className="text-green-600 hover:text-green-800"
                   >
                     <Plus className="h-4 w-4" />
@@ -1329,7 +601,6 @@ const [shop, setShop] = React.useState<string>("");
           </Table>
         </div>
 
-        {/* Total Section - Only show when there are items */}
         {items.length > 0 && (
           <div className="flex justify-end">
             <div className="w-80 space-y-3 bg-gray-50 p-4 rounded-lg">
