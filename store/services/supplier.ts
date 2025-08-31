@@ -48,7 +48,7 @@ export interface CreateSupplierBillDto {
   subtotal: number;
   extraDiscountAmount: number;
   finalTotal: number;
-  shopId: number;
+  location_id: number;
 }
 
 export interface SupplierBillResponse {
@@ -58,8 +58,8 @@ export interface SupplierBillResponse {
 
 // Business interface
 export interface Business {
-  business_id?: number;
-  business_name: string;
+  location_id?: number;
+  location_name: string;
 }
 
 export const supplierApi = createApi({
@@ -134,7 +134,7 @@ export const supplierApi = createApi({
 
     // ✅ Business endpoint
     getAllBusiness: builder.query<Business[], void>({
-      query: () => "business",
+      query: () => "stock-location/main",
       providesTags: ["Business"],
       transformResponse: (response: { data: Business[] }) => response.data,
     }),

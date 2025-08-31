@@ -110,11 +110,14 @@ export default function DatePickerPage() {
     isLoading: productsLoading,
     error: productsError,
   } = useGetProductsQuery();
+
   const {
-    data: businesses = [],
+    data: businesses = [], // already an array
     isLoading: businessesLoading,
     error: businessesError,
   } = useGetAllBusinessQuery();
+
+  console.log("businesses", businesses); // will show the array directly
 
   // Extract products from the API response
   const products: Product[] = productsResponse?.data || [];
@@ -124,7 +127,7 @@ export default function DatePickerPage() {
     React.useState<string>("");
 
   // Add shop state
-  const [shop, setShop] = React.useState<string>("1");
+const [shop, setShop] = React.useState<string>("");
 
   const [billNo, setBillNo] = React.useState<string>("");
   const [billingDate, setBillingDate] = React.useState<Date | undefined>();
@@ -138,12 +141,33 @@ export default function DatePickerPage() {
   const [extraDiscount, setExtraDiscount] = React.useState<string>("0");
   const [editingId, setEditingId] = React.useState<number | null>(null);
 
-  const shops = businesses.map((b) => ({
-    id: b.business_id?.toString() ?? "",
-    name: b.business_name,
+  const shops = businesses.map((loc) => ({
+    id: loc.location_id?.toString() ?? "",
+    name: loc.location_name,
   }));
 
-  // New item row state
+  // Ensure default shop selection
+  React.useEffect(() => {
+    if (businesses.length > 0 && !shop) {
+      const firstShopId = businesses[0].location_id?.toString() ?? "";
+      setShop(firstShopId);
+    }
+  }, [businesses, shop, setShop]);
+
+//   React.useEffect(() => {
+//   if (businesses.length > 0 && !shop) {
+//     const firstShopId = businesses[0].location_id?.toString() ?? "";
+//     setShop(firstShopId);
+//   }
+  
+// }, [businesses, shop]);
+
+  // Handle shop selection
+  const handleShopChange = (selectedId: string) => {
+    console.log("Selected shop id:", selectedId);
+    setShop(selectedId);
+  };
+
   const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
     itemName: "",
@@ -226,11 +250,6 @@ export default function DatePickerPage() {
       sellingPrice: "",
       mrp: "",
     });
-  };
-
-  // Handle shop selection
-  const handleShopChange = (shopId: string) => {
-    setShop(shopId);
   };
 
   // Get selected supplier name for display
@@ -567,7 +586,7 @@ export default function DatePickerPage() {
 
       const payload: CreateSupplierBillDto = {
         supplierId: selectedSupplierId,
-        shopId: Number(shop),
+        location_id: Number(shop),
         billNo: billNo.trim(),
         billingDate: formatDateForBackend(billingDate),
         receivedDate: formatDateForBackend(receivedDate),
