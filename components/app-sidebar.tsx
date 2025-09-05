@@ -24,6 +24,7 @@ import {
   Receipt,
   UserCheck,
   ShoppingCart,
+  Boxes
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -67,7 +68,11 @@ export function AppSidebar() {
       icon: ShoppingCart,
       href: "/admin/orders",
     },
-
+    {
+      title: "Stock",
+      icon: Boxes,
+      href: "/admin/stock",
+    },
     {
       title: "Settings",
       icon: Settings,

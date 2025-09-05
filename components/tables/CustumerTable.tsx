@@ -1,7 +1,7 @@
 "use client";
 
-import { Edit, Table, Trash2 } from "lucide-react";
-import React, { useState } from "react";
+import { Edit, Table, Trash2, Search } from "lucide-react";
+import React, { useState, useMemo } from "react";
 import {
   Table as TableComponent,
   TableBody,
@@ -11,6 +11,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 
 // Define the Customer interface
@@ -29,6 +37,12 @@ export default function CustomerTable() {
   // State for pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
+  
+  // State for search and filters
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<string>("all");
+  const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
+  
   const router = useRouter();
 
   const sampleCustomers: Customer[] = [
@@ -60,7 +74,6 @@ export default function CustomerTable() {
       route: "Route G1",
       representative: "David Perera",
       phone: "+94 91 2345678",
-      //   email: "sales@digitalworld.lk",
     },
     {
       id: 4,
@@ -80,7 +93,6 @@ export default function CustomerTable() {
       route: "Route M1",
       representative: "John Silva",
       phone: "+94 41 2345678",
-      //   email: "contact@smartsystems.lk",
     },
     {
       id: 6,
@@ -160,7 +172,6 @@ export default function CustomerTable() {
       route: "Route A3",
       representative: "John Silva",
       phone: "+94 11 2345679",
-      //   email: "info@globaltechpartners.lk",
     },
     {
       id: 14,
@@ -174,33 +185,56 @@ export default function CustomerTable() {
     },
   ];
 
-  // Calculate pagination
-  const totalPages = Math.ceil(sampleCustomers.length / itemsPerPage);
+  // Get unique locations and representatives for filter dropdowns
+  const uniqueLocations = useMemo(() => {
+    return Array.from(new Set(sampleCustomers.map(customer => customer.area))).sort();
+  }, [sampleCustomers]);
+
+  const uniqueSuppliers = useMemo(() => {
+    return Array.from(new Set(sampleCustomers.map(customer => customer.representative))).sort();
+  }, [sampleCustomers]);
+
+  // Filter customers based on search term and filters
+  const filteredCustomers = useMemo(() => {
+    return sampleCustomers.filter(customer => {
+      const matchesSearch = searchTerm === "" || 
+        customer.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesLocation = selectedLocation === "all" || customer.area === selectedLocation;
+      const matchesSupplier = selectedSupplier === "all" || customer.representative === selectedSupplier;
+
+      return matchesSearch && matchesLocation && matchesSupplier;
+    });
+  }, [searchTerm, selectedLocation, selectedSupplier, sampleCustomers]);
+
+  // Calculate pagination for filtered results
+  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCustomers = sampleCustomers.slice(startIndex, endIndex);
+  const currentCustomers = filteredCustomers.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedLocation, selectedSupplier]);
 
   // Handler functions
   const handleRowClick = (customerId: number): void => {
     router.push(`/customers/customerDetail/${customerId}`);
-    // Add your navigation logic here
-    // Example: router.push(`/customers/${customerId}`);
   };
 
   const handleEdit = (event: React.MouseEvent, customerId: number): void => {
-    event.stopPropagation(); // Prevent row click when button is clicked
+    event.stopPropagation();
     console.log("Edit customer:", customerId);
-    // Add your edit logic here
-    // Example: router.push(`/customers/edit/${customerId}`);
   };
 
   const handleDelete = (event: React.MouseEvent, customerId: number): void => {
-    event.stopPropagation(); // Prevent row click when button is clicked
+    event.stopPropagation();
     console.log("Delete customer:", customerId);
-    // Add your delete logic here
-    // Example: Show confirmation dialog and then delete
     if (window.confirm("Are you sure you want to delete this customer?")) {
-      // Implement delete functionality
       console.log("Customer deleted:", customerId);
     }
   };
@@ -219,7 +253,60 @@ export default function CustomerTable() {
   };
 
   return (
-    <div className="">
+    <div className="space-y-4">
+      {/* Search and Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+          <Input
+            placeholder="Search customers..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <div className="flex gap-4">
+          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Location" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Locations</SelectItem>
+              {uniqueLocations.map((location) => (
+                <SelectItem key={location} value={location}>
+                  {location}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Select Representative" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Representatives</SelectItem>
+              {uniqueSuppliers.map((supplier) => (
+                <SelectItem key={supplier} value={supplier}>
+                  {supplier}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      {(searchTerm || selectedLocation !== "all" || selectedSupplier !== "all") && (
+        <div className="text-sm text-gray-600 px-1">
+          Showing {filteredCustomers.length} of {sampleCustomers.length} customers
+          {searchTerm && ` matching "${searchTerm}"`}
+          {selectedLocation !== "all" && ` in ${selectedLocation}`}
+          {selectedSupplier !== "all" && ` with ${selectedSupplier}`}
+        </div>
+      )}
+
       {/* Desktop View (xl and above) - Full Table */}
       <div className="hidden xl:block">
         <TableComponent>
@@ -278,7 +365,6 @@ export default function CustomerTable() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    
                   </div>
                 </TableCell>
               </TableRow>
@@ -413,13 +499,20 @@ export default function CustomerTable() {
         ))}
       </div>
 
+      {/* No Results Message */}
+      {filteredCustomers.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <p>No customers found matching your search criteria.</p>
+        </div>
+      )}
+
       {/* Pagination Controls */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t pt-4">
           <div className="text-sm text-gray-700">
             Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleCustomers.length)} of{" "}
-            {sampleCustomers.length} customers
+            {Math.min(endIndex, filteredCustomers.length)} of{" "}
+            {filteredCustomers.length} customers
           </div>
           <div className="flex items-center gap-2">
             <Button
