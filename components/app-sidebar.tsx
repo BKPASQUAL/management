@@ -10,6 +10,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import {
   Home,
@@ -24,13 +27,20 @@ import {
   Receipt,
   UserCheck,
   ShoppingCart,
-  Boxes
+  Boxes,
+  ChevronRight,
+  ArrowRightLeft,
+  ClipboardList,
+  Download,
+  Scale,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const [isStockExpanded, setIsStockExpanded] = useState(false);
 
   const menuItems = [
     {
@@ -68,15 +78,28 @@ export function AppSidebar() {
       icon: ShoppingCart,
       href: "/admin/orders",
     },
+  ];
+
+  const stockSubItems = [
     {
-      title: "Stock",
-      icon: Boxes,
-      href: "/admin/stock",
+      title: "Stock Transfer",
+      icon: ArrowRightLeft,
+      href: "/admin/stock/transfer",
     },
     {
-      title: "Settings",
-      icon: Settings,
-      href: "/admin/settings",
+      title: "Stock Audit",
+      icon: ClipboardList,
+      href: "/admin/stock/audit",
+    },
+    {
+      title: "Stock Export Report",
+      icon: Download,
+      href: "/admin/stock/export-report",
+    },
+    {
+      title: "Stock Balance",
+      icon: Scale,
+      href: "/admin/stock/balance",
     },
   ];
 
@@ -99,6 +122,16 @@ export function AppSidebar() {
     // Example: router.push('/login');
     // Example: signOut();
   };
+
+  const handleStockToggle = () => {
+    setIsStockExpanded(!isStockExpanded);
+  };
+
+  // Check if any stock sub-item is active
+  const isAnyStockSubItemActive = stockSubItems.some(
+    (item) => pathname === item.href
+  );
+  const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -150,6 +183,61 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 );
               })}
+
+              {/* Stock Menu Item with Submenu */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  tooltip="Stock"
+                  isActive={isStockActive}
+                  onClick={handleStockToggle}
+                  className="cursor-pointer"
+                >
+                  <Boxes className="size-4" />
+                  <span>Stock</span>
+                  <ChevronRight
+                    className={`ml-auto size-4 transition-transform duration-200 ${
+                      isStockExpanded ? "rotate-90" : ""
+                    }`}
+                  />
+                </SidebarMenuButton>
+                {isStockExpanded && (
+                  <SidebarMenuSub>
+                    {stockSubItems.map((subItem) => {
+                      const isSubActive = pathname === subItem.href;
+                      return (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild isActive={isSubActive}>
+                            <Link
+                              href={subItem.href}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <subItem.icon className="size-4" />
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      );
+                    })}
+                  </SidebarMenuSub>
+                )}
+              </SidebarMenuItem>
+
+              {/* Settings */}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  tooltip="Settings"
+                  isActive={pathname === "/admin/settings"}
+                >
+                  <Link
+                    href="/admin/settings"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Settings className="size-4" />
+                    <span>Settings</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
