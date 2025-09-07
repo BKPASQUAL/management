@@ -390,17 +390,17 @@ export default function StocksTable() {
           </div>
 
           {/* Filter Dropdowns Container */}
-          <div className="flex gap-4 ">
+          <div className="flex flex-col sm:flex-row gap-3 w-1/4">
             {/* Location Filter */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 w-full sm:min-w-[200px]">
               <Select
                 value={selectedLocation}
                 onValueChange={setSelectedLocation}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filter by location" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[300px] z-50">
                   <SelectItem value="all">All Locations</SelectItem>
                   {uniqueLocations.map((location) => (
                     <SelectItem
@@ -415,15 +415,15 @@ export default function StocksTable() {
             </div>
 
             {/* Supplier Filter */}
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 w-full sm:min-w-[200px]">
               <Select
                 value={selectedSupplier}
                 onValueChange={setSelectedSupplier}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Filter by supplier" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-w-[300px] z-50">
                   <SelectItem value="all">All Suppliers</SelectItem>
                   {uniqueSuppliers.map((supplier) => (
                     <SelectItem key={supplier} value={supplier!}>
@@ -438,7 +438,7 @@ export default function StocksTable() {
             <Button
               variant="outline"
               onClick={clearFilters}
-              className="whitespace-nowrap flex-shrink-0"
+              className="w-full sm:w-auto sm:min-w-[120px] flex-shrink-0"
             >
               Clear Filters
             </Button>
@@ -448,54 +448,61 @@ export default function StocksTable() {
         {/* Mobile Layout */}
         <div className="sm:hidden space-y-4">
           {/* Search Bar */}
-          <div className="relative">
+          <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="text"
               placeholder="Search items..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-full"
             />
           </div>
 
           {/* Filter Dropdowns */}
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-3 w-full">
             {/* Location Filter */}
-            <Select
-              value={selectedLocation}
-              onValueChange={setSelectedLocation}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {uniqueLocations.map((location) => (
-                  <SelectItem key={location.id} value={location.id.toString()}>
-                    {location.name} ({location.code})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select
+                value={selectedLocation}
+                onValueChange={setSelectedLocation}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filter by location" />
+                </SelectTrigger>
+                <SelectContent className="w-full min-w-[80vw] sm:min-w-0 sm:w-auto">
+                  <SelectItem value="all">All Locations</SelectItem>
+                  {uniqueLocations.map((location) => (
+                    <SelectItem
+                      key={location.id}
+                      value={location.id.toString()}
+                    >
+                      {location.name} ({location.code})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Supplier Filter */}
-            <Select
-              value={selectedSupplier}
-              onValueChange={setSelectedSupplier}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Filter by supplier" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Suppliers</SelectItem>
-                {uniqueSuppliers.map((supplier) => (
-                  <SelectItem key={supplier} value={supplier!}>
-                    {supplier}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="w-full">
+              <Select
+                value={selectedSupplier}
+                onValueChange={setSelectedSupplier}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Filter by supplier" />
+                </SelectTrigger>
+                <SelectContent className="w-full min-w-[80vw] sm:min-w-0 sm:w-auto">
+                  <SelectItem value="all">All Suppliers</SelectItem>
+                  {uniqueSuppliers.map((supplier) => (
+                    <SelectItem key={supplier} value={supplier!}>
+                      {supplier}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             {/* Clear Filters Button */}
             <Button variant="outline" onClick={clearFilters} className="w-full">
@@ -505,7 +512,7 @@ export default function StocksTable() {
         </div>
 
         {/* Results Summary */}
-        <div className="text-sm text-gray-600 mt-4">
+        {/* <div className="text-sm text-gray-600 mt-4 w-full">
           {filteredStocks.length !== sampleStocks.length && (
             <span>
               Showing {filteredStocks.length} of {sampleStocks.length} stock
@@ -516,7 +523,35 @@ export default function StocksTable() {
                 " (filtered)"}
             </span>
           )}
-        </div>
+        </div> */}
+
+        {/* Results Summary */}
+        {/* <div className="text-sm text-gray-600 mt-4 w-full">
+          {filteredStocks.length !== sampleStocks.length && (
+            <span>
+              Showing {filteredStocks.length} of {sampleStocks.length} stock
+              entries
+              {(searchTerm ||
+                selectedLocation !== "all" ||
+                selectedSupplier !== "all") &&
+                " (filtered)"}
+            </span>
+          )}
+        </div> */}
+
+        {/* Results Summary */}
+        {/* <div className="text-sm text-gray-600 mt-4">
+          {filteredStocks.length !== sampleStocks.length && (
+            <span>
+              Showing {filteredStocks.length} of {sampleStocks.length} stock
+              entries
+              {(searchTerm ||
+                selectedLocation !== "all" ||
+                selectedSupplier !== "all") &&
+                " (filtered)"}
+            </span>
+          )}
+        </div> */}
       </div>
 
       {/* Desktop View (xl and above) - Full Table */}
