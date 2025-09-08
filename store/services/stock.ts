@@ -21,20 +21,33 @@ export interface Stock {
   };
 }
 
+// Stock Location interface
+export interface StockLocation {
+  location_id: number;
+  location_code: string;
+  location_name: string;
+}
+
 // API slice for stocks
 export const stockApi = createApi({
   reducerPath: "stockApi",
   baseQuery: fetchBaseQuery({
     baseUrl: "http://localhost:3001/",
   }),
-  tagTypes: ["Stock"],
+  tagTypes: ["Stock", "StockLocation"],
   endpoints: (builder) => ({
     // Fetch all stocks
     getStocks: builder.query<{ data: Stock[] }, void>({
       query: () => "stocks",
       providesTags: ["Stock"],
     }),
+
+    // Fetch stock locations (dropdown)
+    getStockLocations: builder.query<{ data: StockLocation[] }, void>({
+      query: () => "stock-location/dropdown",
+      providesTags: ["StockLocation"],
+    }),
   }),
 });
 
-export const { useGetStocksQuery } = stockApi;
+export const { useGetStocksQuery, useGetStockLocationsQuery } = stockApi;

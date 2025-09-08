@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { useGetStockLocationsQuery } from "@/store/services/stock";
 
 // Define interfaces for type safety
 interface Item {
@@ -53,6 +54,12 @@ interface CurrentItem {
   quantity: string;
 }
 
+// Stock Location interface (matching your API response)
+interface StockLocation {
+  location_id: number;
+  location_name: string;
+}
+
 const StockTransfer: React.FC = () => {
   const [open, setOpen] = useState<boolean>(false);
   const [selectedItem, setSelectedItem] = useState<string>("");
@@ -68,7 +75,17 @@ const StockTransfer: React.FC = () => {
     quantity: "",
   });
 
-  // Sample data with proper typing
+  // Fetch stock locations from API
+  const {
+    data: stockLocationsResponse,
+    isLoading: locationsLoading,
+    error: locationsError,
+  } = useGetStockLocationsQuery();
+
+  // Extract locations from API response
+  const stockLocations = stockLocationsResponse?.data || [];
+
+  // Sample data with proper typing (you might want to fetch this from API too)
   const items: Item[] = [
     { code: "ITM001", name: "Rice 5KG", packType: "Bag", availableStock: 150 },
     {
@@ -91,13 +108,6 @@ const StockTransfer: React.FC = () => {
     },
   ];
 
-  const locations: string[] = [
-    "Colombo Main",
-    "Galle Branch",
-    "Kandy Store",
-    "Negombo Outlet",
-  ];
-
   const handleItemSelect = (itemCode: string): void => {
     const item = items.find((i) => i.code === itemCode);
     if (item) {
@@ -117,6 +127,38 @@ const StockTransfer: React.FC = () => {
       setDate(selectedDate);
       setDatePickerOpen(false);
     }
+  };
+
+  // Handle source location change - reset destination if same as source
+  const handleSourceLocationChange = (locationId: string): void => {
+    setSourceLocation(locationId);
+    // If destination is the same as the new source, reset destination
+    if (destinationLocation === locationId) {
+      setDestinationLocation("");
+    }
+  };
+
+  // Handle destination location change - reset source if same as destination
+  const handleDestinationLocationChange = (locationId: string): void => {
+    setDestinationLocation(locationId);
+    // If source is the same as the new destination, reset source
+    if (sourceLocation === locationId) {
+      setSourceLocation("");
+    }
+  };
+
+  // Get available locations for destination (exclude source location)
+  const getAvailableDestinationLocations = (): StockLocation[] => {
+    return stockLocations.filter(
+      (location) => location.location_id.toString() !== sourceLocation
+    );
+  };
+
+  // Get available locations for source (exclude destination location)
+  const getAvailableSourceLocations = (): StockLocation[] => {
+    return stockLocations.filter(
+      (location) => location.location_id.toString() !== destinationLocation
+    );
   };
 
   const addItem = (): void => {
@@ -148,6 +190,14 @@ const StockTransfer: React.FC = () => {
     0
   );
 
+  // Get location name by ID
+  const getLocationName = (locationId: string): string => {
+    const location = stockLocations.find(
+      (loc) => loc.location_id.toString() === locationId
+    );
+    return location?.location_name || "";
+  };
+
   return (
     <div className="">
       <div className="max-w-full">
@@ -164,16 +214,33 @@ const StockTransfer: React.FC = () => {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Source Location
               </label>
-              <Select value={sourceLocation} onValueChange={setSourceLocation}>
+              <Select
+                value={sourceLocation}
+                onValueChange={handleSourceLocationChange}
+                disabled={locationsLoading}
+              >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select source" />
+                  <SelectValue
+                    placeholder={
+                      locationsLoading ? "Loading..." : "Select source"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
+                  {locationsError ? (
+                    <SelectItem value="" disabled>
+                      Error loading locations
                     </SelectItem>
-                  ))}
+                  ) : (
+                    getAvailableSourceLocations().map((location) => (
+                      <SelectItem
+                        key={location.location_id}
+                        value={location.location_id.toString()}
+                      >
+                        {location.location_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -192,17 +259,35 @@ const StockTransfer: React.FC = () => {
               </label>
               <Select
                 value={destinationLocation}
-                onValueChange={setDestinationLocation}
+                onValueChange={handleDestinationLocationChange}
+                disabled={locationsLoading || !sourceLocation}
               >
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select destination" />
+                  <SelectValue
+                    placeholder={
+                      locationsLoading
+                        ? "Loading..."
+                        : !sourceLocation
+                        ? "Select source first"
+                        : "Select destination"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location} value={location}>
-                      {location}
+                  {locationsError ? (
+                    <SelectItem value="" disabled>
+                      Error loading locations
                     </SelectItem>
-                  ))}
+                  ) : (
+                    getAvailableDestinationLocations().map((location) => (
+                      <SelectItem
+                        key={location.location_id}
+                        value={location.location_id.toString()}
+                      >
+                        {location.location_name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -240,6 +325,21 @@ const StockTransfer: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Transfer Route Display */}
+          {sourceLocation && destinationLocation && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-center gap-4 text-sm">
+                <span className="font-medium text-blue-900">
+                  {getLocationName(sourceLocation)}
+                </span>
+                <MoveRight className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-900">
+                  {getLocationName(destinationLocation)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Add Items Section */}
