@@ -48,7 +48,7 @@ export default function page() {
             className="border-black text-black  cursor-pointer w-full sm:w-auto justify-center"
           >
             <Package className="w-4 h-4" />
-            <span className="sm:inline">Add Stock</span>
+            <span className="sm:inline">Stock Balance</span>
           </Button>
         </div>
       </div>

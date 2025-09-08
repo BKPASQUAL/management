@@ -35,11 +35,12 @@ import {
   Scale,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [isStockExpanded, setIsStockExpanded] = useState(false);
 
   const menuItems = [
@@ -84,7 +85,7 @@ export function AppSidebar() {
     {
       title: "Stock Transfer",
       icon: ArrowRightLeft,
-      href: "/admin/stock/transfer",
+      href: "/admin/stock/stockTransfer",
     },
     {
       title: "Stock Audit",
@@ -116,6 +117,19 @@ export function AppSidebar() {
     },
   ];
 
+  // Check if any stock sub-item is active
+  const isAnyStockSubItemActive = stockSubItems.some(
+    (item) => pathname === item.href
+  );
+  const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
+
+  // Auto-expand stock menu if we're on a stock-related page
+  useEffect(() => {
+    if (isStockActive) {
+      setIsStockExpanded(true);
+    }
+  }, [isStockActive]);
+
   const handleSignOut = () => {
     // Add your sign out logic here
     console.log("Sign out clicked");
@@ -123,15 +137,25 @@ export function AppSidebar() {
     // Example: signOut();
   };
 
-  const handleStockToggle = () => {
-    setIsStockExpanded(!isStockExpanded);
+  const handleStockClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // If we're already on the stock page, just toggle the submenu
+    if (pathname === "/admin/stock") {
+      setIsStockExpanded(!isStockExpanded);
+    } else {
+      // Navigate to stock page and expand submenu
+      router.push("/admin/stock");
+      setIsStockExpanded(true);
+    }
   };
 
-  // Check if any stock sub-item is active
-  const isAnyStockSubItemActive = stockSubItems.some(
-    (item) => pathname === item.href
-  );
-  const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
+  const handleChevronClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsStockExpanded(!isStockExpanded);
+  };
 
   return (
     <Sidebar collapsible="icon" variant="floating">
@@ -186,20 +210,28 @@ export function AppSidebar() {
 
               {/* Stock Menu Item with Submenu */}
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Stock"
-                  isActive={isStockActive}
-                  onClick={handleStockToggle}
-                  className="cursor-pointer"
-                >
-                  <Boxes className="size-4" />
-                  <span>Stock</span>
-                  <ChevronRight
-                    className={`ml-auto size-4 transition-transform duration-200 ${
-                      isStockExpanded ? "rotate-90" : ""
-                    }`}
-                  />
-                </SidebarMenuButton>
+                <div className="relative">
+                  <SidebarMenuButton
+                    tooltip="Stock"
+                    isActive={isStockActive}
+                    className="cursor-pointer pr-8"
+                    onClick={handleStockClick}
+                  >
+                    <Boxes className="size-4" />
+                    <span>Stock</span>
+                  </SidebarMenuButton>
+                  <button
+                    onClick={handleChevronClick}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
+                    aria-label="Toggle stock submenu"
+                  >
+                    <ChevronRight
+                      className={`size-3 transition-transform duration-200 ${
+                        isStockExpanded ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                </div>
                 {isStockExpanded && (
                   <SidebarMenuSub>
                     {stockSubItems.map((subItem) => {
