@@ -20,25 +20,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { useGetStocksQuery } from "@/store/services/stock";
 
-// Define the Stock interface based on your entity
+// Updated Stock interface to match your API response
 interface Stock {
   stock_id: number;
-  item_id: number;
+  quantity: number;
+  updated_at: string;
   item: {
-    item_id: number;
     item_code: string;
     item_name: string;
-    supplier?: string; // Added supplier field
+    supplier: {
+      supplier_id: number;
+      supplier_name: string;
+    };
   };
   location: {
     location_id: number;
-    location_name: string;
     location_code: string;
+    location_name: string;
   };
-  quantity: number;
-  created_at: Date;
-  updated_at: Date;
 }
 
 export default function StocksTable() {
@@ -52,245 +53,32 @@ export default function StocksTable() {
   const [selectedLocation, setSelectedLocation] = useState<string>("all");
   const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
 
-  const sampleStocks: Stock[] = [
-    {
-      stock_id: 1,
-      item_id: 101,
-      item: {
-        item_id: 101,
-        item_code: "ITM001",
-        item_name: "Dell Laptop 15.6 inch",
-        supplier: "Dell Technologies",
-      },
-      location: {
-        location_id: 1,
-        location_name: "Main Warehouse",
-        location_code: "WH001",
-      },
-      quantity: 25,
-      created_at: new Date("2024-01-15"),
-      updated_at: new Date("2024-02-20"),
-    },
-    {
-      stock_id: 2,
-      item_id: 102,
-      item: {
-        item_id: 102,
-        item_code: "ITM002",
-        item_name: "HP Printer LaserJet",
-        supplier: "HP Inc.",
-      },
-      location: {
-        location_id: 2,
-        location_name: "Store Room A",
-        location_code: "SR001",
-      },
-      quantity: 15,
-      created_at: new Date("2024-01-20"),
-      updated_at: new Date("2024-02-25"),
-    },
-    {
-      stock_id: 3,
-      item_id: 103,
-      item: {
-        item_id: 103,
-        item_code: "ITM003",
-        item_name: "Wireless Mouse",
-        supplier: "Logitech",
-      },
-      location: {
-        location_id: 1,
-        location_name: "Main Warehouse",
-        location_code: "WH001",
-      },
-      quantity: 150,
-      created_at: new Date("2024-01-25"),
-      updated_at: new Date("2024-03-01"),
-    },
-    {
-      stock_id: 4,
-      item_id: 104,
-      item: {
-        item_id: 104,
-        item_code: "ITM004",
-        item_name: "USB-C Hub",
-        supplier: "Anker",
-      },
-      location: {
-        location_id: 3,
-        location_name: "Electronics Storage",
-        location_code: "ES001",
-      },
-      quantity: 75,
-      created_at: new Date("2024-02-01"),
-      updated_at: new Date("2024-03-05"),
-    },
-    {
-      stock_id: 5,
-      item_id: 105,
-      item: {
-        item_id: 105,
-        item_code: "ITM005",
-        item_name: "Monitor 24 inch LED",
-        supplier: "Samsung",
-      },
-      location: {
-        location_id: 2,
-        location_name: "Store Room A",
-        location_code: "SR001",
-      },
-      quantity: 8,
-      created_at: new Date("2024-02-05"),
-      updated_at: new Date("2024-03-10"),
-    },
-    {
-      stock_id: 6,
-      item_id: 106,
-      item: {
-        item_id: 106,
-        item_code: "ITM006",
-        item_name: "Keyboard Mechanical",
-        supplier: "Corsair",
-      },
-      location: {
-        location_id: 1,
-        location_name: "Main Warehouse",
-        location_code: "WH001",
-      },
-      quantity: 45,
-      created_at: new Date("2024-02-10"),
-      updated_at: new Date("2024-03-15"),
-    },
-    {
-      stock_id: 7,
-      item_id: 107,
-      item: {
-        item_id: 107,
-        item_code: "ITM007",
-        item_name: "Webcam HD 1080p",
-        supplier: "Logitech",
-      },
-      location: {
-        location_id: 4,
-        location_name: "Accessories Wing",
-        location_code: "AW001",
-      },
-      quantity: 30,
-      created_at: new Date("2024-02-15"),
-      updated_at: new Date("2024-03-20"),
-    },
-    {
-      stock_id: 8,
-      item_id: 108,
-      item: {
-        item_id: 108,
-        item_code: "ITM008",
-        item_name: "External Hard Drive 1TB",
-        supplier: "Seagate",
-      },
-      location: {
-        location_id: 1,
-        location_name: "Main Warehouse",
-        location_code: "WH001",
-      },
-      quantity: 20,
-      created_at: new Date("2024-02-20"),
-      updated_at: new Date("2024-03-25"),
-    },
-    {
-      stock_id: 9,
-      item_id: 109,
-      item: {
-        item_id: 109,
-        item_code: "ITM009",
-        item_name: "Router WiFi 6",
-        supplier: "TP-Link",
-      },
-      location: {
-        location_id: 3,
-        location_name: "Electronics Storage",
-        location_code: "ES001",
-      },
-      quantity: 12,
-      created_at: new Date("2024-02-25"),
-      updated_at: new Date("2024-03-30"),
-    },
-    {
-      stock_id: 10,
-      item_id: 110,
-      item: {
-        item_id: 110,
-        item_code: "ITM010",
-        item_name: "Power Bank 20000mAh",
-        supplier: "Anker",
-      },
-      location: {
-        location_id: 2,
-        location_name: "Store Room A",
-        location_code: "SR001",
-      },
-      quantity: 85,
-      created_at: new Date("2024-03-01"),
-      updated_at: new Date("2024-04-05"),
-    },
-    {
-      stock_id: 11,
-      item_id: 111,
-      item: {
-        item_id: 111,
-        item_code: "ITM011",
-        item_name: "Bluetooth Speaker",
-        supplier: "JBL",
-      },
-      location: {
-        location_id: 4,
-        location_name: "Accessories Wing",
-        location_code: "AW001",
-      },
-      quantity: 60,
-      created_at: new Date("2024-03-05"),
-      updated_at: new Date("2024-04-10"),
-    },
-    {
-      stock_id: 12,
-      item_id: 112,
-      item: {
-        item_id: 112,
-        item_code: "ITM012",
-        item_name: "USB Flash Drive 64GB",
-        supplier: "SanDisk",
-      },
-      location: {
-        location_id: 1,
-        location_name: "Main Warehouse",
-        location_code: "WH001",
-      },
-      quantity: 200,
-      created_at: new Date("2024-03-10"),
-      updated_at: new Date("2024-04-15"),
-    },
-  ];
+  // Fetch stocks data from API
+  const { data: stocksResponse, error, isLoading } = useGetStocksQuery();
+
+  // Extract stocks array from API response
+  const stocks = stocksResponse?.data || [];
 
   // Get unique locations and suppliers for filter options
   const uniqueLocations = useMemo(() => {
-    const locations = sampleStocks.map((stock) => ({
+    const locations = stocks.map((stock) => ({
       id: stock.location.location_id,
       name: stock.location.location_name,
       code: stock.location.location_code,
     }));
     return Array.from(new Map(locations.map((loc) => [loc.id, loc])).values());
-  }, []);
+  }, [stocks]);
 
   const uniqueSuppliers = useMemo(() => {
-    const suppliers = sampleStocks
-      .map((stock) => stock.item.supplier)
+    const suppliers = stocks
+      .map((stock) => stock.item.supplier.supplier_name)
       .filter(Boolean);
     return Array.from(new Set(suppliers)).sort();
-  }, []);
+  }, [stocks]);
 
   // Filter and search logic
   const filteredStocks = useMemo(() => {
-    return sampleStocks.filter((stock) => {
+    return stocks.filter((stock) => {
       // Search filter
       const matchesSearch =
         searchTerm === "" ||
@@ -307,11 +95,12 @@ export default function StocksTable() {
 
       // Supplier filter
       const matchesSupplier =
-        selectedSupplier === "all" || stock.item.supplier === selectedSupplier;
+        selectedSupplier === "all" ||
+        stock.item.supplier.supplier_name === selectedSupplier;
 
       return matchesSearch && matchesLocation && matchesSupplier;
     });
-  }, [searchTerm, selectedLocation, selectedSupplier]);
+  }, [stocks, searchTerm, selectedLocation, selectedSupplier]);
 
   // Calculate pagination based on filtered results
   const totalPages = Math.ceil(filteredStocks.length / itemsPerPage);
@@ -341,6 +130,7 @@ export default function StocksTable() {
     console.log("Delete stock:", stockId);
     if (window.confirm("Are you sure you want to delete this stock entry?")) {
       console.log("Stock deleted:", stockId);
+      // Add delete API call here
     }
   };
 
@@ -370,6 +160,31 @@ export default function StocksTable() {
     setSelectedLocation("all");
     setSelectedSupplier("all");
   };
+
+  // Format date helper
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-lg">Loading stocks...</div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-lg text-red-600">
+          Error loading stocks. Please try again later.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="">
@@ -510,48 +325,6 @@ export default function StocksTable() {
             </Button>
           </div>
         </div>
-
-        {/* Results Summary */}
-        {/* <div className="text-sm text-gray-600 mt-4 w-full">
-          {filteredStocks.length !== sampleStocks.length && (
-            <span>
-              Showing {filteredStocks.length} of {sampleStocks.length} stock
-              entries
-              {(searchTerm ||
-                selectedLocation !== "all" ||
-                selectedSupplier !== "all") &&
-                " (filtered)"}
-            </span>
-          )}
-        </div> */}
-
-        {/* Results Summary */}
-        {/* <div className="text-sm text-gray-600 mt-4 w-full">
-          {filteredStocks.length !== sampleStocks.length && (
-            <span>
-              Showing {filteredStocks.length} of {sampleStocks.length} stock
-              entries
-              {(searchTerm ||
-                selectedLocation !== "all" ||
-                selectedSupplier !== "all") &&
-                " (filtered)"}
-            </span>
-          )}
-        </div> */}
-
-        {/* Results Summary */}
-        {/* <div className="text-sm text-gray-600 mt-4">
-          {filteredStocks.length !== sampleStocks.length && (
-            <span>
-              Showing {filteredStocks.length} of {sampleStocks.length} stock
-              entries
-              {(searchTerm ||
-                selectedLocation !== "all" ||
-                selectedSupplier !== "all") &&
-                " (filtered)"}
-            </span>
-          )}
-        </div> */}
       </div>
 
       {/* Desktop View (xl and above) - Full Table */}
@@ -583,7 +356,9 @@ export default function StocksTable() {
                 <TableCell className="font-medium">
                   {stock.item.item_name}
                 </TableCell>
-                <TableCell className="text-sm">{stock.item.supplier}</TableCell>
+                <TableCell className="text-sm">
+                  {stock.item.supplier.supplier_name}
+                </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">
@@ -604,7 +379,7 @@ export default function StocksTable() {
                   </span>
                 </TableCell>
                 <TableCell className="text-sm text-gray-600">
-                  {stock.updated_at.toLocaleDateString()}
+                  {formatDate(stock.updated_at)}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -657,7 +432,7 @@ export default function StocksTable() {
                       Code: {stock.item.item_code}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      Supplier: {stock.item.supplier}
+                      Supplier: {stock.item.supplier.supplier_name}
                     </div>
                   </div>
                 </TableCell>
@@ -721,7 +496,7 @@ export default function StocksTable() {
                   {stock.item.item_code}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Supplier: {stock.item.supplier}
+                  Supplier: {stock.item.supplier.supplier_name}
                 </p>
               </div>
               <div className="flex gap-2 ml-2">
@@ -768,7 +543,7 @@ export default function StocksTable() {
               <div className="flex justify-between items-center pt-2 border-t">
                 <span className="text-sm text-gray-600">Last Updated:</span>
                 <span className="text-sm text-gray-500">
-                  {stock.updated_at.toLocaleDateString()}
+                  {formatDate(stock.updated_at)}
                 </span>
               </div>
             </div>
@@ -777,7 +552,7 @@ export default function StocksTable() {
       </div>
 
       {/* No Results Message */}
-      {filteredStocks.length === 0 && (
+      {filteredStocks.length === 0 && !isLoading && (
         <div className="text-center py-8 text-gray-500">
           <p>No stock entries found matching your search criteria.</p>
           <Button variant="outline" onClick={clearFilters} className="mt-2">
