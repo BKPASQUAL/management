@@ -1,9 +1,14 @@
+"use client";
+
 import StocksTable from "@/components/tables/StocksTable";
 import { Button } from "@/components/ui/button";
 import React from "react";
 import { FileText, Package, ArrowRightLeft, ClipboardList } from "lucide-react";
+import { useRouter } from "next/navigation";
 
-export default function page() {
+export default function Page() {
+  const router = useRouter();
+
   return (
     <div>
       {/* Header Section - Responsive flex layout */}
@@ -27,7 +32,9 @@ export default function page() {
             <span className="sm:inline">Export Report</span>
           </Button>
 
+          {/* Transfer Button with navigation */}
           <Button
+            onClick={() => router.push("/admin/stock/stockTransfer")}
             variant="outline"
             className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 cursor-pointer w-full sm:w-auto justify-center"
           >
@@ -45,7 +52,7 @@ export default function page() {
 
           <Button
             variant="outline"
-            className="border-black text-black  cursor-pointer w-full sm:w-auto justify-center"
+            className="border-black text-black cursor-pointer w-full sm:w-auto justify-center"
           >
             <Package className="w-4 h-4" />
             <span className="sm:inline">Stock Balance</span>

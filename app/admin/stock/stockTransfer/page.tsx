@@ -364,7 +364,7 @@ const StockTransfer: React.FC = () => {
     <div className="">
       <div className="max-w-full">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border p-6 mb-6">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">
             Stock Transfer
           </h1>
@@ -505,7 +505,7 @@ const StockTransfer: React.FC = () => {
         </div>
 
         {/* Add Items Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             Add Items
           </h2>
@@ -687,7 +687,7 @@ const StockTransfer: React.FC = () => {
         </div>
 
         {/* Added Items Table */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+        <div className="bg-white rounded-lg border p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
               Transfer Items
@@ -786,7 +786,7 @@ const StockTransfer: React.FC = () => {
         </div>
 
         {/* Summary and Submit */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg border p-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
               <div className="text-center">
