@@ -24,13 +24,13 @@ export default function Page() {
 
         {/* Buttons - Responsive layout */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <Button
+          {/* <Button
             variant="outline"
             className="border-emerald-500 text-emerald-600 hover:bg-emerald-50 cursor-pointer w-full sm:w-auto"
           >
             <FileText className="w-4 h-4" />
             <span className="sm:inline">Export Report</span>
-          </Button>
+          </Button> */}
 
           {/* Transfer Button with navigation */}
           <Button

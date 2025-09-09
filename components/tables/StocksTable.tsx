@@ -1,6 +1,13 @@
 "use client";
 
-import { Edit, Trash2, Search } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  Search,
+  FileText,
+  Download,
+  Printer,
+} from "lucide-react";
 import React, { useState, useMemo } from "react";
 import {
   Table as TableComponent,
@@ -166,6 +173,282 @@ export default function StocksTable() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  // Get filter summary for exports
+  const getFilterSummary = (): string => {
+    const filters: string[] = [];
+
+    if (searchTerm) {
+      filters.push(`Search: "${searchTerm}"`);
+    }
+
+    if (selectedLocation !== "all") {
+      const locationName = uniqueLocations.find(
+        (loc) => loc.id.toString() === selectedLocation
+      )?.name;
+      if (locationName) {
+        filters.push(`Location: ${locationName}`);
+      }
+    }
+
+    if (selectedSupplier !== "all") {
+      filters.push(`Supplier: ${selectedSupplier}`);
+    }
+
+    return filters.length > 0 ? filters.join(", ") : "No filters applied";
+  };
+
+  // Export to PDF function
+  const exportToPDF = async () => {
+    try {
+      // Dynamic import jsPDF and autoTable
+      const { default: jsPDF } = await import("jspdf");
+      const autoTable = (await import("jspdf-autotable")).default;
+
+      const doc = new jsPDF();
+
+      // Title
+      doc.setFontSize(20);
+      doc.text("Stock Report", 14, 22);
+
+      // Filter info
+      doc.setFontSize(12);
+      const filterText = `Filters Applied: ${getFilterSummary()}`;
+      const totalText = `Total Items: ${filteredStocks.length}`;
+      const dateText = `Generated on: ${new Date().toLocaleString()}`;
+
+      doc.text(filterText, 14, 35);
+      doc.text(totalText, 14, 45);
+      doc.text(dateText, 14, 55);
+
+      // Table
+      autoTable(doc, {
+        startY: 65,
+        head: [
+          [
+            "Item Code",
+            "Item Name",
+            "Supplier",
+            "Location",
+            "Quantity",
+            "Last Updated",
+          ],
+        ],
+        body: filteredStocks.map((stock) => [
+          stock.item.item_code,
+          stock.item.item_name,
+          stock.item.supplier.supplier_name,
+          `${stock.location.location_name} (${stock.location.location_code})`,
+          stock.quantity.toString(),
+          formatDate(stock.updated_at),
+        ]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [71, 85, 105] },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 50 },
+          2: { cellWidth: 35 },
+          3: { cellWidth: 40 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 25 },
+        },
+      });
+
+      // Save PDF
+      doc.save(`stock_report_${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
+    }
+  };
+
+  // Export to Excel function
+  const exportToExcel = async () => {
+    try {
+      const XLSX = await import("xlsx");
+
+      const worksheetData = filteredStocks.map((stock) => ({
+        "Item Code": stock.item.item_code,
+        "Item Name": stock.item.item_name,
+        Supplier: stock.item.supplier.supplier_name,
+        Location: stock.location.location_name,
+        "Location Code": stock.location.location_code,
+        Quantity: stock.quantity,
+        "Last Updated": new Date(stock.updated_at).toLocaleDateString(),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+      const workbook = XLSX.utils.book_new();
+
+      // Set column widths
+      worksheet["!cols"] = [
+        { wch: 15 }, // Item Code
+        { wch: 30 }, // Item Name
+        { wch: 20 }, // Supplier
+        { wch: 20 }, // Location
+        { wch: 15 }, // Location Code
+        { wch: 10 }, // Quantity
+        { wch: 15 }, // Last Updated
+      ];
+
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Stock Report");
+      XLSX.writeFile(
+        workbook,
+        `stock_report_${new Date().toISOString().split("T")[0]}.xlsx`
+      );
+    } catch (error) {
+      console.error("Error generating Excel file:", error);
+      alert("Error generating Excel file. Please try again.");
+    }
+  };
+
+  // Print function
+  const handlePrint = () => {
+    try {
+      // Create a new window for printing
+      const printWindow = window.open("", "", "height=600,width=800");
+
+      if (!printWindow) {
+        alert("Please allow popups for this website to enable printing.");
+        return;
+      }
+
+      // Generate HTML content for printing
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Stock Report</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              margin: 20px;
+              font-size: 12px;
+            }
+            h1 {
+              color: #333;
+              border-bottom: 2px solid #333;
+              padding-bottom: 10px;
+            }
+            .info {
+              margin: 20px 0;
+              padding: 10px;
+              background-color: #f5f5f5;
+              border-left: 4px solid #333;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 20px;
+            }
+            th, td {
+              border: 1px solid #ddd;
+              padding: 8px;
+              text-align: left;
+            }
+            th {
+              background-color: #475569;
+              color: white;
+              font-weight: bold;
+            }
+            tr:nth-child(even) {
+              background-color: #f8fafc;
+            }
+            .quantity-low {
+              background-color: #fee2e2;
+              color: #dc2626;
+              padding: 2px 6px;
+              border-radius: 12px;
+              font-weight: bold;
+            }
+            .quantity-medium {
+              background-color: #fef3c7;
+              color: #d97706;
+              padding: 2px 6px;
+              border-radius: 12px;
+              font-weight: bold;
+            }
+            .quantity-high {
+              background-color: #dcfce7;
+              color: #16a34a;
+              padding: 2px 6px;
+              border-radius: 12px;
+              font-weight: bold;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Stock Report</h1>
+          <div class="info">
+            <p><strong>Filters Applied:</strong> ${getFilterSummary()}</p>
+            <p><strong>Total Items:</strong> ${filteredStocks.length}</p>
+            <p><strong>Generated on:</strong> ${new Date().toLocaleString()}</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Item Code</th>
+                <th>Item Name</th>
+                <th>Supplier</th>
+                <th>Location</th>
+                <th>Quantity</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredStocks
+                .map(
+                  (stock) => `
+                <tr>
+                  <td>${stock.item.item_code}</td>
+                  <td>${stock.item.item_name}</td>
+                  <td>${stock.item.supplier.supplier_name}</td>
+                  <td>${stock.location.location_name} (${
+                    stock.location.location_code
+                  })</td>
+                  <td>
+                    <span class="${
+                      stock.quantity <= 10
+                        ? "quantity-low"
+                        : stock.quantity <= 25
+                        ? "quantity-medium"
+                        : "quantity-high"
+                    }">
+                      ${stock.quantity}
+                    </span>
+                  </td>
+                  <td>${formatDate(stock.updated_at)}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+        </html>
+      `;
+
+      // Write content to print window
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+
+      // Wait for content to load then print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      };
+    } catch (error) {
+      console.error("Error generating print view:", error);
+      alert("Error generating print view. Please try again.");
+    }
+  };
+
   // Loading state
   if (isLoading) {
     return (
@@ -203,60 +486,87 @@ export default function StocksTable() {
               className="pl-10"
             />
           </div>
+          <div className="flex flex-1 justify-between items-start w-full">
+            {/* Filter Dropdowns Container */}
+            <div className="flex flex-col sm:flex-row gap-3 w-1/4">
+              {/* Location Filter */}
+              <div className="flex-1 w-full sm:min-w-[200px]">
+                <Select
+                  value={selectedLocation}
+                  onValueChange={setSelectedLocation}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by location" />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[300px] z-50">
+                    <SelectItem value="all">All Locations</SelectItem>
+                    {uniqueLocations.map((location) => (
+                      <SelectItem
+                        key={location.id}
+                        value={location.id.toString()}
+                      >
+                        {location.name} ({location.code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {/* Filter Dropdowns Container */}
-          <div className="flex flex-col sm:flex-row gap-3 w-1/4">
-            {/* Location Filter */}
-            <div className="flex-1 w-full sm:min-w-[200px]">
-              <Select
-                value={selectedLocation}
-                onValueChange={setSelectedLocation}
+              {/* Supplier Filter */}
+              <div className="flex-1 w-full sm:min-w-[200px]">
+                <Select
+                  value={selectedSupplier}
+                  onValueChange={setSelectedSupplier}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Filter by supplier" />
+                  </SelectTrigger>
+                  <SelectContent className="max-w-[300px] z-50">
+                    <SelectItem value="all">All Suppliers</SelectItem>
+                    {uniqueSuppliers.map((supplier) => (
+                      <SelectItem key={supplier} value={supplier!}>
+                        {supplier}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Clear Filters Button */}
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                className="w-full sm:w-auto sm:min-w-[120px] flex-shrink-0"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter by location" />
-                </SelectTrigger>
-                <SelectContent className="max-w-[300px] z-50">
-                  <SelectItem value="all">All Locations</SelectItem>
-                  {uniqueLocations.map((location) => (
-                    <SelectItem
-                      key={location.id}
-                      value={location.id.toString()}
-                    >
-                      {location.name} ({location.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                Clear Filters
+              </Button>
             </div>
-
-            {/* Supplier Filter */}
-            <div className="flex-1 w-full sm:min-w-[200px]">
-              <Select
-                value={selectedSupplier}
-                onValueChange={setSelectedSupplier}
+            <div className="flex gap-2">
+              <Button
+                onClick={exportToPDF}
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                disabled={filteredStocks.length === 0}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Filter by supplier" />
-                </SelectTrigger>
-                <SelectContent className="max-w-[300px] z-50">
-                  <SelectItem value="all">All Suppliers</SelectItem>
-                  {uniqueSuppliers.map((supplier) => (
-                    <SelectItem key={supplier} value={supplier!}>
-                      {supplier}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <FileText className="w-4 h-4" />
+                Export PDF
+              </Button>
+              <Button
+                onClick={exportToExcel}
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                disabled={filteredStocks.length === 0}
+              >
+                <Download className="w-4 h-4" />
+                Export Excel
+              </Button>
+              <Button
+                onClick={handlePrint}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={filteredStocks.length === 0}
+              >
+                <Printer className="w-4 h-4" />
+                Print
+              </Button>
             </div>
-
-            {/* Clear Filters Button */}
-            <Button
-              variant="outline"
-              onClick={clearFilters}
-              className="w-full sm:w-auto sm:min-w-[120px] flex-shrink-0"
-            >
-              Clear Filters
-            </Button>
           </div>
         </div>
 
@@ -318,11 +628,39 @@ export default function StocksTable() {
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Clear Filters Button */}
             <Button variant="outline" onClick={clearFilters} className="w-full">
               Clear Filters
             </Button>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                onClick={handlePrint}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={filteredStocks.length === 0}
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Print
+              </Button>
+            {/* </div> */}
+
+            {/* <div className="grid grid-cols-2 gap-2"> */}
+              <Button
+                onClick={exportToPDF}
+                className="w-full bg-red-600 hover:bg-red-700 text-white"
+                disabled={filteredStocks.length === 0}
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                PDF
+              </Button>
+              <Button
+                onClick={exportToExcel}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                disabled={filteredStocks.length === 0}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Excel
+              </Button>
+            </div>
           </div>
         </div>
       </div>
