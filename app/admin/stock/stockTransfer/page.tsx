@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Select,
   SelectContent,
@@ -14,6 +14,7 @@ import {
   MoveRight,
   Trash2,
   Package,
+  Loader2,
 } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -32,32 +33,60 @@ import {
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import { useGetStockLocationsQuery } from "@/store/services/stock";
+import {
+  useGetStockLocationsQuery,
+  useGetStocksQuery,
+  useCreateStockTransferMutation,
+} from "@/store/services/stock";
+import { toast } from "sonner";
 
-// Define interfaces for type safety
+// Updated interfaces to match your API response
 interface Item {
-  code: string;
-  name: string;
-  packType: string;
-  availableStock: number;
+  stock_id: number;
+  item_code: string;
+  item_name: string;
+  quantity: number;
+  location_id: number;
+  supplier_name: string;
+  item_id: number; // This should be the actual item_id from the items table
 }
 
 interface AddedItem extends Item {
-  quantity: string;
+  transfer_quantity: string;
   id: number;
 }
 
 interface CurrentItem {
-  code: string;
-  name: string;
-  packType: string;
-  quantity: string;
+  stock_id: number;
+  item_code: string;
+  item_name: string;
+  quantity: number;
+  location_id: number;
+  supplier_name: string;
+  transfer_quantity: string;
+  item_id: number;
 }
 
 // Stock Location interface (matching your API response)
 interface StockLocation {
   location_id: number;
   location_name: string;
+}
+
+// Transfer payload interface
+interface StockTransferPayload {
+  source_location_id: number;
+  destination_location_id: number;
+  transfer_date: string;
+  items: {
+    item_id: number;
+    item_code: string;
+    item_name: string;
+    supplier_name: string;
+    requested_quantity: number;
+    unit_cost?: number;
+    notes?: string;
+  }[];
 }
 
 const StockTransfer: React.FC = () => {
@@ -69,10 +98,14 @@ const StockTransfer: React.FC = () => {
   const [destinationLocation, setDestinationLocation] = useState<string>("");
   const [addedItems, setAddedItems] = useState<AddedItem[]>([]);
   const [currentItem, setCurrentItem] = useState<CurrentItem>({
-    code: "",
-    name: "",
-    packType: "",
-    quantity: "",
+    stock_id: 0,
+    item_code: "",
+    item_name: "",
+    quantity: 0,
+    location_id: 0,
+    supplier_name: "",
+    transfer_quantity: "",
+    item_id: 0,
   });
 
   // Fetch stock locations from API
@@ -82,40 +115,64 @@ const StockTransfer: React.FC = () => {
     error: locationsError,
   } = useGetStockLocationsQuery();
 
+  // Fetch stocks from API
+  const {
+    data: stocksResponse,
+    isLoading: stocksLoading,
+    error: stocksError,
+  } = useGetStocksQuery();
+
+  // Create stock transfer mutation
+  const [createStockTransfer, { isLoading: isSubmitting }] =
+    useCreateStockTransferMutation();
+
   // Extract locations from API response
   const stockLocations = stockLocationsResponse?.data || [];
 
-  // Sample data with proper typing (you might want to fetch this from API too)
-  const items: Item[] = [
-    { code: "ITM001", name: "Rice 5KG", packType: "Bag", availableStock: 150 },
-    {
-      code: "ITM002",
-      name: "Wheat Flour",
-      packType: "Pack",
-      availableStock: 75,
-    },
-    {
-      code: "ITM003",
-      name: "Sugar 1KG",
-      packType: "Pack",
-      availableStock: 200,
-    },
-    {
-      code: "ITM004",
-      name: "Oil 500ML",
-      packType: "Bottle",
-      availableStock: 89,
-    },
-  ];
+  // Extract and transform stocks from API response
+  const allStocks = stocksResponse?.data || [];
+
+  // Get items available in the selected source location only (excluding already added items)
+  const availableItems: Item[] = useMemo(() => {
+    if (!sourceLocation) return [];
+
+    const addedItemCodes = addedItems.map((item) => item.item_code);
+
+    return allStocks
+      .filter(
+        (stock) => stock.location.location_id.toString() === sourceLocation
+      )
+      .map((stock) => {
+        console.log('Processing stock record:', stock); // Debug log
+        return {
+          stock_id: stock.stock_id,
+          item_code: stock.item.item_code,
+          item_name: stock.item.item_name,
+          quantity: stock.quantity,
+          location_id: stock.location.location_id,
+          supplier_name: stock.item.supplier.supplier_name,
+          // FIXED: Use the actual item_id from the stock record, not stock_id
+          item_id: stock.item_id, // This should be the actual item_id from your database
+        };
+      })
+      .filter((item) => !addedItemCodes.includes(item.item_code)); // Exclude already added items
+  }, [allStocks, sourceLocation, addedItems]);
 
   const handleItemSelect = (itemCode: string): void => {
-    const item = items.find((i) => i.code === itemCode);
+    const item = availableItems.find((i) => i.item_code === itemCode);
+    console.log("Selected Item Code:", itemCode);
+    console.log("Item Full Data:", item);
+
     if (item) {
       setCurrentItem({
-        code: item.code,
-        name: item.name,
-        packType: item.packType,
-        quantity: "",
+        stock_id: item.stock_id,
+        item_code: item.item_code,
+        item_name: item.item_name,
+        quantity: item.quantity,
+        location_id: item.location_id,
+        supplier_name: item.supplier_name,
+        transfer_quantity: "",
+        item_id: item.item_id, // Use the actual item_id
       });
       setSelectedItem(itemCode);
     }
@@ -129,13 +186,34 @@ const StockTransfer: React.FC = () => {
     }
   };
 
-  // Handle source location change - reset destination if same as source
+  // Handle source location change - reset destination and clear items
   const handleSourceLocationChange = (locationId: string): void => {
+    console.log("Selected Source Location ID:", locationId);
+
+    const selectedLocation = stockLocations.find(
+      (loc) => loc.location_id.toString() === locationId
+    );
+    console.log("Source Location Data:", selectedLocation);
+
     setSourceLocation(locationId);
-    // If destination is the same as the new source, reset destination
+
     if (destinationLocation === locationId) {
       setDestinationLocation("");
     }
+
+    setCurrentItem({
+      stock_id: 0,
+      item_code: "",
+      item_name: "",
+      quantity: 0,
+      location_id: 0,
+      supplier_name: "",
+      transfer_quantity: "",
+      item_id: 0,
+    });
+    setSelectedItem("");
+    setAddedItems([]);
+    setOpen(false);
   };
 
   // Handle destination location change - reset source if same as destination
@@ -161,20 +239,34 @@ const StockTransfer: React.FC = () => {
     );
   };
 
+  // Check if item is already added
+  const isItemAlreadyAdded = (itemCode: string): boolean => {
+    return addedItems.some((item) => item.item_code === itemCode);
+  };
+
   const addItem = (): void => {
     if (
-      currentItem.code &&
-      currentItem.quantity &&
-      parseInt(currentItem.quantity) > 0
+      currentItem.item_code &&
+      currentItem.transfer_quantity &&
+      parseInt(currentItem.transfer_quantity) > 0 &&
+      parseInt(currentItem.transfer_quantity) <= currentItem.quantity &&
+      !isItemAlreadyAdded(currentItem.item_code) // Additional check
     ) {
-      const selectedItemData = items.find((i) => i.code === currentItem.code);
       const newItem: AddedItem = {
         ...currentItem,
-        availableStock: selectedItemData?.availableStock || 0,
         id: Date.now(),
       };
       setAddedItems([...addedItems, newItem]);
-      setCurrentItem({ code: "", name: "", packType: "", quantity: "" });
+      setCurrentItem({
+        stock_id: 0,
+        item_code: "",
+        item_name: "",
+        quantity: 0,
+        location_id: 0,
+        supplier_name: "",
+        transfer_quantity: "",
+        item_id: 0,
+      });
       setSelectedItem("");
       setOpen(false);
     }
@@ -186,7 +278,7 @@ const StockTransfer: React.FC = () => {
 
   const totalItems: number = addedItems.length;
   const totalQuantity: number = addedItems.reduce(
-    (sum, item) => sum + parseInt(item.quantity || "0"),
+    (sum, item) => sum + parseInt(item.transfer_quantity || "0"),
     0
   );
 
@@ -196,6 +288,76 @@ const StockTransfer: React.FC = () => {
       (loc) => loc.location_id.toString() === locationId
     );
     return location?.location_name || "";
+  };
+
+  // Check if transfer quantity is valid
+  const isTransferQuantityValid = (): boolean => {
+    const transferQty = parseInt(currentItem.transfer_quantity || "0");
+    return transferQty > 0 && transferQty <= currentItem.quantity;
+  };
+
+  // Handle form submission
+  const handleSubmitTransfer = async (): Promise<void> => {
+    try {
+      if (
+        !date ||
+        !sourceLocation ||
+        !destinationLocation ||
+        addedItems.length === 0
+      ) {
+        toast.error(
+          "Please fill in all required fields and add at least one item"
+        );
+        return;
+      }
+
+      const payload: StockTransferPayload = {
+        source_location_id: parseInt(sourceLocation),
+        destination_location_id: parseInt(destinationLocation),
+        transfer_date: date.toISOString(),
+        items: addedItems.map((item) => ({
+          // FIXED: Use the actual item_id, not stock_id
+          item_id: item.item_id, // This is now the correct item_id from the items table
+          item_code: item.item_code,
+          item_name: item.item_name,
+          supplier_name: item.supplier_name,
+          requested_quantity: parseInt(item.transfer_quantity),
+          unit_cost: 0, // You may want to add unit_cost field to the form
+          notes: "", // You may want to add notes field to the form
+        })),
+      };
+      console.log("Submitting Transfer Payload:", payload);
+
+      const result = await createStockTransfer(payload).unwrap();
+
+      toast.success("Stock transfer submitted successfully!");
+
+      // Reset form
+      setSourceLocation("");
+      setDestinationLocation("");
+      setDate(undefined);
+      setAddedItems([]);
+      setCurrentItem({
+        stock_id: 0,
+        item_code: "",
+        item_name: "",
+        quantity: 0,
+        location_id: 0,
+        supplier_name: "",
+        transfer_quantity: "",
+        item_id: 0,
+      });
+      setSelectedItem("");
+    } catch (error: any) {
+      console.error("Transfer submission failed:", error);
+      toast.error(error?.data?.message || "Failed to submit transfer");
+    }
+  };
+
+  // Handle save as draft (you can implement this based on your requirements)
+  const handleSaveDraft = (): void => {
+    // Implement draft saving logic here
+    toast.info("Draft saved locally");
   };
 
   return (
@@ -348,124 +510,183 @@ const StockTransfer: React.FC = () => {
             Add Items
           </h2>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-            {/* Item Code/Search */}
-            <div className="lg:col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Item Code
-              </label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-full justify-between"
-                  >
-                    {selectedItem || "Select item..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
-                  <Command>
-                    <CommandInput placeholder="Search items..." />
-                    <CommandEmpty>No items found.</CommandEmpty>
-                    <CommandGroup>
-                      {items.map((item) => (
-                        <CommandItem
-                          key={item.code}
-                          onSelect={() => handleItemSelect(item.code)}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedItem === item.code
-                                ? "opacity-100"
-                                : "opacity-0"
-                            )}
-                          />
-                          <div className="flex flex-col">
-                            <span className="font-medium">{item.code}</span>
-                            <span className="text-xs text-gray-500">
-                              {item.name}
-                            </span>
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+          {!sourceLocation && (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>
+                Please select a source location first to view available items
+              </p>
             </div>
+          )}
 
-            {/* Item Name */}
-            <div className="lg:col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Item Name
-              </label>
-              <Input
-                placeholder="Item name"
-                value={currentItem.name}
-                readOnly
-                className="bg-gray-50"
-              />
-            </div>
+          {sourceLocation && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+              {/* Item Code/Search */}
+              <div className="lg:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Item Code
+                </label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between"
+                      disabled={stocksLoading || availableItems.length === 0}
+                    >
+                      {selectedItem ||
+                        (stocksLoading
+                          ? "Loading..."
+                          : availableItems.length === 0
+                          ? "No items available"
+                          : "Select item...")}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput placeholder="Search items..." />
+                      <CommandEmpty>
+                        {stocksError
+                          ? "Error loading items"
+                          : "No items found or all items already added."}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {availableItems.map((item) => (
+                          <CommandItem
+                            key={item.stock_id}
+                            onSelect={() => handleItemSelect(item.item_code)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                selectedItem === item.item_code
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {item.item_code}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                {item.item_name}
+                              </span>
+                              <span className="text-xs text-green-600">
+                                Available: {item.quantity}
+                              </span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
 
-            {/* Pack Type */}
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Pack Type
-              </label>
-              <Input
-                placeholder="Pack type"
-                value={currentItem.packType}
-                readOnly
-                className="bg-gray-50"
-              />
-            </div>
+              {/* Item Name */}
+              <div className="lg:col-span-3">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Item Name
+                </label>
+                <Input
+                  placeholder="Item name"
+                  value={currentItem.item_name}
+                  readOnly
+                  className="bg-gray-50"
+                />
+              </div>
 
-            {/* Available Stock */}
-            <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Available
-              </label>
-              <div className="flex items-center h-10 px-3 bg-green-50 border rounded-md">
-                <span className="text-sm font-medium text-green-700">
-                  {items.find((i) => i.code === currentItem.code)
-                    ?.availableStock || 0}
-                </span>
+              {/* Supplier */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Supplier
+                </label>
+                <Input
+                  placeholder="Supplier"
+                  value={currentItem.supplier_name}
+                  readOnly
+                  className="bg-gray-50"
+                />
+              </div>
+
+              {/* Available Stock */}
+              <div className="lg:col-span-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available
+                </label>
+                <div className="flex items-center h-10 px-3 bg-green-50 border rounded-md">
+                  <span className="text-sm font-medium text-green-700">
+                    {currentItem.quantity || 0}
+                  </span>
+                </div>
+              </div>
+
+              {/* Transfer Quantity */}
+              <div className="lg:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Transfer Quantity
+                </label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  min="1"
+                  max={currentItem.quantity}
+                  value={currentItem.transfer_quantity}
+                  onChange={(e) =>
+                    setCurrentItem({
+                      ...currentItem,
+                      transfer_quantity: e.target.value,
+                    })
+                  }
+                  className={
+                    currentItem.transfer_quantity && !isTransferQuantityValid()
+                      ? "border-red-500 focus:border-red-500"
+                      : ""
+                  }
+                />
+                {currentItem.transfer_quantity &&
+                  !isTransferQuantityValid() && (
+                    <p className="text-xs text-red-500 mt-1">
+                      Quantity must be between 1 and {currentItem.quantity}
+                    </p>
+                  )}
+              </div>
+
+              {/* Add Button */}
+              <div className="lg:col-span-1">
+                <Button
+                  onClick={addItem}
+                  disabled={
+                    !currentItem.item_code ||
+                    !currentItem.transfer_quantity ||
+                    !isTransferQuantityValid() ||
+                    isItemAlreadyAdded(currentItem.item_code)
+                  }
+                  className="w-full"
+                >
+                  Add Item
+                </Button>
               </div>
             </div>
+          )}
 
-            {/* Quantity */}
-            <div className="lg:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quantity
-              </label>
-              <Input
-                type="number"
-                placeholder="0"
-                value={currentItem.quantity}
-                onChange={(e) =>
-                  setCurrentItem({ ...currentItem, quantity: e.target.value })
-                }
-              />
+          {/* Show message when no items are available */}
+          {sourceLocation && availableItems.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No items available in selected location</p>
+              <p className="text-sm">
+                {addedItems.length > 0
+                  ? "All available items have been added to the transfer"
+                  : "The selected location has no stock items"}
+              </p>
             </div>
-
-            {/* Add Button */}
-            <div className="lg:col-span-1">
-              <Button
-                onClick={addItem}
-                disabled={!currentItem.code || !currentItem.quantity}
-                className="w-full"
-              >
-                Add Item
-              </Button>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* Added Items Table - Balanced Column Widths */}
+        {/* Added Items Table */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900">
@@ -495,16 +716,19 @@ const StockTransfer: React.FC = () => {
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="w-1/5 text-left py-3 px-4 font-medium text-gray-900">
+                    <th className="w-1/6 text-left py-3 px-4 font-medium text-gray-900">
                       Item Code
                     </th>
-                    <th className="w-2/5 text-left py-3 px-4 font-medium text-gray-900">
+                    <th className="w-2/6 text-left py-3 px-4 font-medium text-gray-900">
                       Item Name
                     </th>
-                    <th className="w-1/5 text-left py-3 px-4 font-medium text-gray-900">
-                      Pack Type
+                    <th className="w-1/6 text-left py-3 px-4 font-medium text-gray-900">
+                      Supplier
                     </th>
-                    <th className="w-1/6 text-right py-3 px-4 font-medium text-gray-900">
+                    <th className="w-1/8 text-right py-3 px-4 font-medium text-gray-900">
+                      Available
+                    </th>
+                    <th className="w-1/8 text-right py-3 px-4 font-medium text-gray-900">
                       Transfer Qty
                     </th>
                     <th className="w-1/12 text-center py-3 px-4 font-medium text-gray-900">
@@ -519,25 +743,28 @@ const StockTransfer: React.FC = () => {
                       className="border-b border-gray-100 hover:bg-gray-50"
                     >
                       <td
-                        className="w-1/5 py-3 px-4 font-medium truncate"
-                        title={item.code}
+                        className="w-1/6 py-3 px-4 font-medium truncate"
+                        title={item.item_code}
                       >
-                        {item.code}
+                        {item.item_code}
                       </td>
                       <td
-                        className="w-2/5 py-3 px-4 truncate"
-                        title={item.name}
+                        className="w-2/6 py-3 px-4 truncate"
+                        title={item.item_name}
                       >
-                        {item.name}
+                        {item.item_name}
                       </td>
                       <td
-                        className="w-1/5 py-3 px-4 truncate"
-                        title={item.packType}
+                        className="w-1/6 py-3 px-4 truncate"
+                        title={item.supplier_name}
                       >
-                        {item.packType}
+                        {item.supplier_name}
                       </td>
-                      <td className="w-1/6 py-3 px-4 text-right font-medium">
+                      <td className="w-1/8 py-3 px-4 text-right text-gray-600">
                         {item.quantity}
+                      </td>
+                      <td className="w-1/8 py-3 px-4 text-right font-medium">
+                        {item.transfer_quantity}
                       </td>
                       <td className="w-1/12 py-3 px-4 text-center">
                         <Button
@@ -545,6 +772,7 @@ const StockTransfer: React.FC = () => {
                           size="sm"
                           onClick={() => removeItem(item.id)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          disabled={isSubmitting}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -576,7 +804,12 @@ const StockTransfer: React.FC = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button variant="outline" size="lg">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={handleSaveDraft}
+                disabled={isSubmitting}
+              >
                 Save Draft
               </Button>
               <Button
@@ -585,11 +818,20 @@ const StockTransfer: React.FC = () => {
                   addedItems.length === 0 ||
                   !sourceLocation ||
                   !destinationLocation ||
-                  !date
+                  !date ||
+                  isSubmitting
                 }
                 className="px-8"
+                onClick={handleSubmitTransfer}
               >
-                Submit Transfer
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Transfer"
+                )}
               </Button>
             </div>
           </div>
