@@ -197,7 +197,7 @@ export default function StocksTable() {
     return filters.length > 0 ? filters.join(", ") : "No filters applied";
   };
 
-  // Export to PDF function
+  // Export to PDF function - Updated to remove "Last Updated" column
   const exportToPDF = async () => {
     try {
       // Dynamic import jsPDF and autoTable
@@ -220,37 +220,26 @@ export default function StocksTable() {
       doc.text(totalText, 14, 45);
       doc.text(dateText, 14, 55);
 
-      // Table
+      // Table - Removed "Last Updated" column
       autoTable(doc, {
         startY: 65,
-        head: [
-          [
-            "Item Code",
-            "Item Name",
-            "Supplier",
-            "Location",
-            "Quantity",
-            "Last Updated",
-          ],
-        ],
+        head: [["Item Code", "Item Name", "Supplier", "Location", "Quantity"]],
         body: filteredStocks.map((stock) => [
           stock.item.item_code,
           stock.item.item_name,
           stock.item.supplier.supplier_name,
           `${stock.location.location_name} (${stock.location.location_code})`,
           stock.quantity.toString(),
-          formatDate(stock.updated_at),
         ]),
         styles: { fontSize: 8 },
         headStyles: { fillColor: [71, 85, 105] },
         alternateRowStyles: { fillColor: [248, 250, 252] },
         columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 50 },
-          2: { cellWidth: 35 },
-          3: { cellWidth: 40 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 25 },
+          0: { cellWidth: 30 }, // Item Code - increased width
+          1: { cellWidth: 60 }, // Item Name - increased width
+          2: { cellWidth: 40 }, // Supplier - increased width
+          3: { cellWidth: 45 }, // Location - increased width
+          4: { cellWidth: 20 }, // Quantity - same width
         },
       });
 
@@ -302,7 +291,7 @@ export default function StocksTable() {
     }
   };
 
-  // Print function
+  // Print function - Updated to remove "Last Updated" column and match PDF design
   const handlePrint = () => {
     try {
       // Create a new window for printing
@@ -313,7 +302,7 @@ export default function StocksTable() {
         return;
       }
 
-      // Generate HTML content for printing
+      // Generate HTML content for printing - Updated to match PDF design
       const printContent = `
         <!DOCTYPE html>
         <html>
@@ -348,7 +337,7 @@ export default function StocksTable() {
             }
             th {
               background-color: #475569;
-              color: white;
+              color: black;
               font-weight: bold;
             }
             tr:nth-child(even) {
@@ -375,6 +364,12 @@ export default function StocksTable() {
               border-radius: 12px;
               font-weight: bold;
             }
+            /* Column widths to match PDF */
+            .col-item-code { width: 18%; }
+            .col-item-name { width: 35%; }
+            .col-supplier { width: 22%; }
+            .col-location { width: 20%; }
+            .col-quantity { width: 15%; }
             @media print {
               body { margin: 0; }
               .no-print { display: none; }
@@ -391,12 +386,11 @@ export default function StocksTable() {
           <table>
             <thead>
               <tr>
-                <th>Item Code</th>
-                <th>Item Name</th>
-                <th>Supplier</th>
-                <th>Location</th>
-                <th>Quantity</th>
-                <th>Last Updated</th>
+                <th class="col-item-code">Item Code</th>
+                <th class="col-item-name">Item Name</th>
+                <th class="col-supplier">Supplier</th>
+                <th class="col-location">Location</th>
+                <th class="col-quantity">Quantity</th>
               </tr>
             </thead>
             <tbody>
@@ -404,13 +398,13 @@ export default function StocksTable() {
                 .map(
                   (stock) => `
                 <tr>
-                  <td>${stock.item.item_code}</td>
-                  <td>${stock.item.item_name}</td>
-                  <td>${stock.item.supplier.supplier_name}</td>
-                  <td>${stock.location.location_name} (${
-                    stock.location.location_code
-                  })</td>
-                  <td>
+                  <td class="col-item-code">${stock.item.item_code}</td>
+                  <td class="col-item-name">${stock.item.item_name}</td>
+                  <td class="col-supplier">${
+                    stock.item.supplier.supplier_name
+                  }</td>
+                  <td class="col-location">${stock.location.location_name} </td>
+                  <td class="col-quantity">
                     <span class="${
                       stock.quantity <= 10
                         ? "quantity-low"
@@ -421,7 +415,6 @@ export default function StocksTable() {
                       ${stock.quantity}
                     </span>
                   </td>
-                  <td>${formatDate(stock.updated_at)}</td>
                 </tr>
               `
                 )
@@ -536,7 +529,7 @@ export default function StocksTable() {
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                className="w-full sm:w-auto sm:min-w-[120px] flex-shrink-0"
+                className="w-full sm:w-auto sm:min-w-[120px] flex-shrink-0 cursor-pointer "
               >
                 Clear Filters
               </Button>
@@ -544,7 +537,7 @@ export default function StocksTable() {
             <div className="flex gap-2">
               <Button
                 onClick={exportToPDF}
-                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white"
+                className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white cursor-pointer"
                 disabled={filteredStocks.length === 0}
               >
                 <FileText className="w-4 h-4" />
@@ -552,7 +545,7 @@ export default function StocksTable() {
               </Button>
               <Button
                 onClick={exportToExcel}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white cursor-pointer"
                 disabled={filteredStocks.length === 0}
               >
                 <Download className="w-4 h-4" />
@@ -560,7 +553,7 @@ export default function StocksTable() {
               </Button>
               <Button
                 onClick={handlePrint}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
                 disabled={filteredStocks.length === 0}
               >
                 <Printer className="w-4 h-4" />
@@ -641,9 +634,9 @@ export default function StocksTable() {
                 <Printer className="w-4 h-4 mr-2" />
                 Print
               </Button>
-            {/* </div> */}
+              {/* </div> */}
 
-            {/* <div className="grid grid-cols-2 gap-2"> */}
+              {/* <div className="grid grid-cols-2 gap-2"> */}
               <Button
                 onClick={exportToPDF}
                 className="w-full bg-red-600 hover:bg-red-700 text-white"
