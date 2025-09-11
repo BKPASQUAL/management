@@ -11,7 +11,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Filter } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useGetCustomersQuery } from "@/store/services/customer";
 
 // Type definitions
 interface ToggleOption {
@@ -25,7 +26,7 @@ interface ToggleButtonProps {
   options: ToggleOption[];
 }
 
-type CustomerType = "retail" | "enterprise";
+type CustomerType = "retail" | "enterprise" | "all";
 
 // Toggle Button Component using shadcn/ui style approach
 const ToggleButton: React.FC<ToggleButtonProps> = ({
@@ -53,13 +54,45 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({
 };
 
 const CustomerManagement: React.FC = () => {
-  const [customerType, setCustomerType] = useState<CustomerType>("retail");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("");
+  const [customerType, setCustomerType] = useState<CustomerType>("all");
+  const [selectedArea, setSelectedArea] = useState<string>("all");
+  const [selectedRepresentative, setSelectedRepresentative] =
+    useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
+  // Fetch customers to populate filter options
+  const { data: customersResponse, isLoading } = useGetCustomersQuery();
+  const customers = customersResponse?.data || [];
+
+  // Get unique areas and representatives from API data with null safety
+  const uniqueAreas = useMemo(() => {
+    if (!customers || customers.length === 0) return [];
+
+    return Array.from(
+      new Set(
+        customers
+          .filter((customer) => customer?.area?.area_name) // Filter out null/undefined areas
+          .map((customer) => customer.area.area_name)
+      )
+    ).sort();
+  }, [customers]);
+
+  const uniqueRepresentatives = useMemo(() => {
+    if (!customers || customers.length === 0) return [];
+
+    return Array.from(
+      new Set(
+        customers
+          .filter((customer) => customer?.assignedRep?.username) // Filter out null/undefined reps
+          .map((customer) => customer.assignedRep.username)
+      )
+    ).sort();
+  }, [customers]);
+
   const toggleOptions: ToggleOption[] = [
+    { value: "all", label: "All" },
     { value: "retail", label: "Retail" },
     { value: "enterprise", label: "Enterprise" },
   ];
@@ -70,6 +103,12 @@ const CustomerManagement: React.FC = () => {
 
   const toggleFilters = (): void => {
     setShowFilters(!showFilters);
+  };
+
+  const handleSearchChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ): void => {
+    setSearchTerm(event.target.value);
   };
 
   return (
@@ -111,7 +150,12 @@ const CustomerManagement: React.FC = () => {
               className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
               size={18}
             />
-            <Input placeholder="Search customers..." className="pl-10 h-9" />
+            <Input
+              placeholder="Search customers..."
+              className="pl-10 h-9"
+              value={searchTerm}
+              onChange={handleSearchChange}
+            />
           </div>
 
           {/* Row 3: Filter Toggle Button (Mobile Only) */}
@@ -133,41 +177,38 @@ const CustomerManagement: React.FC = () => {
             } space-y-3 sm:space-y-0 sm:flex sm:gap-3`}
           >
             <Select
-              value={selectedCategory}
-              onValueChange={setSelectedCategory}
-            >
-              <SelectTrigger className="w-full h-10">
-                <SelectValue placeholder="All Categories" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                <SelectItem value="electronics">Electronics</SelectItem>
-                <SelectItem value="accessories">Accessories</SelectItem>
-                <SelectItem value="audio">Audio</SelectItem>
-                <SelectItem value="mobile">Mobile</SelectItem>
-                <SelectItem value="computing">Computing</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={selectedSupplier}
-              onValueChange={setSelectedSupplier}
+              value={selectedArea}
+              onValueChange={setSelectedArea}
+              disabled={isLoading}
             >
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="All Areas" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Areas</SelectItem>
-                <SelectItem value="colombo">Colombo</SelectItem>
-                <SelectItem value="kandy">Kandy</SelectItem>
-                <SelectItem value="galle">Galle</SelectItem>
-                <SelectItem value="negombo">Negombo</SelectItem>
-                <SelectItem value="matara">Matara</SelectItem>
-                <SelectItem value="kurunegala">Kurunegala</SelectItem>
-                <SelectItem value="anuradhapura">Anuradhapura</SelectItem>
-                <SelectItem value="ratnapura">Ratnapura</SelectItem>
-                <SelectItem value="batticaloa">Batticaloa</SelectItem>
-                <SelectItem value="jaffna">Jaffna</SelectItem>
+                {uniqueAreas.map((area) => (
+                  <SelectItem key={area} value={area}>
+                    {area}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedRepresentative}
+              onValueChange={setSelectedRepresentative}
+              disabled={isLoading}
+            >
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="All Representatives" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Representatives</SelectItem>
+                {uniqueRepresentatives.map((rep) => (
+                  <SelectItem key={rep} value={rep}>
+                    {rep}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -194,47 +235,46 @@ const CustomerManagement: React.FC = () => {
                 <Input
                   placeholder="Search customers..."
                   className="pl-10 h-10"
+                  value={searchTerm}
+                  onChange={handleSearchChange}
                 />
               </div>
 
               {/* Filters */}
               <div className="flex gap-3">
                 <Select
-                  value={selectedCategory}
-                  onValueChange={setSelectedCategory}
-                >
-                  <SelectTrigger className="w-[160px] lg:w-[180px] h-10">
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
-                    <SelectItem value="audio">Audio</SelectItem>
-                    <SelectItem value="mobile">Mobile</SelectItem>
-                    <SelectItem value="computing">Computing</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <Select
-                  value={selectedSupplier}
-                  onValueChange={setSelectedSupplier}
+                  value={selectedArea}
+                  onValueChange={setSelectedArea}
+                  disabled={isLoading}
                 >
                   <SelectTrigger className="w-[160px] lg:w-[180px] h-10">
                     <SelectValue placeholder="All Areas" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Areas</SelectItem>
-                    <SelectItem value="colombo">Colombo</SelectItem>
-                    <SelectItem value="kandy">Kandy</SelectItem>
-                    <SelectItem value="galle">Galle</SelectItem>
-                    <SelectItem value="negombo">Negombo</SelectItem>
-                    <SelectItem value="matara">Matara</SelectItem>
-                    <SelectItem value="kurunegala">Kurunegala</SelectItem>
-                    <SelectItem value="anuradhapura">Anuradhapura</SelectItem>
-                    <SelectItem value="ratnapura">Ratnapura</SelectItem>
-                    <SelectItem value="batticaloa">Batticaloa</SelectItem>
-                    <SelectItem value="jaffna">Jaffna</SelectItem>
+                    {uniqueAreas.map((area) => (
+                      <SelectItem key={area} value={area}>
+                        {area}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={selectedRepresentative}
+                  onValueChange={setSelectedRepresentative}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="w-[160px] lg:w-[180px] h-10">
+                    <SelectValue placeholder="All Representatives" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Representatives</SelectItem>
+                    {uniqueRepresentatives.map((rep) => (
+                      <SelectItem key={rep} value={rep}>
+                        {rep}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -243,7 +283,7 @@ const CustomerManagement: React.FC = () => {
             {/* Right Side: Add Button */}
             <Button
               onClick={() => setIsAddModalOpen(true)}
-              className="cursor-pointer "
+              className="cursor-pointer"
             >
               Add Customer
             </Button>
@@ -252,9 +292,15 @@ const CustomerManagement: React.FC = () => {
 
         {/* Table Section */}
         <div className="mt-4 sm:mt-6">
-          <CustumerTable />
+          <CustumerTable
+            searchTerm={searchTerm}
+            selectedLocation={selectedArea}
+            selectedSupplier={selectedRepresentative}
+            customerType={customerType === "all" ? undefined : customerType}
+          />
         </div>
       </div>
+
       <AddCustumer
         open={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}

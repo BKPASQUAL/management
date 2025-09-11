@@ -1,27 +1,29 @@
 // src/store/services/customer.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Customer entity interface
+// Updated Customer entity interface to match API response
 export interface Customer {
-  customer_id: number;
+  id: number;
   customerName: string;
   shopName: string;
+  customerCode: string;
   customerType: "retail" | "enterprise";
   areaId: number;
-  address: string;
-  contactNumber: string;
-  assignedRepId: number;
-  notes?: string;
-  created_at?: string;
-  updated_at?: string;
-  area?: {
+  area: {
     area_id: number;
     area_name: string;
   };
-  assignedRep?: {
+  address: string;
+  contactNumber: string;
+  assignedRepId: number;
+  assignedRep: {
     user_id: number;
-    full_name: string;
+    username: string;
+    role: string;
   };
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Create Customer Request Payload
@@ -36,29 +38,56 @@ export interface CreateCustomerRequest {
   notes?: string;
 }
 
-// Customer Response
+// Update Customer Request Payload
+export interface UpdateCustomerRequest {
+  customerName?: string;
+  shopName?: string;
+  customerType?: "retail" | "enterprise";
+  areaId?: number;
+  address?: string;
+  contactNumber?: string;
+  assignedRepId?: number;
+  notes?: string;
+}
+
+// API Response interfaces
 export interface CustomerResponse {
-  success: boolean;
+  statusCode: number;
   message: string;
   data: Customer;
+}
+
+export interface CustomersListResponse {
+  statusCode: number;
+  message: string;
+  data: Customer[];
 }
 
 // API slice for customers
 export const customerApi = createApi({
   reducerPath: "customerApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/",
+    baseUrl: "http://localhost:3001/", // Updated base URL - adjust as needed
     prepareHeaders: (headers) => {
       headers.set("content-type", "application/json");
+      // Add authorization header if needed
+      // const token = getToken(); // Implement your token retrieval logic
+      // if (token) {
+      //   headers.set('authorization', `Bearer ${token}`);
+      // }
       return headers;
     },
   }),
   tagTypes: ["Customer"],
   endpoints: (builder) => ({
     // Fetch all customers
-    getCustomers: builder.query<{ data: Customer[] }, void>({
+    getCustomers: builder.query<CustomersListResponse, void>({
       query: () => "customers",
       providesTags: ["Customer"],
+      transformResponse: (response: CustomersListResponse) => {
+        console.log("getCustomers API Response:", response);
+        return response;
+      },
       transformErrorResponse: (response: any) => {
         console.error("getCustomers API Error:", response);
         return {
@@ -73,9 +102,13 @@ export const customerApi = createApi({
     }),
 
     // Get single customer by ID
-    getCustomerById: builder.query<{ data: Customer }, number>({
+    getCustomerById: builder.query<CustomerResponse, number>({
       query: (id) => `customers/${id}`,
-      providesTags: ["Customer"],
+      providesTags: (result, error, id) => [{ type: "Customer", id }],
+      transformResponse: (response: CustomerResponse) => {
+        console.log("getCustomerById API Response:", response);
+        return response;
+      },
       transformErrorResponse: (response: any) => {
         console.error("getCustomerById API Error:", response);
         return {
@@ -97,6 +130,10 @@ export const customerApi = createApi({
         body: customerData,
       }),
       invalidatesTags: ["Customer"],
+      transformResponse: (response: CustomerResponse) => {
+        console.log("createCustomer API Response:", response);
+        return response;
+      },
       transformErrorResponse: (response: any, meta, arg) => {
         console.error("createCustomer API Error:", {
           response,
@@ -117,14 +154,21 @@ export const customerApi = createApi({
     // Update customer
     updateCustomer: builder.mutation<
       CustomerResponse,
-      { id: number; data: Partial<CreateCustomerRequest> }
+      { id: number; data: UpdateCustomerRequest }
     >({
       query: ({ id, data }) => ({
         url: `customers/${id}`,
         method: "PUT",
         body: data,
       }),
-      invalidatesTags: ["Customer"],
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Customer", id },
+        "Customer",
+      ],
+      transformResponse: (response: CustomerResponse) => {
+        console.log("updateCustomer API Response:", response);
+        return response;
+      },
       transformErrorResponse: (response: any, meta, arg) => {
         console.error("updateCustomer API Error:", {
           response,
@@ -141,6 +185,86 @@ export const customerApi = createApi({
         };
       },
     }),
+
+    // Delete customer
+    deleteCustomer: builder.mutation<
+      { statusCode: number; message: string },
+      number
+    >({
+      query: (id) => ({
+        url: `customers/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Customer"],
+      transformResponse: (response: {
+        statusCode: number;
+        message: string;
+      }) => {
+        console.log("deleteCustomer API Response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any, meta, arg) => {
+        console.error("deleteCustomer API Error:", {
+          response,
+          meta,
+          customerId: arg,
+        });
+        return {
+          message:
+            response?.data?.message ||
+            response?.message ||
+            "Failed to delete customer",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
+
+    // Search customers (if your API supports it)
+    searchCustomers: builder.query<
+      CustomersListResponse,
+      {
+        searchTerm?: string;
+        area?: string;
+        customerType?: "retail" | "enterprise";
+        representative?: string;
+      }
+    >({
+      query: (params) => {
+        const searchParams = new URLSearchParams();
+
+        if (params.searchTerm) {
+          searchParams.append("search", params.searchTerm);
+        }
+        if (params.area && params.area !== "all") {
+          searchParams.append("area", params.area);
+        }
+        if (params.customerType) {
+          searchParams.append("type", params.customerType);
+        }
+        if (params.representative && params.representative !== "all") {
+          searchParams.append("representative", params.representative);
+        }
+
+        return `customers/search?${searchParams.toString()}`;
+      },
+      providesTags: ["Customer"],
+      transformResponse: (response: CustomersListResponse) => {
+        console.log("searchCustomers API Response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("searchCustomers API Error:", response);
+        return {
+          message:
+            response?.data?.message ||
+            response?.message ||
+            "Failed to search customers",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
   }),
 });
 
@@ -149,4 +273,6 @@ export const {
   useGetCustomerByIdQuery,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
+  useDeleteCustomerMutation,
+  useSearchCustomersQuery,
 } = customerApi;

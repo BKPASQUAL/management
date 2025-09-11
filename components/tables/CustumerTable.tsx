@@ -11,204 +11,73 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { useGetCustomersQuery } from "@/store/services/customer";
 
-// Define the Customer interface
-interface Customer {
-  id: number;
-  customerCode: string;
-  customerName: string;
-  area: string;
-  route: string;
-  representative: string;
-  phone?: string;
-  email?: string;
+interface CustomerTableProps {
+  searchTerm?: string;
+  selectedLocation?: string;
+  selectedSupplier?: string;
+  customerType?: "retail" | "enterprise";
 }
 
-export default function CustomerTable() {
+export default function CustomerTable({
+  searchTerm = "",
+  selectedLocation = "all",
+  selectedSupplier = "all",
+  customerType,
+}: CustomerTableProps) {
   // State for pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(10);
-  
-  // State for search and filters
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [selectedLocation, setSelectedLocation] = useState<string>("all");
-  const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
-  
+
   const router = useRouter();
 
-  const sampleCustomers: Customer[] = [
-    {
-      id: 1,
-      customerCode: "CUST001",
-      customerName: "ABC Electronics Ltd",
-      area: "Colombo",
-      route: "Route A1",
-      representative: "John Silva",
-      phone: "+94 11 2345678",
-      email: "contact@abcelectronics.lk",
-    },
-    {
-      id: 2,
-      customerCode: "CUST002",
-      customerName: "Tech Solutions Pvt Ltd",
-      area: "Kandy",
-      route: "Route K2",
-      representative: "Mary Fernando",
-      phone: "+94 81 2234567",
-      email: "info@techsolutions.lk",
-    },
-    {
-      id: 3,
-      customerCode: "CUST003",
-      customerName: "Digital World",
-      area: "Galle",
-      route: "Route G1",
-      representative: "David Perera",
-      phone: "+94 91 2345678",
-    },
-    {
-      id: 4,
-      customerCode: "CUST004",
-      customerName: "Modern Computers",
-      area: "Negombo",
-      route: "Route N3",
-      representative: "Sarah De Silva",
-      phone: "+94 31 2234567",
-      email: "info@moderncomputers.lk",
-    },
-    {
-      id: 5,
-      customerCode: "CUST005",
-      customerName: "Smart Systems",
-      area: "Matara",
-      route: "Route M1",
-      representative: "John Silva",
-      phone: "+94 41 2345678",
-    },
-    {
-      id: 6,
-      customerCode: "CUST006",
-      customerName: "Future Tech",
-      area: "Colombo",
-      route: "Route A2",
-      representative: "Mary Fernando",
-      phone: "+94 11 2234567",
-      email: "sales@futuretech.lk",
-    },
-    {
-      id: 7,
-      customerCode: "CUST007",
-      customerName: "Innovation Hub",
-      area: "Kandy",
-      route: "Route K1",
-      representative: "David Perera",
-      phone: "+94 81 2345678",
-      email: "info@innovationhub.lk",
-    },
-    {
-      id: 8,
-      customerCode: "CUST008",
-      customerName: "Cyber Solutions",
-      area: "Kurunegala",
-      route: "Route KU1",
-      representative: "Sarah De Silva",
-      phone: "+94 37 2234567",
-      email: "contact@cybersolutions.lk",
-    },
-    {
-      id: 9,
-      customerCode: "CUST009",
-      customerName: "Elite Technologies",
-      area: "Anuradhapura",
-      route: "Route A3",
-      representative: "John Silva",
-      phone: "+94 25 2345678",
-      email: "info@elitetech.lk",
-    },
-    {
-      id: 10,
-      customerCode: "CUST010",
-      customerName: "Prime Electronics",
-      area: "Ratnapura",
-      route: "Route R1",
-      representative: "Mary Fernando",
-      phone: "+94 45 2234567",
-      email: "sales@primeelectronics.lk",
-    },
-    {
-      id: 11,
-      customerCode: "CUST011",
-      customerName: "Next Gen Systems",
-      area: "Batticaloa",
-      route: "Route B1",
-      representative: "David Perera",
-      phone: "+94 65 2345678",
-      email: "info@nextgensystems.lk",
-    },
-    {
-      id: 12,
-      customerCode: "CUST012",
-      customerName: "Advanced Solutions",
-      area: "Jaffna",
-      route: "Route J1",
-      representative: "Sarah De Silva",
-      phone: "+94 21 2234567",
-      email: "contact@advancedsolutions.lk",
-    },
-    {
-      id: 13,
-      customerCode: "CUST013",
-      customerName: "Global Tech Partners",
-      area: "Colombo",
-      route: "Route A3",
-      representative: "John Silva",
-      phone: "+94 11 2345679",
-    },
-    {
-      id: 14,
-      customerCode: "CUST014",
-      customerName: "Innovative Systems",
-      area: "Galle",
-      route: "Route G2",
-      representative: "Mary Fernando",
-      phone: "+94 91 2234568",
-      email: "sales@innovativesystems.lk",
-    },
-  ];
+  // Fetch customers from API
+  const {
+    data: customersResponse,
+    error,
+    isLoading,
+    isError,
+  } = useGetCustomersQuery();
 
-  // Get unique locations and representatives for filter dropdowns
-  const uniqueLocations = useMemo(() => {
-    return Array.from(new Set(sampleCustomers.map(customer => customer.area))).sort();
-  }, [sampleCustomers]);
-
-  const uniqueSuppliers = useMemo(() => {
-    return Array.from(new Set(sampleCustomers.map(customer => customer.representative))).sort();
-  }, [sampleCustomers]);
+  const customers = customersResponse?.data || [];
 
   // Filter customers based on search term and filters
   const filteredCustomers = useMemo(() => {
-    return sampleCustomers.filter(customer => {
-      const matchesSearch = searchTerm === "" || 
-        customer.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.customerCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    return customers.filter((customer) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        customer.customerName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        customer.customerCode
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        customer.shopName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        customer.contactNumber
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
-      const matchesLocation = selectedLocation === "all" || customer.area === selectedLocation;
-      const matchesSupplier = selectedSupplier === "all" || customer.representative === selectedSupplier;
+      const matchesLocation =
+        selectedLocation === "all" ||
+        customer.area?.area_name === selectedLocation;
 
-      return matchesSearch && matchesLocation && matchesSupplier;
+      const matchesSupplier =
+        selectedSupplier === "all" ||
+        customer.assignedRep?.username === selectedSupplier;
+
+      const matchesCustomerType =
+        !customerType || customer.customerType === customerType;
+
+      return (
+        matchesSearch &&
+        matchesLocation &&
+        matchesSupplier &&
+        matchesCustomerType
+      );
     });
-  }, [searchTerm, selectedLocation, selectedSupplier, sampleCustomers]);
+  }, [searchTerm, selectedLocation, selectedSupplier, customerType, customers]);
 
   // Calculate pagination for filtered results
   const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
@@ -219,7 +88,7 @@ export default function CustomerTable() {
   // Reset to first page when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedLocation, selectedSupplier]);
+  }, [searchTerm, selectedLocation, selectedSupplier, customerType]);
 
   // Handler functions
   const handleRowClick = (customerId: number): void => {
@@ -252,73 +121,44 @@ export default function CustomerTable() {
     setCurrentPage(page);
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Search and Filter Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-gray-50 rounded-lg">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search customers..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        <div className="flex gap-4">
-          <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Location" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              {uniqueLocations.map((location) => (
-                <SelectItem key={location} value={location}>
-                  {location}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-gray-500">Loading customers...</div>
+      </div>
+    );
+  }
 
-          <Select value={selectedSupplier} onValueChange={setSelectedSupplier}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Select Representative" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Representatives</SelectItem>
-              {uniqueSuppliers.map((supplier) => (
-                <SelectItem key={supplier} value={supplier}>
-                  {supplier}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+  // Error state
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-red-500">
+          Error loading customers:{" "}
+          {error ? JSON.stringify(error) : "Unknown error"}
         </div>
       </div>
+    );
+  }
 
-      {/* Results Summary */}
-      {(searchTerm || selectedLocation !== "all" || selectedSupplier !== "all") && (
-        <div className="text-sm text-gray-600 px-1">
-          Showing {filteredCustomers.length} of {sampleCustomers.length} customers
-          {searchTerm && ` matching "${searchTerm}"`}
-          {selectedLocation !== "all" && ` in ${selectedLocation}`}
-          {selectedSupplier !== "all" && ` with ${selectedSupplier}`}
-        </div>
-      )}
-
+  return (
+    <div className="space-y-4">
       {/* Desktop View (xl and above) - Full Table */}
       <div className="hidden xl:block">
         <TableComponent>
           <TableHeader>
             <TableRow>
-              <TableHead className="font-bold w-1/9">Customer Code</TableHead>
-              <TableHead className="font-bold w-1/9">Customer Name</TableHead>
-              <TableHead className="font-bold w-1/9">Area</TableHead>
-              <TableHead className="font-bold w-1/9">Route</TableHead>
-              <TableHead className="font-bold w-1/9">Representative</TableHead>
-              <TableHead className="font-bold w-1/9">Contact</TableHead>
-              <TableHead className="text-right font-bold w-1/9">Actions</TableHead>
+              <TableHead className="font-bold w-1/8">Customer Code</TableHead>
+              <TableHead className="font-bold w-1/8">Customer Name</TableHead>
+              <TableHead className="font-bold w-1/8">Shop Name</TableHead>
+              <TableHead className="font-bold w-1/8">Area</TableHead>
+              <TableHead className="font-bold w-1/8">Type</TableHead>
+              <TableHead className="font-bold w-1/8">Representative</TableHead>
+              <TableHead className="font-bold w-1/8">Contact</TableHead>
+              <TableHead className="text-right font-bold w-1/8">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -329,22 +169,44 @@ export default function CustomerTable() {
                 onClick={() => handleRowClick(customer.id)}
               >
                 <TableCell className="font-mono font-medium">
-                  {customer.customerCode}
+                  {customer.customerCode || "-"}
                 </TableCell>
                 <TableCell className="font-medium">
-                  {customer.customerName}
+                  {customer.customerName || "-"}
                 </TableCell>
-                <TableCell>{customer.area}</TableCell>
+                <TableCell>{customer.shopName || "-"}</TableCell>
+                <TableCell>{customer.area?.area_name || "-"}</TableCell>
                 <TableCell>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {customer.route}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      customer.customerType === "retail"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-purple-100 text-purple-800"
+                    }`}
+                  >
+                    {customer.customerType?.charAt(0).toUpperCase() +
+                      customer.customerType?.slice(1) || "-"}
                   </span>
                 </TableCell>
-                <TableCell>{customer.representative}</TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">
+                      {customer.assignedRep?.username || "-"}
+                    </div>
+                    {/* <div className="text-xs text-gray-500">
+                      {customer.assignedRep?.role || "-"}
+                    </div> */}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="text-sm">
-                    <div>{customer.phone}</div>
-                    <div className="text-gray-500">{customer.email}</div>
+                    <div>{customer.contactNumber || "-"}</div>
+                    <div
+                      className="text-gray-500 truncate max-w-[150px]"
+                      title={customer.address || "-"}
+                    >
+                      {customer.address || "-"}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
@@ -379,7 +241,7 @@ export default function CustomerTable() {
           <TableHeader>
             <TableRow>
               <TableHead className="font-bold">Customer Info</TableHead>
-              <TableHead className="font-bold">Area & Route</TableHead>
+              <TableHead className="font-bold">Area & Type</TableHead>
               <TableHead className="font-bold">Representative</TableHead>
               <TableHead className="text-right font-bold">Actions</TableHead>
             </TableRow>
@@ -393,27 +255,44 @@ export default function CustomerTable() {
               >
                 <TableCell>
                   <div>
-                    <div className="font-medium">{customer.customerName}</div>
+                    <div className="font-medium">
+                      {customer.customerName || "-"}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {customer.shopName || "-"}
+                    </div>
                     <div className="text-xs font-mono text-gray-400 mt-1">
-                      Code: {customer.customerCode}
+                      {customer.customerCode || "-"}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {customer.phone}
+                      {customer.contactNumber || "-"}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium">{customer.area}</div>
-                    <div className="text-sm">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                        {customer.route}
+                    <div className="font-medium">
+                      {customer.area?.area_name || "-"}
+                    </div>
+                    <div className="mt-1">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          customer.customerType === "retail"
+                            ? "bg-green-100 text-green-800"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {customer.customerType?.charAt(0).toUpperCase() +
+                          customer.customerType?.slice(1) || "-"}
                       </span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">{customer.representative}</div>
+                  <div className="font-medium">
+                    {customer.assignedRep?.username || "-"}
+                  </div>
+                  
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -451,9 +330,14 @@ export default function CustomerTable() {
           >
             <div className="flex justify-between items-start mb-2">
               <div>
-                <h3 className="font-medium text-lg">{customer.customerName}</h3>
+                <h3 className="font-medium text-lg">
+                  {customer.customerName || "-"}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {customer.shopName || "-"}
+                </p>
                 <p className="text-sm font-mono text-gray-500">
-                  {customer.customerCode}
+                  {customer.customerCode || "-"}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -478,21 +362,44 @@ export default function CustomerTable() {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Area:</span>
-                <span className="font-medium">{customer.area}</span>
+                <span className="font-medium">
+                  {customer.area?.area_name || "-"}
+                </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Route:</span>
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {customer.route}
+                <span className="text-sm text-gray-600">Type:</span>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    customer.customerType === "retail"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-purple-100 text-purple-800"
+                  }`}
+                >
+                  {customer.customerType?.charAt(0).toUpperCase() +
+                    customer.customerType?.slice(1) || "-"}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Representative:</span>
-                <span className="font-medium">{customer.representative}</span>
+                <div className="text-right">
+                  <div className="font-medium">
+                    {customer.assignedRep?.username || "-"}
+                  </div>
+                  {/* <div className="text-xs text-gray-500">
+                    {customer.assignedRep?.role || "-"}
+                  </div> */}
+                </div>
               </div>
               <div className="pt-2 border-t">
-                <div className="text-sm text-gray-600">{customer.phone}</div>
-                <div className="text-sm text-gray-500">{customer.email}</div>
+                <div className="text-sm text-gray-600">
+                  {customer.contactNumber || "-"}
+                </div>
+                <div
+                  className="text-sm text-gray-500"
+                  title={customer.address || "-"}
+                >
+                  {customer.address || "-"}
+                </div>
               </div>
             </div>
           </div>
@@ -500,7 +407,7 @@ export default function CustomerTable() {
       </div>
 
       {/* No Results Message */}
-      {filteredCustomers.length === 0 && (
+      {filteredCustomers.length === 0 && !isLoading && (
         <div className="text-center py-8 text-gray-500">
           <p>No customers found matching your search criteria.</p>
         </div>

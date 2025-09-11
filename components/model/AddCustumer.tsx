@@ -90,25 +90,28 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
 
   const handleSave = async () => {
     try {
-      const customerData = {
+      const customerData: any = {
         customerName: formData.customerName,
         shopName: formData.shopName,
         customerType: formData.customerType as "retail" | "enterprise",
         contactNumber: formData.contactNumber,
         address: formData.address,
         notes: formData.notes,
-        areaId: formData.areaId ? parseInt(formData.areaId) : 1,
-        assignedRepId: formData.assignedRepId
-          ? parseInt(formData.assignedRepId)
-          : 1,
       };
 
-      const result = await createCustomer(customerData).unwrap();
+      // Only add areaId and assignedRepId if enterprise
+      if (formData.customerType === "enterprise") {
+        customerData.areaId = formData.areaId
+          ? parseInt(formData.areaId)
+          : undefined;
+        customerData.assignedRepId = formData.assignedRepId
+          ? parseInt(formData.assignedRepId)
+          : undefined;
+      }
 
-      // Type assertion to access statusCode
+      const result = await createCustomer(customerData).unwrap();
       const response = result as any;
 
-      // Check for successful status codes (200, 201)
       if (response.statusCode === 201 || response.statusCode === 200) {
         toast.success(response.message || "Customer created successfully!");
         resetForm();
