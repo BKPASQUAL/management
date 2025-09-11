@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useCreateCustomerMutation } from "@/store/services/customer";
+import { toast } from "sonner"; // or your toast library
 
 interface AddCustomerProps {
   open: boolean;
@@ -27,10 +29,12 @@ interface AddCustomerProps {
 }
 
 export default function AddCustomer({ open, onClose }: AddCustomerProps) {
+  const [createCustomer, { isLoading }] = useCreateCustomerMutation();
+
   const [formData, setFormData] = useState({
     customerName: "",
     shopName: "",
-    customerType: "ENTERPRISE", // Default to retail as per DTO
+    customerType: "enterprise", // Changed to match API interface (lowercase)
     areaId: "",
     address: "",
     contactNumber: "",
@@ -65,7 +69,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
   const handleCustomerTypeChange = (checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
-      customerType: checked ? "ENTERPRISE" : "RETAIL",
+      customerType: checked ? "enterprise" : "retail", // Changed to lowercase
       // Reset area and rep when switching to retail
       ...(checked ? {} : { areaId: "", assignedRepId: "" }),
     }));
@@ -75,7 +79,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
     setFormData({
       customerName: "",
       shopName: "",
-      customerType: "ENTERPRISE", // Reset to default
+      customerType: "enterprise", // Changed to lowercase
       areaId: "",
       address: "",
       contactNumber: "",
@@ -84,23 +88,40 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
     });
   };
 
-  const handleSave = () => {
-    const customerData = {
-      customerName: formData.customerName,
-      shopName: formData.shopName,
-      customerType: formData.customerType,
-      contactNumber: formData.contactNumber,
-      address: formData.address || undefined,
-      notes: formData.notes || undefined,
-      // Only include areaId and assignedRepId for enterprise customers
-      ...(formData.customerType === "ENTERPRISE" && {
-        areaId: formData.areaId ? parseInt(formData.areaId) : undefined,
-        assignedRepId: parseInt(formData.assignedRepId),
-      }),
-    };
-    console.log("Customer added:", customerData);
-    resetForm();
-    onClose();
+  const handleSave = async () => {
+    try {
+      const customerData = {
+        customerName: formData.customerName,
+        shopName: formData.shopName,
+        customerType: formData.customerType as "retail" | "enterprise",
+        contactNumber: formData.contactNumber,
+        address: formData.address,
+        notes: formData.notes,
+        areaId: formData.areaId ? parseInt(formData.areaId) : 1,
+        assignedRepId: formData.assignedRepId
+          ? parseInt(formData.assignedRepId)
+          : 1,
+      };
+
+      const result = await createCustomer(customerData).unwrap();
+
+      // Type assertion to access statusCode
+      const response = result as any;
+
+      // Check for successful status codes (200, 201)
+      if (response.statusCode === 201 || response.statusCode === 200) {
+        toast.success(response.message || "Customer created successfully!");
+        resetForm();
+        onClose();
+      } else {
+        toast.error(response.message || "Failed to create customer");
+      }
+    } catch (error: any) {
+      console.error("Error creating customer:", error);
+      toast.error(
+        error?.data?.message || error?.message || "Failed to create customer"
+      );
+    }
   };
 
   const handleCancel = () => {
@@ -112,8 +133,8 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
     formData.customerName.trim() &&
     formData.shopName.trim() &&
     formData.contactNumber.trim() &&
-    (formData.customerType === "RETAIL" ||
-      (formData.customerType === "ENTERPRISE" &&
+    (formData.customerType === "retail" ||
+      (formData.customerType === "enterprise" &&
         formData.assignedRepId.trim()));
 
   return (
@@ -139,6 +160,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 onChange={handleChange}
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
+                disabled={isLoading}
               />
               <Input
                 name="shopName"
@@ -147,6 +169,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 onChange={handleChange}
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
+                disabled={isLoading}
               />
               <Input
                 name="contactNumber"
@@ -156,6 +179,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 type="tel"
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -165,9 +189,10 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="customerType"
-                checked={formData.customerType === "ENTERPRISE"}
+                checked={formData.customerType === "enterprise"}
                 onCheckedChange={handleCustomerTypeChange}
                 className="h-4 w-4 sm:h-5 sm:w-5"
+                disabled={isLoading}
               />
               <Label
                 htmlFor="customerType"
@@ -177,19 +202,20 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
               </Label>
             </div>
             <p className="text-xs sm:text-sm text-gray-500">
-              {formData.customerType === "ENTERPRISE"
+              {formData.customerType === "enterprise"
                 ? "Enterprise customer selected"
                 : "Retail customer selected"}
             </p>
           </div>
 
-          {/* Area and Assigned Rep - Only show for Enterprise customers */}
-          {formData.customerType === "ENTERPRISE" && (
+          {/* Area and Assigned Rep - Show for both retail and enterprise */}
+          {formData.customerType === "enterprise" && (
             <div className="space-y-3 sm:space-y-4">
               <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
                 <Select
                   onValueChange={handleAreaChange}
                   value={formData.areaId}
+                  disabled={isLoading}
                 >
                   <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
                     <SelectValue placeholder="Select Area" />
@@ -216,9 +242,16 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 <Select
                   onValueChange={handleRepChange}
                   value={formData.assignedRepId}
+                  disabled={isLoading}
                 >
                   <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                    <SelectValue placeholder="Assign Rep *" />
+                    <SelectValue
+                      placeholder={
+                        formData.customerType === "enterprise"
+                          ? "Assign Rep *"
+                          : "Assign Rep"
+                      }
+                    />
                   </SelectTrigger>
                   <SelectContent className="max-h-48 overflow-y-auto">
                     <SelectItem value="1">John Silva</SelectItem>
@@ -234,7 +267,6 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
               </div>
             </div>
           )}
-
           {/* Address and Notes */}
           <div className="space-y-3 sm:space-y-4">
             <Textarea
@@ -243,6 +275,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
               value={formData.address}
               onChange={handleChange}
               className="min-h-[80px] sm:min-h-[100px] text-sm sm:text-base resize-none"
+              disabled={isLoading}
             />
             <Textarea
               name="notes"
@@ -250,6 +283,7 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
               value={formData.notes}
               onChange={handleChange}
               className="min-h-[60px] sm:min-h-[80px] text-sm sm:text-base resize-none"
+              disabled={isLoading}
             />
           </div>
 
@@ -259,15 +293,16 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
               variant="outline"
               onClick={handleCancel}
               className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base cursor-pointer"
+              disabled={isLoading}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              disabled={!isFormValid}
-              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base cursor-pointer "
+              disabled={!isFormValid || isLoading}
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base cursor-pointer"
             >
-              Add Customer
+              {isLoading ? "Adding Customer..." : "Add Customer"}
             </Button>
           </div>
         </div>
