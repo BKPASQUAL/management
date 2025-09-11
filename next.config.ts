@@ -26,8 +26,13 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
-    // Disable LightningCSS to prevent missing binary errors
-    optimizeCss: false,
+    optimizeCss: false, // disable lightningcss
+  },
+
+  // Force Tailwind to use JS instead of native oxide
+  env: {
+    TAILWIND_MODE: "watch",
+    TAILWIND_DISABLE_NATIVE: "true",
   },
 };
 
