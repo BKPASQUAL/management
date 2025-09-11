@@ -18,6 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface AddCustomerProps {
   open: boolean;
@@ -27,14 +29,12 @@ interface AddCustomerProps {
 export default function AddCustomer({ open, onClose }: AddCustomerProps) {
   const [formData, setFormData] = useState({
     customerName: "",
-    customerCode: "",
-    ownerName: "",
-    contactNumber: "",
-    area: "",
-    email: "",
-    route: "",
-    rep: "",
+    shopName: "",
+    customerType: "ENTERPRISE", // Default to retail as per DTO
+    areaId: "",
     address: "",
+    contactNumber: "",
+    assignedRepId: "",
     notes: "",
   });
 
@@ -51,42 +51,52 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
   const handleAreaChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
-      area: value,
-    }));
-  };
-
-  const handleRouteChange = (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      route: value,
+      areaId: value,
     }));
   };
 
   const handleRepChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
-      rep: value,
+      assignedRepId: value,
+    }));
+  };
+
+  const handleCustomerTypeChange = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      customerType: checked ? "ENTERPRISE" : "RETAIL",
+      // Reset area and rep when switching to retail
+      ...(checked ? {} : { areaId: "", assignedRepId: "" }),
     }));
   };
 
   const resetForm = () => {
     setFormData({
       customerName: "",
-      customerCode: "",
-      ownerName: "",
-      contactNumber: "",
-      area: "",
-      email: "",
-      route: "",
-      rep: "",
+      shopName: "",
+      customerType: "ENTERPRISE", // Reset to default
+      areaId: "",
       address: "",
+      contactNumber: "",
+      assignedRepId: "",
       notes: "",
     });
   };
 
   const handleSave = () => {
     const customerData = {
-      ...formData,
+      customerName: formData.customerName,
+      shopName: formData.shopName,
+      customerType: formData.customerType,
+      contactNumber: formData.contactNumber,
+      address: formData.address || undefined,
+      notes: formData.notes || undefined,
+      // Only include areaId and assignedRepId for enterprise customers
+      ...(formData.customerType === "ENTERPRISE" && {
+        areaId: formData.areaId ? parseInt(formData.areaId) : undefined,
+        assignedRepId: parseInt(formData.assignedRepId),
+      }),
     };
     console.log("Customer added:", customerData);
     resetForm();
@@ -100,9 +110,11 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
 
   const isFormValid =
     formData.customerName.trim() &&
-    formData.ownerName.trim() &&
-    formData.email.trim() &&
-    formData.area.trim();
+    formData.shopName.trim() &&
+    formData.contactNumber.trim() &&
+    (formData.customerType === "RETAIL" ||
+      (formData.customerType === "ENTERPRISE" &&
+        formData.assignedRepId.trim()));
 
   return (
     <Dialog open={open} onOpenChange={handleCancel}>
@@ -129,126 +141,99 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
                 required
               />
               <Input
-                name="customerCode"
-                placeholder="Customer Code"
-                value={formData.customerCode}
-                onChange={handleChange}
-                className="text-sm sm:text-base h-10 sm:h-11"
-              />
-              <Input
-                name="ownerName"
-                placeholder="Owner Name *"
-                value={formData.ownerName}
+                name="shopName"
+                placeholder="Shop Name *"
+                value={formData.shopName}
                 onChange={handleChange}
                 className="text-sm sm:text-base h-10 sm:h-11"
                 required
               />
               <Input
                 name="contactNumber"
-                placeholder="Contact Number"
+                placeholder="Contact Number *"
                 value={formData.contactNumber}
                 onChange={handleChange}
                 type="tel"
                 className="text-sm sm:text-base h-10 sm:h-11"
-              />
-            </div>
-          </div>
-
-          {/* Area and Contact */}
-          <div className="space-y-3 sm:space-y-4">
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-              <Select onValueChange={handleAreaChange} value={formData.area}>
-                <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                  <SelectValue placeholder="Select Area *" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 overflow-y-auto">
-                  <SelectItem value="colombo">Colombo</SelectItem>
-                  <SelectItem value="kandy">Kandy</SelectItem>
-                  <SelectItem value="galle">Galle</SelectItem>
-                  <SelectItem value="negombo">Negombo</SelectItem>
-                  <SelectItem value="matara">Matara</SelectItem>
-                  <SelectItem value="kurunegala">Kurunegala</SelectItem>
-                  <SelectItem value="anuradhapura">Anuradhapura</SelectItem>
-                  <SelectItem value="ratnapura">Ratnapura</SelectItem>
-                  <SelectItem value="batticaloa">Batticaloa</SelectItem>
-                  <SelectItem value="jaffna">Jaffna</SelectItem>
-                  <SelectItem value="trincomalee">Trincomalee</SelectItem>
-                  <SelectItem value="badulla">Badulla</SelectItem>
-                  <SelectItem value="polonnaruwa">Polonnaruwa</SelectItem>
-                  <SelectItem value="hambantota">Hambantota</SelectItem>
-                  <SelectItem value="kalutara">Kalutara</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Input
-                name="email"
-                placeholder="Email Address *"
-                value={formData.email}
-                onChange={handleChange}
-                type="email"
                 required
-                className="text-sm sm:text-base h-10 sm:h-11"
               />
             </div>
           </div>
 
-          {/* Route and Rep */}
+          {/* Customer Type */}
           <div className="space-y-3 sm:space-y-4">
-            <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
-              <Select onValueChange={handleRouteChange} value={formData.route}>
-                <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                  <SelectValue placeholder="Select Route" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 overflow-y-auto">
-                  <SelectItem value="route-a1">Route A1</SelectItem>
-                  <SelectItem value="route-a2">Route A2</SelectItem>
-                  <SelectItem value="route-a3">Route A3</SelectItem>
-                  <SelectItem value="route-b1">Route B1</SelectItem>
-                  <SelectItem value="route-b2">Route B2</SelectItem>
-                  <SelectItem value="route-c1">Route C1</SelectItem>
-                  <SelectItem value="route-c2">Route C2</SelectItem>
-                  <SelectItem value="route-d1">Route D1</SelectItem>
-                  <SelectItem value="route-e1">Route E1</SelectItem>
-                  <SelectItem value="route-f1">Route F1</SelectItem>
-                  <SelectItem value="route-g1">Route G1</SelectItem>
-                  <SelectItem value="route-g2">Route G2</SelectItem>
-                  <SelectItem value="route-h1">Route H1</SelectItem>
-                  <SelectItem value="route-j1">Route J1</SelectItem>
-                  <SelectItem value="route-k1">Route K1</SelectItem>
-                  <SelectItem value="route-k2">Route K2</SelectItem>
-                  <SelectItem value="route-ku1">Route KU1</SelectItem>
-                  <SelectItem value="route-m1">Route M1</SelectItem>
-                  <SelectItem value="route-n1">Route N1</SelectItem>
-                  <SelectItem value="route-n3">Route N3</SelectItem>
-                  <SelectItem value="route-r1">Route R1</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select onValueChange={handleRepChange} value={formData.rep}>
-                <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
-                  <SelectValue placeholder="Assign Rep" />
-                </SelectTrigger>
-                <SelectContent className="max-h-48 overflow-y-auto">
-                  <SelectItem value="john-silva">John Silva</SelectItem>
-                  <SelectItem value="mary-fernando">Mary Fernando</SelectItem>
-                  <SelectItem value="david-perera">David Perera</SelectItem>
-                  <SelectItem value="sarah-desilva">Sarah De Silva</SelectItem>
-                  <SelectItem value="michael-jayawardena">
-                    Michael Jayawardena
-                  </SelectItem>
-                  <SelectItem value="priya-wijesinghe">
-                    Priya Wijesinghe
-                  </SelectItem>
-                  <SelectItem value="kevin-rajapakse">
-                    Kevin Rajapakse
-                  </SelectItem>
-                  <SelectItem value="nimal-gunasekara">
-                    Nimal Gunasekara
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="customerType"
+                checked={formData.customerType === "ENTERPRISE"}
+                onCheckedChange={handleCustomerTypeChange}
+                className="h-4 w-4 sm:h-5 sm:w-5"
+              />
+              <Label
+                htmlFor="customerType"
+                className="text-sm sm:text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Enterprise Customer
+              </Label>
             </div>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {formData.customerType === "ENTERPRISE"
+                ? "Enterprise customer selected"
+                : "Retail customer selected"}
+            </p>
           </div>
+
+          {/* Area and Assigned Rep - Only show for Enterprise customers */}
+          {formData.customerType === "ENTERPRISE" && (
+            <div className="space-y-3 sm:space-y-4">
+              <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
+                <Select
+                  onValueChange={handleAreaChange}
+                  value={formData.areaId}
+                >
+                  <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
+                    <SelectValue placeholder="Select Area" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-48 overflow-y-auto">
+                    <SelectItem value="1">Colombo</SelectItem>
+                    <SelectItem value="2">Kandy</SelectItem>
+                    <SelectItem value="3">Galle</SelectItem>
+                    <SelectItem value="4">Negombo</SelectItem>
+                    <SelectItem value="5">Matara</SelectItem>
+                    <SelectItem value="6">Kurunegala</SelectItem>
+                    <SelectItem value="7">Anuradhapura</SelectItem>
+                    <SelectItem value="8">Ratnapura</SelectItem>
+                    <SelectItem value="9">Batticaloa</SelectItem>
+                    <SelectItem value="10">Jaffna</SelectItem>
+                    <SelectItem value="11">Trincomalee</SelectItem>
+                    <SelectItem value="12">Badulla</SelectItem>
+                    <SelectItem value="13">Polonnaruwa</SelectItem>
+                    <SelectItem value="14">Hambantota</SelectItem>
+                    <SelectItem value="15">Kalutara</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  onValueChange={handleRepChange}
+                  value={formData.assignedRepId}
+                >
+                  <SelectTrigger className="text-sm sm:text-base h-10 sm:h-11 w-full">
+                    <SelectValue placeholder="Assign Rep *" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-48 overflow-y-auto">
+                    <SelectItem value="1">John Silva</SelectItem>
+                    <SelectItem value="2">Mary Fernando</SelectItem>
+                    <SelectItem value="3">David Perera</SelectItem>
+                    <SelectItem value="4">Sarah De Silva</SelectItem>
+                    <SelectItem value="5">Michael Jayawardena</SelectItem>
+                    <SelectItem value="6">Priya Wijesinghe</SelectItem>
+                    <SelectItem value="7">Kevin Rajapakse</SelectItem>
+                    <SelectItem value="8">Nimal Gunasekara</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
 
           {/* Address and Notes */}
           <div className="space-y-3 sm:space-y-4">
@@ -273,14 +258,14 @@ export default function AddCustomer({ open, onClose }: AddCustomerProps) {
             <Button
               variant="outline"
               onClick={handleCancel}
-              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base"
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base cursor-pointer"
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={!isFormValid}
-              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base"
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base cursor-pointer "
             >
               Add Customer
             </Button>
