@@ -6,13 +6,13 @@
 
 // export default nextConfig;
 
-
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
   productionBrowserSourceMaps: true,
+
   images: {
     domains: [],
   },
@@ -20,8 +20,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  experimental: {
+    // Disable LightningCSS to prevent missing binary errors
+    optimizeCss: false,
   },
 };
 
