@@ -13,6 +13,7 @@ import {
   DollarSign,
   Package,
   Users,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -44,19 +45,36 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-const suppliers = [
-  { value: "acme-corp", label: "ACME Corporation", contact: "John Smith" },
-  {
-    value: "tech-solutions",
-    label: "Tech Solutions Ltd",
-    contact: "Sarah Johnson",
-  },
-  {
-    value: "global-supplies",
-    label: "Global Supplies Inc",
-    contact: "Mike Wilson",
-  },
-];
+// Customer interface matching your API
+interface Customer {
+  id: number;
+  customerName: string;
+  shopName: string;
+  customerCode: string;
+  customerType: "retail" | "enterprise";
+  areaId: number;
+  area: {
+    area_id: number;
+    area_name: string;
+  };
+  address: string;
+  contactNumber: string;
+  assignedRepId: number;
+  assignedRep: {
+    user_id: number;
+    username: string;
+    role: string;
+  };
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CustomersListResponse {
+  statusCode: number;
+  message: string;
+  data: Customer[];
+}
 
 const paymentMethods = [
   { value: "cash", label: "Cash", icon: "💵" },
@@ -139,10 +157,17 @@ interface NewItemRow {
   freeItemQuantity: string;
 }
 
-export default function ResponsiveInvoiceApp() {
+export default function CustomerInvoiceApp() {
+  // Customer API state
+  const [customers, setCustomers] = React.useState<Customer[]>([]);
+  const [customersLoading, setCustomersLoading] = React.useState(false);
+  const [customersError, setCustomersError] = React.useState<string | null>(
+    null
+  );
+
   // State management
-  const [supplierOpen, setSupplierOpen] = React.useState(false);
-  const [selectedSupplier, setSelectedSupplier] = React.useState("");
+  const [customerOpen, setCustomerOpen] = React.useState(false);
+  const [selectedCustomer, setSelectedCustomer] = React.useState("");
   const [invoiceNo, setInvoiceNo] = React.useState(
     () => `INV-${Date.now().toString().slice(-6)}`
   );
@@ -168,6 +193,49 @@ export default function ResponsiveInvoiceApp() {
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
   const [unitOpen, setUnitOpen] = React.useState(false);
+
+  // Fetch customers from API
+  const fetchCustomers = React.useCallback(async () => {
+    setCustomersLoading(true);
+    setCustomersError(null);
+
+    try {
+      const response = await fetch("http://localhost:3001/customers", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          // Add authorization header if needed
+          // 'Authorization': `Bearer ${token}`
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: CustomersListResponse = await response.json();
+
+      if (result.statusCode === 200 && result.data) {
+        setCustomers(result.data);
+      } else {
+        throw new Error(result.message || "Failed to fetch customers");
+      }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      setCustomersError(
+        error instanceof Error ? error.message : "Failed to fetch customers"
+      );
+      // Fallback to empty array if API fails
+      setCustomers([]);
+    } finally {
+      setCustomersLoading(false);
+    }
+  }, []);
+
+  // Load customers on component mount
+  React.useEffect(() => {
+    fetchCustomers();
+  }, [fetchCustomers]);
 
   // Check screen size
   React.useEffect(() => {
@@ -318,8 +386,8 @@ export default function ResponsiveInvoiceApp() {
       alert("Please add at least one item to save the invoice.");
       return;
     }
-    if (!selectedSupplier) {
-      alert("Please select a supplier.");
+    if (!selectedCustomer) {
+      alert("Please select a customer.");
       return;
     }
     if (!paymentMethod) {
@@ -327,9 +395,13 @@ export default function ResponsiveInvoiceApp() {
       return;
     }
 
+    const selectedCustomerData = customers.find(
+      (c) => c.id.toString() === selectedCustomer
+    );
+
     const invoiceData = {
       invoiceNo,
-      supplier: suppliers.find((s) => s.value === selectedSupplier),
+      customer: selectedCustomerData,
       billingDate: billingDate.toISOString(),
       paymentMethod: paymentMethods.find((p) => p.value === paymentMethod),
       items,
@@ -342,16 +414,23 @@ export default function ResponsiveInvoiceApp() {
     };
 
     // Here you would typically save to a backend or local storage
-    console.log("Invoice saved:", invoiceData);
+    console.log("Customer Invoice saved:", invoiceData);
 
     // Show success message
-    alert(`Invoice ${invoiceNo} saved successfully!`);
+    alert(`Customer Invoice ${invoiceNo} saved successfully!`);
   };
 
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Get selected customer data for display
+  const getSelectedCustomerData = () => {
+    return customers.find(
+      (customer) => customer.id.toString() === selectedCustomer
+    );
+  };
 
   // Mobile item card component
   const MobileItemCard = ({ item }: { item: Item }) => (
@@ -507,67 +586,100 @@ export default function ResponsiveInvoiceApp() {
         {/* Main Form */}
         <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            {/* Supplier Selection */}
+            {/* Customer Selection */}
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Select Supplier *
+                Select Customer *
               </Label>
-              <Popover open={supplierOpen} onOpenChange={setSupplierOpen}>
+
+              {customersError && (
+                <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{customersError}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={fetchCustomers}
+                    className="ml-auto text-red-600 hover:text-red-700"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              )}
+
+              <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
                     role="combobox"
-                    aria-expanded={supplierOpen}
+                    aria-expanded={customerOpen}
                     className="w-full justify-between h-10"
+                    disabled={customersLoading}
                   >
-                    {selectedSupplier
-                      ? suppliers.find(
-                          (supplier) => supplier.value === selectedSupplier
-                        )?.label
-                      : "Choose supplier..."}
+                    {customersLoading
+                      ? "Loading customers..."
+                      : selectedCustomer
+                      ? (() => {
+                          const customer = getSelectedCustomerData();
+                          return customer
+                            ? `${customer.customerName} (${customer.customerCode})`
+                            : "Select customer...";
+                        })()
+                      : "Choose customer..."}
                     <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-h-[300px] p-0">
                   <Command>
                     <CommandInput
-                      placeholder="Search suppliers..."
+                      placeholder="Search customers..."
                       className="h-9"
                     />
                     <CommandList>
-                      <CommandEmpty>No supplier found.</CommandEmpty>
-                      <CommandGroup>
-                        {suppliers.map((supplier) => (
-                          <CommandItem
-                            key={supplier.value}
-                            value={supplier.value}
-                            onSelect={(currentValue) => {
-                              setSelectedSupplier(
-                                currentValue === selectedSupplier
-                                  ? ""
-                                  : currentValue
-                              );
-                              setSupplierOpen(false);
-                            }}
-                          >
-                            <div>
-                              <p className="font-medium">{supplier.label}</p>
-                              <p className="text-xs text-gray-500">
-                                Contact: {supplier.contact}
-                              </p>
-                            </div>
-                            <Check
-                              className={cn(
-                                "ml-auto h-4 w-4",
-                                selectedSupplier === supplier.value
-                                  ? "opacity-100"
-                                  : "opacity-0"
-                              )}
-                            />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
+                      <CommandEmpty>
+                        {customersLoading
+                          ? "Loading customers..."
+                          : "No customer found."}
+                      </CommandEmpty>
+                      {!customersLoading && customers.length > 0 && (
+                        <CommandGroup>
+                          {customers.map((customer) => (
+                            <CommandItem
+                              key={customer.id}
+                              value={customer.id.toString()}
+                              onSelect={(currentValue) => {
+                                setSelectedCustomer(
+                                  currentValue === selectedCustomer
+                                    ? ""
+                                    : currentValue
+                                );
+                                setCustomerOpen(false);
+                              }}
+                            >
+                              <div>
+                                <p className="font-medium">
+                                  {customer.customerName}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                  Code: {customer.customerCode}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {customer.shopName}
+                                </p>
+                              </div>
+                              <Check
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  selectedCustomer === customer.id.toString()
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>
@@ -589,7 +701,7 @@ export default function ResponsiveInvoiceApp() {
             <div className="space-y-2">
               <Label className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
-                Billing Date
+                Invoice Date
               </Label>
               <Popover open={billingDateOpen} onOpenChange={setBillingDateOpen}>
                 <PopoverTrigger asChild>
@@ -1241,7 +1353,7 @@ export default function ResponsiveInvoiceApp() {
               {finalTotal > 0 && (
                 <div className="mt-4 p-3 bg-green-50 rounded-lg">
                   <p className="text-sm text-green-700 text-center">
-                    🎉 Invoice ready for processing!
+                    Invoice ready for processing!
                   </p>
                 </div>
               )}
@@ -1286,7 +1398,7 @@ export default function ResponsiveInvoiceApp() {
                   discount: "",
                   freeItemQuantity: "",
                 });
-                setSelectedSupplier("");
+                setSelectedCustomer("");
                 setPaymentMethod("");
                 setExtraDiscount("0");
                 setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
