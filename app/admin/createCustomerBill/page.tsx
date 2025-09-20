@@ -44,6 +44,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BillProduct, useGetProductsQuery } from "@/store/services/product";
+
+// Import RTK Query hook
 
 // Customer interface matching your API
 interface Customer {
@@ -83,57 +86,6 @@ const paymentMethods = [
   { value: "credit-card", label: "Credit Card", icon: "💳" },
 ];
 
-const units = [
-  { value: "pcs", label: "Pieces (Pcs)" },
-  { value: "dz", label: "Dozen (Dz)" },
-  { value: "m", label: "Meter (M)" },
-  { value: "kg", label: "Kilogram (Kg)" },
-  { value: "ltr", label: "Liter (Ltr)" },
-  { value: "box", label: "Box" },
-  { value: "pack", label: "Pack" },
-  { value: "set", label: "Set" },
-  { value: "roll", label: "Roll" },
-  { value: "sheet", label: "Sheet" },
-];
-
-const itemsDatabase = [
-  {
-    code: "ITM001",
-    name: "MacBook Pro 16-inch",
-    price: 2499,
-    category: "Electronics",
-    unit: "pcs",
-  },
-  {
-    code: "ITM002",
-    name: "Wireless Magic Mouse",
-    price: 79,
-    category: "Accessories",
-    unit: "pcs",
-  },
-  {
-    code: "ITM003",
-    name: "USB Cable 2M",
-    price: 25,
-    category: "Cables",
-    unit: "m",
-  },
-  {
-    code: "ITM004",
-    name: "Office Chair",
-    price: 299,
-    category: "Furniture",
-    unit: "pcs",
-  },
-  {
-    code: "ITM005",
-    name: "Copy Paper A4",
-    price: 45,
-    category: "Stationary",
-    unit: "pack",
-  },
-];
-
 interface Item {
   id: number;
   itemCode: string;
@@ -158,6 +110,17 @@ interface NewItemRow {
 }
 
 export default function CustomerInvoiceApp() {
+  // RTK Query hook to fetch products
+  const {
+    data: productsResponse,
+    error: productsError,
+    isLoading: productsLoading,
+    refetch: refetchProducts,
+  } = useGetProductsQuery();
+
+  // Extract products from response
+  const products = productsResponse?.data || [];
+
   // Customer API state
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [customersLoading, setCustomersLoading] = React.useState(false);
@@ -186,13 +149,12 @@ export default function CustomerInvoiceApp() {
     itemName: "",
     price: "",
     quantity: "",
-    unit: "pcs",
+    unit: "",
     discount: "",
     freeItemQuantity: "",
   });
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
-  const [unitOpen, setUnitOpen] = React.useState(false);
 
   // Fetch customers from API
   const fetchCustomers = React.useCallback(async () => {
@@ -267,29 +229,46 @@ export default function CustomerInvoiceApp() {
     return subtotal - discountAmount;
   };
 
+  // Convert BillProduct to format expected by the component
+  const convertProductToItem = (product: BillProduct) => ({
+    code: product.item_code,
+    name: product.item_name,
+    price: parseFloat(product.selling_price),
+    category: product.category_name,
+    unit: product.unit_type,
+    description: product.description,
+    mrp: product.mrp,
+  });
+
   const handleItemCodeSelect = (code: string) => {
-    const selectedItem = itemsDatabase.find((item) => item.code === code);
-    if (selectedItem) {
+    const selectedProduct = products.find(
+      (product) => product.item_code === code
+    );
+    if (selectedProduct) {
+      const item = convertProductToItem(selectedProduct);
       setNewItem({
         ...newItem,
         itemCode: code,
-        itemName: selectedItem.name,
-        price: selectedItem.price.toString(),
-        unit: selectedItem.unit,
+        itemName: item.name,
+        price: item.price.toString(),
+        unit: item.unit,
       });
     }
     setItemCodeOpen(false);
   };
 
   const handleItemNameSelect = (name: string) => {
-    const selectedItem = itemsDatabase.find((item) => item.name === name);
-    if (selectedItem) {
+    const selectedProduct = products.find(
+      (product) => product.item_name === name
+    );
+    if (selectedProduct) {
+      const item = convertProductToItem(selectedProduct);
       setNewItem({
         ...newItem,
-        itemCode: selectedItem.code,
+        itemCode: item.code,
         itemName: name,
-        price: selectedItem.price.toString(),
-        unit: selectedItem.unit,
+        price: item.price.toString(),
+        unit: item.unit,
       });
     }
     setItemNameOpen(false);
@@ -312,8 +291,8 @@ export default function CustomerInvoiceApp() {
       const discount = parseFloat(newItem.discount) || 0;
       const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
 
-      const selectedDbItem = itemsDatabase.find(
-        (item) => item.code === newItem.itemCode
+      const selectedProduct = products.find(
+        (product) => product.item_code === newItem.itemCode
       );
 
       const item: Item = {
@@ -326,7 +305,7 @@ export default function CustomerInvoiceApp() {
         discount,
         amount: calculateAmount(price, quantity, discount),
         freeItemQuantity,
-        category: selectedDbItem?.category || "Other",
+        category: selectedProduct?.category_name || "Other",
       };
 
       setItems([...items, item]);
@@ -335,7 +314,7 @@ export default function CustomerInvoiceApp() {
         itemName: "",
         price: "",
         quantity: "",
-        unit: "pcs",
+        unit: "",
         discount: "",
         freeItemQuantity: "",
       });
@@ -447,7 +426,7 @@ export default function CustomerInvoiceApp() {
                 </Badge>
               )}
               <Badge variant="outline" className="text-xs">
-                {units.find((u) => u.value === item.unit)?.label || item.unit}
+                {item.unit}
               </Badge>
             </div>
           </div>
@@ -765,6 +744,22 @@ export default function CustomerInvoiceApp() {
             </div>
           </div>
 
+          {/* Products API Error Display */}
+          {productsError && (
+            <div className="mb-6 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>Failed to load products from API</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refetchProducts}
+                className="ml-auto text-red-600 hover:text-red-700"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
           {/* Add New Item Form */}
           <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50">
             <CardHeader className="pb-3">
@@ -783,9 +778,11 @@ export default function CustomerInvoiceApp() {
                         variant="outline"
                         role="combobox"
                         className="w-full justify-between h-10"
+                        disabled={productsLoading}
                       >
                         <span className="truncate">
-                          {newItem.itemCode || "Select code..."}
+                          {newItem.itemCode ||
+                            (productsLoading ? "Loading..." : "Select code...")}
                         </span>
                         <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -794,40 +791,53 @@ export default function CustomerInvoiceApp() {
                       <Command>
                         <CommandInput placeholder="Search items..." />
                         <CommandList>
-                          <CommandEmpty>No item found.</CommandEmpty>
-                          <CommandGroup>
-                            {itemsDatabase.map((item) => (
-                              <CommandItem
-                                key={item.code}
-                                value={item.code}
-                                onSelect={() => handleItemCodeSelect(item.code)}
-                              >
-                                <div className="flex-1">
-                                  <p className="font-medium">{item.code}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {item.name}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {item.category}
-                                    </Badge>
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {item.unit}
-                                    </Badge>
-                                    <span className="text-xs text-green-600 font-medium">
-                                      ${item.price}
-                                    </span>
+                          <CommandEmpty>
+                            {productsLoading
+                              ? "Loading products..."
+                              : "No item found."}
+                          </CommandEmpty>
+                          {!productsLoading && products.length > 0 && (
+                            <CommandGroup>
+                              {products.map((product) => (
+                                <CommandItem
+                                  key={product.item_uuid}
+                                  value={product.item_code}
+                                  onSelect={() =>
+                                    handleItemCodeSelect(product.item_code)
+                                  }
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-medium">
+                                      {product.item_code}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {product.item_name}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {product.category_name}
+                                      </Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {product.unit_type}
+                                      </Badge>
+                                      <span className="text-xs text-green-600 font-medium">
+                                        $
+                                        {parseFloat(
+                                          product.selling_price
+                                        ).toFixed(2)}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
                         </CommandList>
                       </Command>
                     </PopoverContent>
@@ -842,9 +852,11 @@ export default function CustomerInvoiceApp() {
                         variant="outline"
                         role="combobox"
                         className="w-full justify-between h-10"
+                        disabled={productsLoading}
                       >
                         <span className="truncate">
-                          {newItem.itemName || "Select item..."}
+                          {newItem.itemName ||
+                            (productsLoading ? "Loading..." : "Select item...")}
                         </span>
                         <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
@@ -853,40 +865,53 @@ export default function CustomerInvoiceApp() {
                       <Command>
                         <CommandInput placeholder="Search items..." />
                         <CommandList>
-                          <CommandEmpty>No item found.</CommandEmpty>
-                          <CommandGroup>
-                            {itemsDatabase.map((item) => (
-                              <CommandItem
-                                key={item.name}
-                                value={item.name}
-                                onSelect={() => handleItemNameSelect(item.name)}
-                              >
-                                <div className="flex-1">
-                                  <p className="font-medium">{item.name}</p>
-                                  <p className="text-xs text-gray-500">
-                                    {item.code}
-                                  </p>
-                                  <div className="flex items-center gap-2 mt-1">
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      {item.category}
-                                    </Badge>
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs"
-                                    >
-                                      {item.unit}
-                                    </Badge>
-                                    <span className="text-xs text-green-600 font-medium">
-                                      ${item.price}
-                                    </span>
+                          <CommandEmpty>
+                            {productsLoading
+                              ? "Loading products..."
+                              : "No item found."}
+                          </CommandEmpty>
+                          {!productsLoading && products.length > 0 && (
+                            <CommandGroup>
+                              {products.map((product) => (
+                                <CommandItem
+                                  key={product.item_uuid}
+                                  value={product.item_name}
+                                  onSelect={() =>
+                                    handleItemNameSelect(product.item_name)
+                                  }
+                                >
+                                  <div className="flex-1">
+                                    <p className="font-medium">
+                                      {product.item_name}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {product.item_code}
+                                    </p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        {product.category_name}
+                                      </Badge>
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        {product.unit_type}
+                                      </Badge>
+                                      <span className="text-xs text-green-600 font-medium">
+                                        $
+                                        {parseFloat(
+                                          product.selling_price
+                                        ).toFixed(2)}
+                                      </span>
+                                    </div>
                                   </div>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
                         </CommandList>
                       </Command>
                     </PopoverContent>
@@ -919,53 +944,12 @@ export default function CustomerInvoiceApp() {
 
                 <div className="space-y-2">
                   <Label className="text-sm">Unit</Label>
-                  <Popover open={unitOpen} onOpenChange={setUnitOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between h-10"
-                      >
-                        <span className="truncate">
-                          {newItem.unit
-                            ? units.find((unit) => unit.value === newItem.unit)
-                                ?.label
-                            : "Select unit..."}
-                        </span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search units..." />
-                        <CommandList>
-                          <CommandEmpty>No unit found.</CommandEmpty>
-                          <CommandGroup>
-                            {units.map((unit) => (
-                              <CommandItem
-                                key={unit.value}
-                                value={unit.value}
-                                onSelect={(currentValue) => {
-                                  handleInputChange("unit", currentValue);
-                                  setUnitOpen(false);
-                                }}
-                              >
-                                <span>{unit.label}</span>
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    newItem.unit === unit.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Input
+                    value={newItem.unit}
+                    className="h-10 bg-gray-50"
+                    placeholder="Unit type"
+                    readOnly
+                  />
                 </div>
               </div>
 
@@ -1019,7 +1003,8 @@ export default function CustomerInvoiceApp() {
                       !newItem.itemName ||
                       !newItem.price ||
                       !newItem.quantity ||
-                      !newItem.unit
+                      !newItem.unit ||
+                      productsLoading
                     }
                     className="w-full bg-blue-600 hover:bg-blue-700 h-10"
                   >
@@ -1394,7 +1379,7 @@ export default function CustomerInvoiceApp() {
                   itemName: "",
                   price: "",
                   quantity: "",
-                  unit: "pcs",
+                  unit: "",
                   discount: "",
                   freeItemQuantity: "",
                 });

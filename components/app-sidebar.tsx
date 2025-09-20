@@ -42,6 +42,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isStockExpanded, setIsStockExpanded] = useState(false);
+  const [isTablet, setIsTablet] = useState(false);
 
   const menuItems = [
     {
@@ -123,6 +124,20 @@ export function AppSidebar() {
   );
   const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
 
+  // Detect tablet screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      // Tablet range: 768px to 1023px (between mobile and desktop)
+      const width = window.innerWidth;
+      setIsTablet(width >= 768 && width <= 1023);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
   // Auto-expand stock menu if we're on a stock-related page
   useEffect(() => {
     if (isStockActive) {
@@ -157,163 +172,179 @@ export function AppSidebar() {
     setIsStockExpanded(!isStockExpanded);
   };
 
+  // Hide sidebar on tablet, show on mobile and desktop
+  const shouldHideSidebar = isTablet;
+
+  if (shouldHideSidebar) {
+    return null; // Don't render sidebar on tablet
+  }
+
   return (
-    <Sidebar collapsible="icon" variant="floating">
-      <SidebarHeader className="">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild className="border">
-              <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Store className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    Champika Hardware
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Enterprise
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+    <div className="hidden md:block xl:block">
+      <Sidebar
+        collapsible="icon"
+        variant="floating"
+        className="hidden md:flex xl:flex lg:hidden" // Hide on tablet (lg), show on mobile (md) and desktop (xl)
+      >
+        <SidebarHeader className="">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="border">
+                <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Store className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      Champika Hardware
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Enterprise
+                    </span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-      <SidebarContent>
-        {/* Navigation Section */}
-        <SidebarGroup className="mb-2">
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive}
-                    >
-                      <Link
-                        href={item.href}
-                        onClick={(e) => e.stopPropagation()}
+        <SidebarContent>
+          {/* Navigation Section */}
+          <SidebarGroup className="mb-2">
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
                       >
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+                        <Link
+                          href={item.href}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
 
-              {/* Stock Menu Item with Submenu */}
-              <SidebarMenuItem>
-                <div className="relative">
-                  <SidebarMenuButton
-                    tooltip="Stock"
-                    isActive={isStockActive}
-                    className="cursor-pointer pr-8"
-                    onClick={handleStockClick}
-                  >
-                    <Boxes className="size-4" />
-                    <span>Stock</span>
-                  </SidebarMenuButton>
-                  <button
-                    onClick={handleChevronClick}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
-                    aria-label="Toggle stock submenu"
-                  >
-                    <ChevronRight
-                      className={`size-3 transition-transform duration-200 ${
-                        isStockExpanded ? "rotate-90" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
-                {isStockExpanded && (
-                  <SidebarMenuSub>
-                    {stockSubItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild isActive={isSubActive}>
-                            <Link
-                              href={subItem.href}
-                              onClick={(e) => e.stopPropagation()}
+                {/* Stock Menu Item with Submenu */}
+                <SidebarMenuItem>
+                  <div className="relative">
+                    <SidebarMenuButton
+                      tooltip="Stock"
+                      isActive={isStockActive}
+                      className="cursor-pointer pr-8"
+                      onClick={handleStockClick}
+                    >
+                      <Boxes className="size-4" />
+                      <span>Stock</span>
+                    </SidebarMenuButton>
+                    <button
+                      onClick={handleChevronClick}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
+                      aria-label="Toggle stock submenu"
+                    >
+                      <ChevronRight
+                        className={`size-3 transition-transform duration-200 ${
+                          isStockExpanded ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isStockExpanded && (
+                    <SidebarMenuSub>
+                      {stockSubItems.map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isSubActive}
                             >
-                              <subItem.icon className="size-4" />
-                              <span>{subItem.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      );
-                    })}
-                  </SidebarMenuSub>
-                )}
-              </SidebarMenuItem>
+                              <Link
+                                href={subItem.href}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <subItem.icon className="size-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
 
-              {/* Settings */}
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Settings"
-                  isActive={pathname === "/admin/settings"}
-                >
-                  <Link
-                    href="/admin/settings"
-                    onClick={(e) => e.stopPropagation()}
+                {/* Settings */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Settings"
+                    isActive={pathname === "/admin/settings"}
                   >
-                    <Settings className="size-4" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Actions Section */}
-        <SidebarGroup className="mt-[-20px]">
-          <SidebarGroupLabel>Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {actionItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive}
+                    <Link
+                      href="/admin/settings"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Link
-                        href={item.href}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+                      <Settings className="size-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
 
-      <SidebarFooter className="border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-              <LogOut className="size-4" />
-              <span>Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+          {/* Actions Section */}
+          <SidebarGroup className="mt-[-20px]">
+            <SidebarGroupLabel>Actions</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {actionItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
+                      >
+                        <Link
+                          href={item.href}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+                <LogOut className="size-4" />
+                <span>Sign Out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+    </div>
   );
 }
