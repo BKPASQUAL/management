@@ -1,4 +1,4 @@
-// src/store/store.ts
+// store/store.ts
 import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { api } from "./services/api";
@@ -6,6 +6,7 @@ import { supplierApi } from "./services/supplier";
 import { productApi } from "./services/product";
 import { stockApi } from "./services/stock";
 import { customerApi } from "./services/customer";
+import { customerBillApi } from "./services/customerBill"; // New import
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +15,7 @@ export const store = configureStore({
     [productApi.reducerPath]: productApi.reducer,
     [stockApi.reducerPath]: stockApi.reducer,
     [customerApi.reducerPath]: customerApi.reducer,
+    [customerBillApi.reducerPath]: customerBillApi.reducer, // New reducer
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -21,7 +23,8 @@ export const store = configureStore({
       .concat(supplierApi.middleware)
       .concat(productApi.middleware)
       .concat(stockApi.middleware)
-      .concat(customerApi.middleware),
+      .concat(customerApi.middleware)
+      .concat(customerBillApi.middleware), // New middleware
 });
 
 setupListeners(store.dispatch);
