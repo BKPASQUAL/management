@@ -36,8 +36,8 @@ interface InvoiceHeaderProps {
   setSelectedCustomer: (customer: string) => void;
   customerOpen: boolean;
   setCustomerOpen: (open: boolean) => void;
-  invoiceNo: string;
-  setInvoiceNo: (invoiceNo: string) => void;
+//   invoiceNo: string;
+//   setInvoiceNo: (invoiceNo: string) => void;
   billingDate: Date;
   setBillingDate: (date: Date) => void;
   billingDateOpen: boolean;
@@ -53,8 +53,6 @@ export default function InvoiceHeader({
   setSelectedCustomer,
   customerOpen,
   setCustomerOpen,
-  invoiceNo,
-  setInvoiceNo,
   billingDate,
   setBillingDate,
   billingDateOpen,
@@ -78,7 +76,7 @@ export default function InvoiceHeader({
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Customer Selection */}
         <div className="space-y-2">
           <Label className="text-sm font-medium flex items-center gap-2">
@@ -180,7 +178,7 @@ export default function InvoiceHeader({
         </div>
 
         {/* Invoice Number */}
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label className="text-sm font-medium">Invoice Number</Label>
           <Input
             value={invoiceNo}
@@ -188,7 +186,7 @@ export default function InvoiceHeader({
             className="h-10"
             placeholder="INV-000001"
           />
-        </div>
+        </div> */}
 
         {/* Billing Date */}
         <div className="space-y-2">

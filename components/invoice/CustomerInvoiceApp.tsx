@@ -346,8 +346,8 @@ export default function CustomerInvoiceApp() {
           setSelectedCustomer={setSelectedCustomer}
           customerOpen={customerOpen}
           setCustomerOpen={setCustomerOpen}
-          invoiceNo={invoiceNo}
-          setInvoiceNo={setInvoiceNo}
+        //   invoiceNo={invoiceNo}
+        //   setInvoiceNo={setInvoiceNo}
           billingDate={billingDate}
           setBillingDate={setBillingDate}
           billingDateOpen={billingDateOpen}

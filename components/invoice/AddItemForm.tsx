@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search, AlertCircle } from "lucide-react";
+import { Plus, Search, AlertCircle, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,7 @@ interface AddItemFormProps {
   itemNameOpen: boolean;
   setItemNameOpen: (open: boolean) => void;
   onAddItem: (item: Item) => void;
+  existingItems?: Item[]; // Added to track already added items (optional for backward compatibility)
 }
 
 export default function AddItemForm({
@@ -49,6 +50,7 @@ export default function AddItemForm({
   itemNameOpen,
   setItemNameOpen,
   onAddItem,
+  existingItems = [], // Default to empty array if not provided
 }: AddItemFormProps) {
   const calculateAmount = (
     price: number,
@@ -68,7 +70,29 @@ export default function AddItemForm({
     unit: product.unit_type,
     description: product.description,
     mrp: product.mrp,
+    availableQuantity: parseFloat(product.unit_quantity),
   });
+
+  // Check if an item is already added
+  const isItemAlreadyAdded = (itemCode: string): boolean => {
+    return existingItems.some((item) => item.itemCode === itemCode);
+  };
+
+  // Get available quantity for the selected item
+  const getAvailableQuantity = (): string => {
+    if (!newItem.itemCode) return "";
+
+    const selectedProduct = products.find(
+      (product) => product.item_code === newItem.itemCode
+    );
+
+    return selectedProduct ? selectedProduct.unit_quantity : "";
+  };
+
+  // Filter products to exclude already added items
+  const availableProducts = products.filter(
+    (product) => !isItemAlreadyAdded(product.item_code)
+  );
 
   const handleItemCodeSelect = (code: string) => {
     const selectedProduct = products.find(
@@ -116,10 +140,23 @@ export default function AddItemForm({
       newItem.quantity &&
       newItem.unit
     ) {
+      // Check if item is already added
+      if (isItemAlreadyAdded(newItem.itemCode)) {
+        alert("This item has already been added to the invoice!");
+        return;
+      }
+
       const price = parseFloat(newItem.price) || 0;
       const quantity = parseFloat(newItem.quantity) || 0;
       const discount = parseFloat(newItem.discount) || 0;
       const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
+
+      // Check available quantity
+      const availableQty = parseFloat(getAvailableQuantity()) || 0;
+      if (quantity > availableQty) {
+        alert(`Insufficient stock! Available quantity: ${availableQty}`);
+        return;
+      }
 
       const selectedProduct = products.find(
         (product) => product.item_code === newItem.itemCode
@@ -178,7 +215,7 @@ export default function AddItemForm({
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
             <div className="space-y-2">
               <Label className="text-sm">Item Code</Label>
               <Popover open={itemCodeOpen} onOpenChange={setItemCodeOpen}>
@@ -203,11 +240,13 @@ export default function AddItemForm({
                       <CommandEmpty>
                         {productsLoading
                           ? "Loading products..."
+                          : availableProducts.length === 0
+                          ? "All items have been added"
                           : "No item found."}
                       </CommandEmpty>
-                      {!productsLoading && products.length > 0 && (
+                      {!productsLoading && availableProducts.length > 0 && (
                         <CommandGroup>
-                          {products.map((product) => (
+                          {availableProducts.map((product) => (
                             <CommandItem
                               key={product.item_uuid}
                               value={product.item_code}
@@ -229,18 +268,21 @@ export default function AddItemForm({
                                   >
                                     {product.category_name}
                                   </Badge>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
+                                  <Badge variant="outline" className="text-xs">
                                     {product.unit_type}
                                   </Badge>
                                   <span className="text-xs text-green-600 font-medium">
                                     $
-                                    {parseFloat(
-                                      product.selling_price
-                                    ).toFixed(2)}
+                                    {parseFloat(product.selling_price).toFixed(
+                                      2
+                                    )}
                                   </span>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs text-blue-600"
+                                  >
+                                    Stock: {product.unit_quantity}
+                                  </Badge>
                                 </div>
                               </div>
                             </CommandItem>
@@ -277,11 +319,13 @@ export default function AddItemForm({
                       <CommandEmpty>
                         {productsLoading
                           ? "Loading products..."
+                          : availableProducts.length === 0
+                          ? "All items have been added"
                           : "No item found."}
                       </CommandEmpty>
-                      {!productsLoading && products.length > 0 && (
+                      {!productsLoading && availableProducts.length > 0 && (
                         <CommandGroup>
-                          {products.map((product) => (
+                          {availableProducts.map((product) => (
                             <CommandItem
                               key={product.item_uuid}
                               value={product.item_name}
@@ -303,18 +347,21 @@ export default function AddItemForm({
                                   >
                                     {product.category_name}
                                   </Badge>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs"
-                                  >
+                                  <Badge variant="outline" className="text-xs">
                                     {product.unit_type}
                                   </Badge>
                                   <span className="text-xs text-green-600 font-medium">
                                     $
-                                    {parseFloat(
-                                      product.selling_price
-                                    ).toFixed(2)}
+                                    {parseFloat(product.selling_price).toFixed(
+                                      2
+                                    )}
                                   </span>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs text-blue-600"
+                                  >
+                                    Stock: {product.unit_quantity}
+                                  </Badge>
                                 </div>
                               </div>
                             </CommandItem>
@@ -339,15 +386,22 @@ export default function AddItemForm({
             </div>
 
             <div className="space-y-2">
+              <Label className="text-sm">Available Qty</Label>
+              <div className="h-10 px-3 py-2 border rounded-md bg-gray-100 flex items-center font-medium text-blue-600 border-blue-200">
+                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                {getAvailableQuantity() || "0"}
+              </div>
+            </div>
+
+            <div className="space-y-2">
               <Label className="text-sm">Quantity</Label>
               <Input
                 type="number"
                 placeholder="1"
                 value={newItem.quantity}
-                onChange={(e) =>
-                  handleInputChange("quantity", e.target.value)
-                }
+                onChange={(e) => handleInputChange("quantity", e.target.value)}
                 className="h-10"
+                max={getAvailableQuantity()}
               />
             </div>
 
@@ -369,9 +423,7 @@ export default function AddItemForm({
                 type="number"
                 placeholder="0"
                 value={newItem.discount}
-                onChange={(e) =>
-                  handleInputChange("discount", e.target.value)
-                }
+                onChange={(e) => handleInputChange("discount", e.target.value)}
                 className="h-10"
               />
             </div>
@@ -413,15 +465,40 @@ export default function AddItemForm({
                   !newItem.price ||
                   !newItem.quantity ||
                   !newItem.unit ||
-                  productsLoading
+                  productsLoading ||
+                  isItemAlreadyAdded(newItem.itemCode) ||
+                  parseFloat(newItem.quantity) >
+                    parseFloat(getAvailableQuantity())
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700 h-10"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Item
+                {isItemAlreadyAdded(newItem.itemCode)
+                  ? "Already Added"
+                  : "Add Item"}
               </Button>
             </div>
           </div>
+
+          {/* Validation Messages */}
+          {newItem.itemCode && isItemAlreadyAdded(newItem.itemCode) && (
+            <div className="flex items-center gap-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>This item has already been added to the invoice</span>
+            </div>
+          )}
+
+          {newItem.quantity &&
+            parseFloat(newItem.quantity) >
+              parseFloat(getAvailableQuantity() || "0") && (
+              <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                <span>
+                  Quantity exceeds available stock ({getAvailableQuantity()}{" "}
+                  available)
+                </span>
+              </div>
+            )}
         </CardContent>
       </Card>
     </div>
