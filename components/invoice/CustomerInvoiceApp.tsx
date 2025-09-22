@@ -1,3 +1,4 @@
+// components/invoice/CustomerInvoiceApp.tsx - Fixed version
 "use client";
 
 import * as React from "react";
@@ -17,6 +18,7 @@ import {
   InvoiceData,
   paymentMethods,
 } from "./types";
+import PrintInvoice from "./PrintInvoice";
 
 export default function CustomerInvoiceApp() {
   // RTK Query hook to fetch products
@@ -43,9 +45,9 @@ export default function CustomerInvoiceApp() {
   // Header state
   const [customerOpen, setCustomerOpen] = React.useState(false);
   const [selectedCustomer, setSelectedCustomer] = React.useState("");
-  const [invoiceNo, setInvoiceNo] = React.useState(
-    () => `INV-${Date.now().toString().slice(-6)}`
-  );
+
+  // Fix hydration issue by using useEffect for invoice number generation
+  const [invoiceNo, setInvoiceNo] = React.useState("");
   const [billingDate, setBillingDate] = React.useState<Date>(new Date());
   const [billingDateOpen, setBillingDateOpen] = React.useState(false);
 
@@ -59,6 +61,7 @@ export default function CustomerInvoiceApp() {
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+
   // New item state
   const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
@@ -71,6 +74,13 @@ export default function CustomerInvoiceApp() {
   });
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
+
+  // Generate invoice number on client side to avoid hydration mismatch
+  React.useEffect(() => {
+    if (!invoiceNo) {
+      setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+    }
+  }, [invoiceNo]);
 
   // Fetch customers from API
   const fetchCustomers = React.useCallback(async () => {
@@ -276,8 +286,8 @@ export default function CustomerInvoiceApp() {
       setIsLoading(false);
     }
   };
+
   const clearAll = () => {
-    // Simple confirmation using native confirm - you can replace this with a custom modal if needed
     if (
       window.confirm(
         "Are you sure you want to clear all data? This action cannot be undone."
@@ -308,6 +318,7 @@ export default function CustomerInvoiceApp() {
   };
 
   const handlePrint = () => {
+    // Validation checks
     if (items.length === 0) {
       addToast({
         type: "warning",
@@ -318,6 +329,27 @@ export default function CustomerInvoiceApp() {
       return;
     }
 
+    if (!selectedCustomer) {
+      addToast({
+        type: "warning",
+        title: "Customer Required",
+        description: "Please select a customer before printing.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!paymentMethod) {
+      addToast({
+        type: "warning",
+        title: "Payment Method Required",
+        description: "Please select a payment method before printing.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    // Show preparing toast
     addToast({
       type: "info",
       title: "Preparing Print",
@@ -325,7 +357,10 @@ export default function CustomerInvoiceApp() {
       duration: 2000,
     });
 
-    window.print();
+    // Small delay to allow toast to show, then print
+    setTimeout(() => {
+      window.print();
+    }, 100);
   };
 
   // Calculations
@@ -333,6 +368,11 @@ export default function CustomerInvoiceApp() {
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Don't render PrintInvoice until we have an invoice number
+  if (!invoiceNo) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-2 sm:p-4 lg:p-6">
@@ -346,8 +386,6 @@ export default function CustomerInvoiceApp() {
           setSelectedCustomer={setSelectedCustomer}
           customerOpen={customerOpen}
           setCustomerOpen={setCustomerOpen}
-        //   invoiceNo={invoiceNo}
-        //   setInvoiceNo={setInvoiceNo}
           billingDate={billingDate}
           setBillingDate={setBillingDate}
           billingDateOpen={billingDateOpen}
@@ -379,7 +417,9 @@ export default function CustomerInvoiceApp() {
               <Button
                 variant="outline"
                 className="border-gray-300"
-                disabled={items.length === 0}
+                disabled={
+                  items.length === 0 || !selectedCustomer || !paymentMethod
+                }
                 onClick={handlePrint}
               >
                 <Printer className="h-4 w-4 mr-2" />
@@ -443,7 +483,7 @@ export default function CustomerInvoiceApp() {
             variant="outline"
             size="lg"
             className="px-8 py-3 border-gray-300"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || !selectedCustomer || !paymentMethod}
             onClick={handlePrint}
           >
             <Printer className="h-5 w-5 mr-2" />
@@ -459,6 +499,21 @@ export default function CustomerInvoiceApp() {
             Clear All
           </Button>
         </div>
+
+        {/* Print Invoice Component - Hidden but rendered for printing */}
+        <PrintInvoice
+          selectedCustomer={selectedCustomer}
+          customers={customers}
+          invoiceNo={invoiceNo}
+          billingDate={billingDate}
+          paymentMethod={paymentMethod}
+          items={items}
+          subtotal={subtotal}
+          extraDiscount={extraDiscount}
+          extraDiscountAmount={extraDiscountAmount}
+          finalTotal={finalTotal}
+          totalItems={totalItems}
+        />
       </div>
     </div>
   );
