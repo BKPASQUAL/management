@@ -58,7 +58,7 @@ export default function CustomerInvoiceApp() {
   const [extraDiscount, setExtraDiscount] = React.useState("0");
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [isMobile, setIsMobile] = React.useState(false);
-
+  const [isLoading, setIsLoading] = React.useState(false);
   // New item state
   const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
@@ -169,7 +169,7 @@ export default function CustomerInvoiceApp() {
     );
   };
 
-  const saveInvoice = () => {
+  const saveInvoice = async () => {
     if (items.length === 0) {
       addToast({
         type: "error",
@@ -199,36 +199,83 @@ export default function CustomerInvoiceApp() {
       return;
     }
 
-    const selectedCustomerData = customers.find(
-      (c) => c.id.toString() === selectedCustomer
-    );
+    setIsLoading(true);
 
-    const invoiceData: InvoiceData = {
-      invoiceNo,
-      customer: selectedCustomerData,
-      billingDate: billingDate.toISOString(),
-      paymentMethod: paymentMethods.find((p) => p.value === paymentMethod),
-      items,
-      subtotal,
-      extraDiscount: parseFloat(extraDiscount),
-      extraDiscountAmount,
-      finalTotal,
-      totalItems,
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // Prepare data for backend
+      const invoiceData = {
+        selectedCustomer: selectedCustomer,
+        invoiceNo: invoiceNo,
+        billingDate: billingDate.toISOString(),
+        paymentMethod: {
+          value: paymentMethod,
+          label:
+            paymentMethods.find((p) => p.value === paymentMethod)?.label ||
+            paymentMethod,
+        },
+        items: items.map((item) => ({
+          itemCode: item.itemCode,
+          itemName: item.itemName,
+          price: item.price,
+          quantity: item.quantity,
+          unit: item.unit,
+          discount: item.discount,
+          freeItemQuantity: item.freeItemQuantity,
+          amount: item.amount,
+          category: item.category,
+        })),
+        subtotal: subtotal,
+        extraDiscount: parseFloat(extraDiscount),
+        extraDiscountAmount: extraDiscountAmount,
+        finalTotal: finalTotal,
+        totalItems: totalItems,
+      };
 
-    console.log("Customer Invoice saved:", invoiceData);
+      // Call backend API
+      const response = await fetch("http://localhost:3001/customer-bills", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(invoiceData),
+      });
 
-    addToast({
-      type: "success",
-      title: "Invoice Saved Successfully!",
-      description: `Invoice ${invoiceNo} has been saved with ${totalItems} items totaling ${finalTotal.toFixed(
-        2
-      )}.`,
-      duration: 6000,
-    });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.message || `HTTP error! status: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+
+      // Success notification
+      addToast({
+        type: "success",
+        title: "Invoice Saved Successfully!",
+        description: `Invoice ${
+          result.data.invoice_no
+        } has been saved with ${totalItems} items totaling ${finalTotal.toFixed(
+          2
+        )}.`,
+        duration: 6000,
+      });
+    } catch (error) {
+      console.error("Error saving invoice:", error);
+
+      addToast({
+        type: "error",
+        title: "Failed to Save Invoice",
+        description:
+          error instanceof Error
+            ? error.message
+            : "An unexpected error occurred while saving the invoice.",
+        duration: 6000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
-
   const clearAll = () => {
     // Simple confirmation using native confirm - you can replace this with a custom modal if needed
     if (
@@ -324,10 +371,10 @@ export default function CustomerInvoiceApp() {
               <Button
                 onClick={saveInvoice}
                 className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={items.length === 0}
+                disabled={items.length === 0 || isLoading}
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Invoice
+                {isLoading ? "Saving..." : "Save Invoice"}
               </Button>
               <Button
                 variant="outline"
@@ -387,10 +434,10 @@ export default function CustomerInvoiceApp() {
             size="lg"
             onClick={saveInvoice}
             className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
-            disabled={items.length === 0}
+            disabled={items.length === 0 || isLoading}
           >
             <Save className="h-5 w-5 mr-2" />
-            Save Invoice
+            {isLoading ? "Saving..." : "Save Invoice"}
           </Button>
           <Button
             variant="outline"
