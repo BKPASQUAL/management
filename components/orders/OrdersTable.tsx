@@ -1,9 +1,9 @@
 "use client";
 
-import { Edit, Trash2 } from "lucide-react";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
-  Table as TableComponent,
+  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -11,433 +11,353 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  ChevronLeft,
+  ChevronRight,
+  MoreHorizontal,
+  Eye,
+  Edit,
+  Trash2,
+  Settings,
+} from "lucide-react";
 
-// Define the Customer interface
-interface Customer {
-  id: number;
+// Types
+interface Order {
+  id: string;
+  orderNumber: string;
   customerCode: string;
   customerName: string;
   area: string;
   route: string;
   representative: string;
-  phone?: string;
-  email?: string;
+  phone: string;
+  totalAmount: number;
+  status:
+    | "make_order"
+    | "prepare_order"
+    | "checking_order"
+    | "loading"
+    | "delivered";
+  orderDate: string;
 }
 
-export default function CustomerTable() {
-  // State for pagination
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(10);
+const OrdersTable: React.FC = () => {
   const router = useRouter();
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const itemsPerPage = 10;
 
-  const sampleCustomers: Customer[] = [
+  // Sample orders data - replace with your actual API data
+  const sampleOrders: Order[] = [
     {
-      id: 1,
+      id: "1",
+      orderNumber: "ORD-2024-001",
       customerCode: "CUST001",
-      customerName: "ABC Electronics Ltd",
+      customerName: "Tech Solutions Ltd",
       area: "Colombo",
       route: "Route A1",
       representative: "John Silva",
       phone: "+94 11 2345678",
+      totalAmount: 125000,
+      status: "make_order",
+      orderDate: "2024-01-15",
     },
     {
-      id: 2,
+      id: "2",
+      orderNumber: "ORD-2024-002",
       customerCode: "CUST002",
-      customerName: "Tech Solutions Pvt Ltd",
+      customerName: "Digital Systems Inc",
       area: "Kandy",
-      route: "Route K2",
+      route: "Route K1",
       representative: "Mary Fernando",
       phone: "+94 81 2234567",
+      totalAmount: 87500,
+      status: "prepare_order",
+      orderDate: "2024-01-14",
     },
     {
-      id: 3,
+      id: "3",
+      orderNumber: "ORD-2024-003",
       customerCode: "CUST003",
-      customerName: "Digital World",
+      customerName: "Smart Electronics",
       area: "Galle",
       route: "Route G1",
       representative: "David Perera",
       phone: "+94 91 2345678",
+      totalAmount: 156000,
+      status: "checking_order",
+      orderDate: "2024-01-13",
     },
     {
-      id: 4,
+      id: "4",
+      orderNumber: "ORD-2024-004",
       customerCode: "CUST004",
-      customerName: "Modern Computers",
+      customerName: "Future Tech Corp",
       area: "Negombo",
-      route: "Route N3",
+      route: "Route N1",
       representative: "Sarah De Silva",
       phone: "+94 31 2234567",
+      totalAmount: 98000,
+      status: "loading",
+      orderDate: "2024-01-12",
     },
     {
-      id: 5,
+      id: "5",
+      orderNumber: "ORD-2024-005",
       customerCode: "CUST005",
-      customerName: "Smart Systems",
+      customerName: "Innovation Hub",
       area: "Matara",
       route: "Route M1",
       representative: "John Silva",
       phone: "+94 41 2345678",
+      totalAmount: 234000,
+      status: "delivered",
+      orderDate: "2024-01-11",
     },
     {
-      id: 6,
+      id: "6",
+      orderNumber: "ORD-2024-006",
       customerCode: "CUST006",
-      customerName: "Future Tech",
-      area: "Colombo",
-      route: "Route A2",
-      representative: "Mary Fernando",
-      phone: "+94 11 2234567",
-    },
-    {
-      id: 7,
-      customerCode: "CUST007",
-      customerName: "Innovation Hub",
-      area: "Kandy",
-      route: "Route K1",
-      representative: "David Perera",
-      phone: "+94 81 2345678",
-    },
-    {
-      id: 8,
-      customerCode: "CUST008",
-      customerName: "Cyber Solutions",
+      customerName: "Prime Electronics",
       area: "Kurunegala",
       route: "Route KU1",
-      representative: "Sarah De Silva",
+      representative: "Mary Fernando",
       phone: "+94 37 2234567",
-    },
-    {
-      id: 9,
-      customerCode: "CUST009",
-      customerName: "Elite Technologies",
-      area: "Anuradhapura",
-      route: "Route A3",
-      representative: "John Silva",
-      phone: "+94 25 2345678",
-    },
-    {
-      id: 10,
-      customerCode: "CUST010",
-      customerName: "Prime Electronics",
-      area: "Ratnapura",
-      route: "Route R1",
-      representative: "Mary Fernando",
-      phone: "+94 45 2234567",
-    },
-    {
-      id: 11,
-      customerCode: "CUST011",
-      customerName: "Next Gen Systems",
-      area: "Batticaloa",
-      route: "Route B1",
-      representative: "David Perera",
-      phone: "+94 65 2345678",
-    },
-    {
-      id: 12,
-      customerCode: "CUST012",
-      customerName: "Advanced Solutions",
-      area: "Jaffna",
-      route: "Route J1",
-      representative: "Sarah De Silva",
-      phone: "+94 21 2234567",
-    },
-    {
-      id: 13,
-      customerCode: "CUST013",
-      customerName: "Global Tech Partners",
-      area: "Colombo",
-      route: "Route A3",
-      representative: "John Silva",
-      phone: "+94 11 2345679",
-    },
-    {
-      id: 14,
-      customerCode: "CUST014",
-      customerName: "Innovative Systems",
-      area: "Galle",
-      route: "Route G2",
-      representative: "Mary Fernando",
-      phone: "+94 91 2234568",
+      totalAmount: 67500,
+      status: "make_order",
+      orderDate: "2024-01-10",
     },
   ];
 
   // Calculate pagination
-  const totalPages = Math.ceil(sampleCustomers.length / itemsPerPage);
+  const totalPages = Math.ceil(sampleOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentCustomers = sampleCustomers.slice(startIndex, endIndex);
+  const currentOrders = sampleOrders.slice(startIndex, endIndex);
+
+  // Status badge styling
+  const getStatusBadge = (status: Order["status"]) => {
+    const statusConfig = {
+      make_order: { label: "Make Order", variant: "default" as const },
+      prepare_order: { label: "Preparing", variant: "secondary" as const },
+      checking_order: { label: "Checking", variant: "outline" as const },
+      loading: { label: "Loading", variant: "secondary" as const },
+      delivered: { label: "Delivered", variant: "default" as const },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <Badge
+        variant={config.variant}
+        className={
+          status === "delivered"
+            ? "bg-green-100 text-green-800 border-green-300"
+            : status === "loading"
+            ? "bg-blue-100 text-blue-800 border-blue-300"
+            : status === "checking_order"
+            ? "bg-purple-100 text-purple-800 border-purple-300"
+            : status === "prepare_order"
+            ? "bg-orange-100 text-orange-800 border-orange-300"
+            : "bg-gray-100 text-gray-800 border-gray-300"
+        }
+      >
+        {config.label}
+      </Badge>
+    );
+  };
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-LK", {
+      style: "currency",
+      currency: "LKR",
+    }).format(amount);
+  };
 
   // Handler functions
-  const handleRowClick = (customerId: number): void => {
-    router.push(`/customers/customerDetail/${customerId}`);
-    // Add your navigation logic here
-    // Example: router.push(`/customers/${customerId}`);
+  const handleRowClick = (orderId: string): void => {
+    // Navigate to order process page
+    router.push(`/admin/orders/process?orderId=${orderId}`);
   };
 
-  const handleEdit = (event: React.MouseEvent, customerId: number): void => {
-    event.stopPropagation(); // Prevent row click when button is clicked
-    console.log("Edit customer:", customerId);
+  const handleViewOrder = (event: React.MouseEvent, orderId: string): void => {
+    event.stopPropagation();
+    router.push(`/admin/orders/process?orderId=${orderId}`);
+  };
+
+  const handleEdit = (event: React.MouseEvent, orderId: string): void => {
+    event.stopPropagation();
+    console.log("Edit order:", orderId);
     // Add your edit logic here
-    // Example: router.push(`/customers/edit/${customerId}`);
   };
 
-  const handleDelete = (event: React.MouseEvent, customerId: number): void => {
-    event.stopPropagation(); // Prevent row click when button is clicked
-    console.log("Delete customer:", customerId);
+  const handleDelete = (event: React.MouseEvent, orderId: string): void => {
+    event.stopPropagation();
+    console.log("Delete order:", orderId);
     // Add your delete logic here
-    // Example: Show confirmation dialog and then delete
-    if (window.confirm("Are you sure you want to delete this customer?")) {
-      // Implement delete functionality
-      console.log("Customer deleted:", customerId);
+    if (window.confirm("Are you sure you want to delete this order?")) {
+      // Delete logic here
     }
   };
 
-  // Pagination handlers
-  const handlePreviousPage = (): void => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-
-  const handleNextPage = (): void => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
-
-  const goToPage = (page: number): void => {
-    setCurrentPage(page);
+  const handleManageProcess = (
+    event: React.MouseEvent,
+    orderId: string
+  ): void => {
+    event.stopPropagation();
+    router.push(`/admin/orders/process?orderId=${orderId}`);
   };
 
   return (
-    <div className="">
-      {/* Desktop View (xl and above) - Full Table */}
-      <div className="hidden xl:block">
-        <TableComponent>
+    <div className="w-full">
+      <div className="rounded-md border">
+        <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold w-1/9">Customer Code</TableHead>
-              <TableHead className="font-bold w-1/9">Customer Name</TableHead>
-              <TableHead className="font-bold w-1/9">Area</TableHead>
-              <TableHead className="font-bold w-1/9">Route</TableHead>
-              <TableHead className="font-bold w-1/9">Representative</TableHead>
-              <TableHead className="font-bold w-1/9">Contact</TableHead>
-              <TableHead className="text-right font-bold w-1/9">Actions</TableHead>
+            <TableRow className="bg-gray-50">
+              <TableHead className="font-semibold">Order #</TableHead>
+              <TableHead className="font-semibold">Customer</TableHead>
+              <TableHead className="font-semibold">Area</TableHead>
+              <TableHead className="font-semibold">Representative</TableHead>
+              <TableHead className="font-semibold">Amount</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">Order Date</TableHead>
+              <TableHead className="font-semibold text-right">
+                Actions
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentCustomers.map((customer) => (
+            {currentOrders.map((order) => (
               <TableRow
-                key={customer.id}
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleRowClick(customer.id)}
+                key={order.id}
+                className="cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => handleRowClick(order.id)}
               >
-                <TableCell className="font-mono font-medium">
-                  {customer.customerCode}
+                <TableCell className="font-medium text-blue-600">
+                  {order.orderNumber}
                 </TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{order.customerName}</p>
+                    <p className="text-sm text-gray-500">
+                      {order.customerCode}
+                    </p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div>
+                    <p className="font-medium">{order.area}</p>
+                    <p className="text-sm text-gray-500">{order.route}</p>
+                  </div>
+                </TableCell>
+                <TableCell>{order.representative}</TableCell>
                 <TableCell className="font-medium">
-                  {customer.customerName}
+                  {formatCurrency(order.totalAmount)}
                 </TableCell>
-                <TableCell>{customer.area}</TableCell>
+                <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {customer.route}
-                  </span>
-                </TableCell>
-                <TableCell>{customer.representative}</TableCell>
-                <TableCell>
-                  <div className="text-sm">
-                    <div>{customer.phone}</div>
-                    <div className="text-gray-500">{customer.email}</div>
-                  </div>
+                  {new Date(order.orderDate).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={(e) => handleEdit(e, customer.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={(e) => handleDelete(e, customer.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span className="sr-only">Open menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(e) => handleViewOrder(e, order.id)}
+                      >
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Order
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => handleManageProcess(e, order.id)}
+                      >
+                        <Settings className="mr-2 h-4 w-4" />
+                        Manage Process
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => handleEdit(e, order.id)}
+                      >
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={(e) => handleDelete(e, order.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
-        </TableComponent>
+        </Table>
       </div>
 
-      {/* Tablet View (md to lg) - Simplified Table */}
-      <div className="hidden md:block xl:hidden">
-        <TableComponent>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="font-bold">Customer Info</TableHead>
-              <TableHead className="font-bold">Area & Route</TableHead>
-              <TableHead className="font-bold">Representative</TableHead>
-              <TableHead className="text-right font-bold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentCustomers.map((customer) => (
-              <TableRow
-                key={customer.id}
-                className="cursor-pointer hover:bg-gray-50"
-                onClick={() => handleRowClick(customer.id)}
-              >
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{customer.customerName}</div>
-                    <div className="text-xs font-mono text-gray-400 mt-1">
-                      Code: {customer.customerCode}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">
-                      {customer.phone}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div>
-                    <div className="font-medium">{customer.area}</div>
-                    <div className="text-sm">
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                        {customer.route}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="font-medium">{customer.representative}</div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0"
-                      onClick={(e) => handleEdit(e, customer.id)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={(e) => handleDelete(e, customer.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </TableComponent>
-      </div>
-
-      {/* Mobile View (sm and below) - Card Layout */}
-      <div className="md:hidden space-y-4">
-        {currentCustomers.map((customer) => (
-          <div
-            key={customer.id}
-            className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50"
-            onClick={() => handleRowClick(customer.id)}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <h3 className="font-medium text-lg">{customer.customerName}</h3>
-                <p className="text-sm font-mono text-gray-500">
-                  {customer.customerCode}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  onClick={(e) => handleEdit(e, customer.id)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={(e) => handleDelete(e, customer.id)}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Area:</span>
-                <span className="font-medium">{customer.area}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Route:</span>
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  {customer.route}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Representative:</span>
-                <span className="font-medium">{customer.representative}</span>
-              </div>
-              <div className="pt-2 border-t">
-                <div className="text-sm text-gray-600">{customer.phone}</div>
-                <div className="text-sm text-gray-500">{customer.email}</div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <div className="text-sm text-gray-700">
+        <div className="flex items-center justify-between space-x-2 py-4">
+          <div className="text-sm text-gray-500">
             Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleCustomers.length)} of{" "}
-            {sampleCustomers.length} customers
+            {Math.min(endIndex, sampleOrders.length)} of {sampleOrders.length}{" "}
+            orders
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handlePreviousPage}
+              onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
             >
+              <ChevronLeft className="h-4 w-4" />
               Previous
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                variant={currentPage === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => goToPage(page)}
-                className="w-8"
-              >
-                {page}
-              </Button>
-            ))}
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <Button
+                    key={page}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(page)}
+                    className="w-8 h-8 p-0"
+                  >
+                    {page}
+                  </Button>
+                )
+              )}
+            </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={handleNextPage}
+              onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
               Next
+              <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
     </div>
   );
-}
+};
+
+export default OrdersTable;

@@ -33,6 +33,7 @@ import {
   ClipboardList,
   Download,
   Scale,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -79,6 +80,19 @@ export function AppSidebar() {
       title: "Orders",
       icon: ShoppingCart,
       href: "/admin/orders",
+    },
+  ];
+  
+  const orderSubItems = [
+    {
+      title: "All Orders",
+      icon: ShoppingCart,
+      href: "/admin/orders",
+    },
+    {
+      title: "Order Process",
+      icon: ClipboardCheck,
+      href: "/admin/orders/process",
     },
   ];
 
