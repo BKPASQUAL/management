@@ -78,12 +78,15 @@ export default function CustomerInvoiceApp() {
     setCustomersError(null);
 
     try {
-      const response = await fetch("http://localhost:3001/customers", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/customers`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -282,13 +285,16 @@ export default function CustomerInvoiceApp() {
       };
 
       // Call backend API
-      const response = await fetch("http://localhost:3001/customer-bills", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(invoiceData),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/customers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(invoiceData),
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
