@@ -1,10 +1,9 @@
-// components/invoice/CustomerInvoiceApp.tsx - Fixed version
+// components/invoice/CustomerInvoiceApp.tsx - Fixed version with stock integration
 "use client";
 
 import * as React from "react";
 import { Save, Printer, X, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGetProductsQuery } from "@/store/services/product";
 import { useToast } from "@/components/ui/ToastContext";
 import InvoiceHeader from "./InvoiceHeader";
 import AddItemForm from "./AddItemForm";
@@ -21,19 +20,8 @@ import {
 import PrintInvoice from "./PrintInvoice";
 
 export default function CustomerInvoiceApp() {
-  // RTK Query hook to fetch products
-  const {
-    data: productsResponse,
-    error: productsError,
-    isLoading: productsLoading,
-    refetch: refetchProducts,
-  } = useGetProductsQuery();
-
   // Toast hook
   const { addToast } = useToast();
-
-  // Extract products from response
-  const products = productsResponse?.data || [];
 
   // Customer API state
   const [customers, setCustomers] = React.useState<Customer[]>([]);
@@ -62,7 +50,7 @@ export default function CustomerInvoiceApp() {
   const [isMobile, setIsMobile] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
 
-  // New item state
+  // New item state - Updated for stock-based form
   const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
     itemName: "",
@@ -146,10 +134,26 @@ export default function CustomerInvoiceApp() {
 
   const addItem = (item: Item) => {
     setItems([...items, item]);
+    addToast({
+      type: "success",
+      title: "Item Added",
+      description: `${item.itemName} has been added to the invoice.`,
+      duration: 3000,
+    });
   };
 
   const deleteItem = (id: number) => {
+    const itemToDelete = items.find((item) => item.id === id);
     setItems(items.filter((item) => item.id !== id));
+
+    if (itemToDelete) {
+      addToast({
+        type: "info",
+        title: "Item Removed",
+        description: `${itemToDelete.itemName} has been removed from the invoice.`,
+        duration: 3000,
+      });
+    }
   };
 
   const handleEditInputChange = (
@@ -265,11 +269,27 @@ export default function CustomerInvoiceApp() {
         title: "Invoice Saved Successfully!",
         description: `Invoice ${
           result.data.invoice_no
-        } has been saved with ${totalItems} items totaling ${finalTotal.toFixed(
+        } has been saved with ${totalItems} items totaling $${finalTotal.toFixed(
           2
         )}.`,
         duration: 6000,
       });
+
+      // Clear form after successful save
+      setItems([]);
+      setNewItem({
+        itemCode: "",
+        itemName: "",
+        price: "",
+        quantity: "",
+        unit: "",
+        discount: "",
+        freeItemQuantity: "",
+      });
+      setSelectedCustomer("");
+      setPaymentMethod("");
+      setExtraDiscount("0");
+      setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
     } catch (error) {
       console.error("Error saving invoice:", error);
 
@@ -369,9 +389,16 @@ export default function CustomerInvoiceApp() {
   const finalTotal = subtotal - extraDiscountAmount;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Don't render PrintInvoice until we have an invoice number
+  // Don't render until we have an invoice number
   if (!invoiceNo) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading invoice system...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -402,7 +429,7 @@ export default function CustomerInvoiceApp() {
                 Invoice Items
               </h2>
               <p className="text-gray-600 text-sm">
-                Add and manage your invoice items
+                Add and manage your invoice items from stock inventory
               </p>
             </div>
             <div className="flex gap-2">
@@ -428,12 +455,8 @@ export default function CustomerInvoiceApp() {
             </div>
           </div>
 
-          {/* Add Item Form */}
+          {/* Updated Add Item Form - Now uses stock API */}
           <AddItemForm
-            products={products}
-            productsLoading={productsLoading}
-            productsError={productsError}
-            refetchProducts={refetchProducts}
             newItem={newItem}
             setNewItem={setNewItem}
             itemCodeOpen={itemCodeOpen}
@@ -441,6 +464,7 @@ export default function CustomerInvoiceApp() {
             itemNameOpen={itemNameOpen}
             setItemNameOpen={setItemNameOpen}
             onAddItem={addItem}
+            existingItems={items}
           />
 
           {/* Items List */}

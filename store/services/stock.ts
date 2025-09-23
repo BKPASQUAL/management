@@ -1,6 +1,52 @@
 // src/store/services/stock.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
+export interface StockDropdownItem {
+  item_id: number;
+  item_code: string;
+  item_name: string;
+  unit_price: number;
+  selling_price: number;
+  mrp: number;
+  supplier_name: string;
+  total_stock: number;
+  location_count: number;
+  locations: {
+    location_name: string;
+    quantity: number;
+  }[];
+}
+
+export interface StockSummaryItem {
+  item_id: number;
+  item_code: string;
+  item_name: string;
+  unit_price: number;
+  selling_price: number;
+  mrp: number;
+  supplier_name: string;
+  total_stock: number;
+  locations: {
+    location_id: number;
+    location_code: string;
+    location_name: string;
+    quantity: number;
+    updated_at: string;
+  }[];
+}
+
+export interface StockDropdownResponse {
+  statusCode: number;
+  message: string;
+  data: StockDropdownItem[];
+}
+
+export interface StockSummaryResponse {
+  statusCode: number;
+  message: string;
+  data: StockSummaryItem[];
+}
+
 // Stock entity interface (match your NestJS StockService select fields)
 export interface Stock {
   stock_id: number;
@@ -165,6 +211,19 @@ export const stockApi = createApi({
       invalidatesTags: ["Stock", "StockTransfer"],
     }),
 
+    getStocksDropdown: builder.query<StockDropdownResponse, void>({
+      query: () => "stocks/dropdown",
+      providesTags: ["Stock"],
+      transformErrorResponse: (response: any) => {
+        console.error("getStocksDropdown API Error:", response);
+        return {
+          message: response?.data?.message || "Failed to fetch stocks dropdown",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
+
     // Get stock transfers (optional - for viewing transfers)
     getStockTransfers: builder.query<{ data: any[] }, void>({
       query: () => "stocks/transfers",
@@ -205,6 +264,7 @@ export const {
   useGetStocksQuery,
   useGetStockLocationsQuery,
   useCreateStockTransferMutation,
+  useGetStocksDropdownQuery,
   useGetStockTransfersQuery,
   useGetStockTransferByIdQuery,
 } = stockApi;

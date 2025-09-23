@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Search, AlertCircle, CheckCircle } from "lucide-react";
+import { Plus, Search, AlertCircle, CheckCircle, Package2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,14 +20,13 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { BillProduct } from "@/store/services/product";
+import {
+  useGetStocksDropdownQuery,
+  StockDropdownItem,
+} from "@/store/services/stock";
 import { NewItemRow, Item } from "./types";
 
 interface AddItemFormProps {
-  products: BillProduct[];
-  productsLoading: boolean;
-  productsError: any;
-  refetchProducts: () => void;
   newItem: NewItemRow;
   setNewItem: (item: NewItemRow) => void;
   itemCodeOpen: boolean;
@@ -35,14 +34,10 @@ interface AddItemFormProps {
   itemNameOpen: boolean;
   setItemNameOpen: (open: boolean) => void;
   onAddItem: (item: Item) => void;
-  existingItems?: Item[]; // Added to track already added items (optional for backward compatibility)
+  existingItems?: Item[]; // Track already added items
 }
 
 export default function AddItemForm({
-  products,
-  productsLoading,
-  productsError,
-  refetchProducts,
   newItem,
   setNewItem,
   itemCodeOpen,
@@ -50,8 +45,19 @@ export default function AddItemForm({
   itemNameOpen,
   setItemNameOpen,
   onAddItem,
-  existingItems = [], // Default to empty array if not provided
+  existingItems = [],
 }: AddItemFormProps) {
+  // Fetch stocks using the new dropdown API
+  const {
+    data: stocksResponse,
+    error: stocksError,
+    isLoading: stocksLoading,
+    refetch: refetchStocks,
+  } = useGetStocksDropdownQuery();
+
+  // Extract stocks from API response
+  const stocks = stocksResponse?.data || [];
+
   const calculateAmount = (
     price: number,
     quantity: number,
@@ -62,15 +68,18 @@ export default function AddItemForm({
     return subtotal - discountAmount;
   };
 
-  const convertProductToItem = (product: BillProduct) => ({
-    code: product.item_code,
-    name: product.item_name,
-    price: parseFloat(product.selling_price),
-    category: product.category_name,
-    unit: product.unit_type,
-    description: product.description,
-    mrp: product.mrp,
-    availableQuantity: parseFloat(product.unit_quantity),
+  // Convert stock item to internal item format
+  const convertStockToItem = (stock: StockDropdownItem) => ({
+    item_id: stock.item_id,
+    code: stock.item_code,
+    name: stock.item_name,
+    unit_price: stock.unit_price,
+    selling_price: stock.selling_price,
+    mrp: stock.mrp,
+    supplier_name: stock.supplier_name,
+    total_stock: stock.total_stock,
+    locations: stock.locations,
+    location_count: stock.location_count,
   });
 
   // Check if an item is already added
@@ -79,50 +88,53 @@ export default function AddItemForm({
   };
 
   // Get available quantity for the selected item
-  const getAvailableQuantity = (): string => {
-    if (!newItem.itemCode) return "";
+  const getAvailableQuantity = (): number => {
+    if (!newItem.itemCode) return 0;
 
-    const selectedProduct = products.find(
-      (product) => product.item_code === newItem.itemCode
+    const selectedStock = stocks.find(
+      (stock) => stock.item_code === newItem.itemCode
     );
 
-    return selectedProduct ? selectedProduct.unit_quantity : "";
+    return selectedStock ? selectedStock.total_stock : 0;
   };
 
-  // Filter products to exclude already added items
-  const availableProducts = products.filter(
-    (product) => !isItemAlreadyAdded(product.item_code)
+  // Get selected stock details for display
+  const getSelectedStockDetails = (): StockDropdownItem | null => {
+    if (!newItem.itemCode) return null;
+
+    return stocks.find((stock) => stock.item_code === newItem.itemCode) || null;
+  };
+
+  // Filter stocks to exclude already added items
+  const availableStocks = stocks.filter(
+    (stock) => !isItemAlreadyAdded(stock.item_code) && stock.total_stock > 0
   );
 
   const handleItemCodeSelect = (code: string) => {
-    const selectedProduct = products.find(
-      (product) => product.item_code === code
-    );
-    if (selectedProduct) {
-      const item = convertProductToItem(selectedProduct);
+    const selectedStock = stocks.find((stock) => stock.item_code === code);
+    if (selectedStock) {
+      const item = convertStockToItem(selectedStock);
       setNewItem({
         ...newItem,
         itemCode: code,
         itemName: item.name,
-        price: item.price.toString(),
-        unit: item.unit,
+        price: item.selling_price.toString(), // Use selling price as default
+        unit: "pcs", // Default unit, you might want to get this from your items table
       });
     }
     setItemCodeOpen(false);
   };
 
   const handleItemNameSelect = (name: string) => {
-    const selectedProduct = products.find(
-      (product) => product.item_name === name
-    );
-    if (selectedProduct) {
-      const item = convertProductToItem(selectedProduct);
+    const selectedStock = stocks.find((stock) => stock.item_name === name);
+    if (selectedStock) {
+      const item = convertStockToItem(selectedStock);
       setNewItem({
         ...newItem,
         itemCode: item.code,
         itemName: name,
-        price: item.price.toString(),
-        unit: item.unit,
+        price: item.selling_price.toString(),
+        unit: "pcs",
       });
     }
     setItemNameOpen(false);
@@ -152,14 +164,14 @@ export default function AddItemForm({
       const freeItemQuantity = parseFloat(newItem.freeItemQuantity) || 0;
 
       // Check available quantity
-      const availableQty = parseFloat(getAvailableQuantity()) || 0;
+      const availableQty = getAvailableQuantity();
       if (quantity > availableQty) {
         alert(`Insufficient stock! Available quantity: ${availableQty}`);
         return;
       }
 
-      const selectedProduct = products.find(
-        (product) => product.item_code === newItem.itemCode
+      const selectedStock = stocks.find(
+        (stock) => stock.item_code === newItem.itemCode
       );
 
       const item: Item = {
@@ -172,7 +184,7 @@ export default function AddItemForm({
         discount,
         amount: calculateAmount(price, quantity, discount),
         freeItemQuantity,
-        category: selectedProduct?.category_name || "Other",
+        category: "Stock Item", // You might want to add category to your stock API
       };
 
       onAddItem(item);
@@ -188,17 +200,19 @@ export default function AddItemForm({
     }
   };
 
+  const selectedStockDetails = getSelectedStockDetails();
+
   return (
     <div>
-      {/* Products API Error Display */}
-      {productsError && (
+      {/* Stock API Error Display */}
+      {stocksError && (
         <div className="mb-6 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-600">
           <AlertCircle className="h-4 w-4" />
-          <span>Failed to load products from API</span>
+          <span>Failed to load stock data from API</span>
           <Button
             variant="ghost"
             size="sm"
-            onClick={refetchProducts}
+            onClick={refetchStocks}
             className="ml-auto text-red-600 hover:text-red-700"
           >
             Retry
@@ -211,7 +225,7 @@ export default function AddItemForm({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Plus className="h-5 w-5" />
-            Add New Item
+            Add New Item from Stock
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -224,64 +238,63 @@ export default function AddItemForm({
                     variant="outline"
                     role="combobox"
                     className="w-full justify-between h-10"
-                    disabled={productsLoading}
+                    disabled={stocksLoading}
                   >
                     <span className="truncate">
                       {newItem.itemCode ||
-                        (productsLoading ? "Loading..." : "Select code...")}
+                        (stocksLoading ? "Loading..." : "Select code...")}
                     </span>
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0">
                   <Command>
-                    <CommandInput placeholder="Search items..." />
+                    <CommandInput placeholder="Search by item code..." />
                     <CommandList>
                       <CommandEmpty>
-                        {productsLoading
-                          ? "Loading products..."
-                          : availableProducts.length === 0
-                          ? "All items have been added"
+                        {stocksLoading
+                          ? "Loading stock data..."
+                          : availableStocks.length === 0
+                          ? "No items with stock available"
                           : "No item found."}
                       </CommandEmpty>
-                      {!productsLoading && availableProducts.length > 0 && (
+                      {!stocksLoading && availableStocks.length > 0 && (
                         <CommandGroup>
-                          {availableProducts.map((product) => (
+                          {availableStocks.map((stock) => (
                             <CommandItem
-                              key={product.item_uuid}
-                              value={product.item_code}
+                              key={stock.item_id}
+                              value={stock.item_code}
                               onSelect={() =>
-                                handleItemCodeSelect(product.item_code)
+                                handleItemCodeSelect(stock.item_code)
                               }
                             >
                               <div className="flex-1">
-                                <p className="font-medium">
-                                  {product.item_code}
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-sm">
+                                    {stock.item_code}
+                                  </p>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs text-green-600"
+                                  >
+                                    Stock: {stock.total_stock}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-1">
+                                  {stock.item_name}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {product.item_name}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    ${stock.selling_price.toFixed(2)}
+                                  </span>
                                   <Badge
                                     variant="secondary"
                                     className="text-xs"
                                   >
-                                    {product.category_name}
+                                    {stock.supplier_name}
                                   </Badge>
                                   <Badge variant="outline" className="text-xs">
-                                    {product.unit_type}
-                                  </Badge>
-                                  <span className="text-xs text-green-600 font-medium">
-                                    $
-                                    {parseFloat(product.selling_price).toFixed(
-                                      2
-                                    )}
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-blue-600"
-                                  >
-                                    Stock: {product.unit_quantity}
+                                    {stock.location_count} locations
                                   </Badge>
                                 </div>
                               </div>
@@ -303,64 +316,63 @@ export default function AddItemForm({
                     variant="outline"
                     role="combobox"
                     className="w-full justify-between h-10"
-                    disabled={productsLoading}
+                    disabled={stocksLoading}
                   >
                     <span className="truncate">
                       {newItem.itemName ||
-                        (productsLoading ? "Loading..." : "Select item...")}
+                        (stocksLoading ? "Loading..." : "Select item...")}
                     </span>
                     <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-0">
                   <Command>
-                    <CommandInput placeholder="Search items..." />
+                    <CommandInput placeholder="Search by item name..." />
                     <CommandList>
                       <CommandEmpty>
-                        {productsLoading
-                          ? "Loading products..."
-                          : availableProducts.length === 0
-                          ? "All items have been added"
+                        {stocksLoading
+                          ? "Loading stock data..."
+                          : availableStocks.length === 0
+                          ? "No items with stock available"
                           : "No item found."}
                       </CommandEmpty>
-                      {!productsLoading && availableProducts.length > 0 && (
+                      {!stocksLoading && availableStocks.length > 0 && (
                         <CommandGroup>
-                          {availableProducts.map((product) => (
+                          {availableStocks.map((stock) => (
                             <CommandItem
-                              key={product.item_uuid}
-                              value={product.item_name}
+                              key={stock.item_id}
+                              value={stock.item_name}
                               onSelect={() =>
-                                handleItemNameSelect(product.item_name)
+                                handleItemNameSelect(stock.item_name)
                               }
                             >
                               <div className="flex-1">
-                                <p className="font-medium">
-                                  {product.item_name}
+                                <div className="flex items-center justify-between">
+                                  <p className="font-medium text-sm">
+                                    {stock.item_name}
+                                  </p>
+                                  <Badge
+                                    variant="outline"
+                                    className="text-xs text-green-600"
+                                  >
+                                    Stock: {stock.total_stock}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-1">
+                                  {stock.item_code}
                                 </p>
-                                <p className="text-xs text-gray-500">
-                                  {product.item_code}
-                                </p>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-blue-600 font-medium">
+                                    ${stock.selling_price.toFixed(2)}
+                                  </span>
                                   <Badge
                                     variant="secondary"
                                     className="text-xs"
                                   >
-                                    {product.category_name}
+                                    {stock.supplier_name}
                                   </Badge>
                                   <Badge variant="outline" className="text-xs">
-                                    {product.unit_type}
-                                  </Badge>
-                                  <span className="text-xs text-green-600 font-medium">
-                                    $
-                                    {parseFloat(product.selling_price).toFixed(
-                                      2
-                                    )}
-                                  </span>
-                                  <Badge
-                                    variant="outline"
-                                    className="text-xs text-blue-600"
-                                  >
-                                    Stock: {product.unit_quantity}
+                                    {stock.location_count} locations
                                   </Badge>
                                 </div>
                               </div>
@@ -382,14 +394,21 @@ export default function AddItemForm({
                 value={newItem.price}
                 onChange={(e) => handleInputChange("price", e.target.value)}
                 className="h-10"
+                step="0.01"
               />
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm">Available Qty</Label>
+              <Label className="text-sm">Available Stock</Label>
               <div className="h-10 px-3 py-2 border rounded-md bg-gray-100 flex items-center font-medium text-blue-600 border-blue-200">
-                <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                {getAvailableQuantity() || "0"}
+                <Package2 className="h-4 w-4 mr-2 text-green-500" />
+                {getAvailableQuantity() || 0}
+                {selectedStockDetails &&
+                  selectedStockDetails.location_count > 1 && (
+                    <Badge variant="outline" className="ml-2 text-xs">
+                      {selectedStockDetails.location_count} locations
+                    </Badge>
+                  )}
               </div>
             </div>
 
@@ -401,6 +420,7 @@ export default function AddItemForm({
                 value={newItem.quantity}
                 onChange={(e) => handleInputChange("quantity", e.target.value)}
                 className="h-10"
+                min="1"
                 max={getAvailableQuantity()}
               />
             </div>
@@ -409,12 +429,56 @@ export default function AddItemForm({
               <Label className="text-sm">Unit</Label>
               <Input
                 value={newItem.unit}
-                className="h-10 bg-gray-50"
-                placeholder="Unit type"
-                readOnly
+                onChange={(e) => handleInputChange("unit", e.target.value)}
+                className="h-10"
+                placeholder="Unit type (e.g., pcs, kg)"
               />
             </div>
           </div>
+
+          {/* Stock Location Details
+          {selectedStockDetails && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Package2 className="h-4 w-4 text-blue-600" />
+                <Label className="text-sm font-medium text-blue-800">
+                  Stock Location Details
+                </Label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-600">Supplier:</span>
+                  <p className="font-medium">
+                    {selectedStockDetails.supplier_name}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-600">Unit Price:</span>
+                  <p className="font-medium">
+                    ${selectedStockDetails.unit_price.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-600">MRP:</span>
+                  <p className="font-medium">
+                    ${selectedStockDetails.mrp.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+              {selectedStockDetails.locations.length > 0 && (
+                <div className="mt-2">
+                  <span className="text-gray-600 text-xs">Locations:</span>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedStockDetails.locations.map((location, index) => (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {location.location_name}: {location.quantity}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )} */}
 
           <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
@@ -425,6 +489,8 @@ export default function AddItemForm({
                 value={newItem.discount}
                 onChange={(e) => handleInputChange("discount", e.target.value)}
                 className="h-10"
+                min="0"
+                max="100"
               />
             </div>
 
@@ -438,6 +504,7 @@ export default function AddItemForm({
                   handleInputChange("freeItemQuantity", e.target.value)
                 }
                 className="h-10"
+                min="0"
               />
             </div>
 
@@ -465,10 +532,9 @@ export default function AddItemForm({
                   !newItem.price ||
                   !newItem.quantity ||
                   !newItem.unit ||
-                  productsLoading ||
+                  stocksLoading ||
                   isItemAlreadyAdded(newItem.itemCode) ||
-                  parseFloat(newItem.quantity) >
-                    parseFloat(getAvailableQuantity())
+                  parseFloat(newItem.quantity) > getAvailableQuantity()
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700 h-10"
               >
@@ -489,8 +555,7 @@ export default function AddItemForm({
           )}
 
           {newItem.quantity &&
-            parseFloat(newItem.quantity) >
-              parseFloat(getAvailableQuantity() || "0") && (
+            parseFloat(newItem.quantity) > getAvailableQuantity() && (
               <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
                 <AlertCircle className="h-4 w-4" />
                 <span>
@@ -499,6 +564,13 @@ export default function AddItemForm({
                 </span>
               </div>
             )}
+
+          {getAvailableQuantity() === 0 && newItem.itemCode && (
+            <div className="flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>This item is out of stock</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
