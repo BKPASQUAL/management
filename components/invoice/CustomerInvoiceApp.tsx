@@ -1,8 +1,8 @@
-// components/invoice/CustomerInvoiceApp.tsx - Fixed version with stock integration
+// components/invoice/CustomerInvoiceApp.tsx - Updated version with Save and Print functionality
 "use client";
 
 import * as React from "react";
-import { Save, Printer, X, Package } from "lucide-react";
+import { Save, Printer, X, Package, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/ToastContext";
 import InvoiceHeader from "./InvoiceHeader";
@@ -49,6 +49,8 @@ export default function CustomerInvoiceApp() {
   const [editingId, setEditingId] = React.useState<number | null>(null);
   const [isMobile, setIsMobile] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [isSaveAndPrintLoading, setIsSaveAndPrintLoading] =
+    React.useState(false);
 
   // New item state - Updated for stock-based form
   const [newItem, setNewItem] = React.useState<NewItemRow>({
@@ -121,6 +123,30 @@ export default function CustomerInvoiceApp() {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
+  // Clear all fields function
+  const clearAllFields = () => {
+    setItems([]);
+    setNewItem({
+      itemCode: "",
+      itemName: "",
+      price: "",
+      quantity: "",
+      unit: "",
+      discount: "",
+      freeItemQuantity: "",
+    });
+    setSelectedCustomer("");
+    setPaymentMethod("");
+    setExtraDiscount("0");
+    setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+    setBillingDate(new Date());
+    setEditingId(null);
+    setCustomerOpen(false);
+    setPaymentMethodOpen(false);
+    setItemCodeOpen(false);
+    setItemNameOpen(false);
+  };
+
   // Item management functions
   const calculateAmount = (
     price: number,
@@ -183,7 +209,8 @@ export default function CustomerInvoiceApp() {
     );
   };
 
-  const saveInvoice = async () => {
+  // Validation function
+  const validateInvoice = () => {
     if (items.length === 0) {
       addToast({
         type: "error",
@@ -191,7 +218,7 @@ export default function CustomerInvoiceApp() {
         description: "Please add at least one item to save the invoice.",
         duration: 4000,
       });
-      return;
+      return false;
     }
     if (!selectedCustomer) {
       addToast({
@@ -200,7 +227,7 @@ export default function CustomerInvoiceApp() {
         description: "Please select a customer before saving the invoice.",
         duration: 4000,
       });
-      return;
+      return false;
     }
     if (!paymentMethod) {
       addToast({
@@ -210,10 +237,19 @@ export default function CustomerInvoiceApp() {
           "Please select a payment method before saving the invoice.",
         duration: 4000,
       });
-      return;
+      return false;
     }
+    return true;
+  };
 
-    setIsLoading(true);
+  // Save invoice function
+  const saveInvoice = async (shouldPrint = false) => {
+    if (!validateInvoice()) return;
+
+    const loadingStateSetter = shouldPrint
+      ? setIsSaveAndPrintLoading
+      : setIsLoading;
+    loadingStateSetter(true);
 
     try {
       // Prepare data for backend
@@ -266,30 +302,31 @@ export default function CustomerInvoiceApp() {
       // Success notification
       addToast({
         type: "success",
-        title: "Invoice Saved Successfully!",
+        title: shouldPrint
+          ? "Invoice Saved & Print Ready!"
+          : "Invoice Saved Successfully!",
         description: `Invoice ${
           result.data.invoice_no
         } has been saved with ${totalItems} items totaling $${finalTotal.toFixed(
           2
-        )}.`,
+        )}.${shouldPrint ? " Preparing for print..." : ""}`,
         duration: 6000,
       });
 
-      // Clear form after successful save
-      setItems([]);
-      setNewItem({
-        itemCode: "",
-        itemName: "",
-        price: "",
-        quantity: "",
-        unit: "",
-        discount: "",
-        freeItemQuantity: "",
-      });
-      setSelectedCustomer("");
-      setPaymentMethod("");
-      setExtraDiscount("0");
-      setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+      // Clear form after successful save - but delay if printing
+      if (shouldPrint) {
+        // For save & print: delay clearing until after print is done
+        setTimeout(() => {
+          window.print();
+          // Clear fields after print dialog appears
+          setTimeout(() => {
+            clearAllFields();
+          }, 2000); // Give time for print dialog and user interaction
+        }, 1000);
+      } else {
+        // For save only: clear immediately
+        clearAllFields();
+      }
     } catch (error) {
       console.error("Error saving invoice:", error);
 
@@ -303,9 +340,12 @@ export default function CustomerInvoiceApp() {
         duration: 6000,
       });
     } finally {
-      setIsLoading(false);
+      loadingStateSetter(false);
     }
   };
+
+  const handleSaveOnly = () => saveInvoice(false);
+  const handleSaveAndPrint = () => saveInvoice(true);
 
   const clearAll = () => {
     if (
@@ -313,20 +353,7 @@ export default function CustomerInvoiceApp() {
         "Are you sure you want to clear all data? This action cannot be undone."
       )
     ) {
-      setItems([]);
-      setNewItem({
-        itemCode: "",
-        itemName: "",
-        price: "",
-        quantity: "",
-        unit: "",
-        discount: "",
-        freeItemQuantity: "",
-      });
-      setSelectedCustomer("");
-      setPaymentMethod("");
-      setExtraDiscount("0");
-      setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
+      clearAllFields();
 
       addToast({
         type: "info",
@@ -432,14 +459,28 @@ export default function CustomerInvoiceApp() {
                 Add and manage your invoice items from stock inventory
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
-                onClick={saveInvoice}
+                onClick={handleSaveOnly}
                 className="bg-green-600 hover:bg-green-700 text-white"
-                disabled={items.length === 0 || isLoading}
+                disabled={
+                  items.length === 0 || isLoading || isSaveAndPrintLoading
+                }
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isLoading ? "Saving..." : "Save Invoice"}
+              </Button>
+              <Button
+                onClick={handleSaveAndPrint}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={
+                  items.length === 0 || isLoading || isSaveAndPrintLoading
+                }
+              >
+                <FileCheck className="h-4 w-4 mr-2" />
+                {isSaveAndPrintLoading
+                  ? "Saving & Printing..."
+                  : "Save & Print"}
               </Button>
               <Button
                 variant="outline"
@@ -450,7 +491,7 @@ export default function CustomerInvoiceApp() {
                 onClick={handlePrint}
               >
                 <Printer className="h-4 w-4 mr-2" />
-                Print
+                Print Only
               </Button>
             </div>
           </div>
@@ -496,12 +537,21 @@ export default function CustomerInvoiceApp() {
         <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
           <Button
             size="lg"
-            onClick={saveInvoice}
+            onClick={handleSaveOnly}
             className="bg-green-600 hover:bg-green-700 text-white px-8 py-3"
-            disabled={items.length === 0 || isLoading}
+            disabled={items.length === 0 || isLoading || isSaveAndPrintLoading}
           >
             <Save className="h-5 w-5 mr-2" />
             {isLoading ? "Saving..." : "Save Invoice"}
+          </Button>
+          <Button
+            size="lg"
+            onClick={handleSaveAndPrint}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
+            disabled={items.length === 0 || isLoading || isSaveAndPrintLoading}
+          >
+            <FileCheck className="h-5 w-5 mr-2" />
+            {isSaveAndPrintLoading ? "Saving & Printing..." : "Save & Print"}
           </Button>
           <Button
             variant="outline"
@@ -511,7 +561,7 @@ export default function CustomerInvoiceApp() {
             onClick={handlePrint}
           >
             <Printer className="h-5 w-5 mr-2" />
-            Print Invoice
+            Print Only
           </Button>
           <Button
             variant="ghost"
