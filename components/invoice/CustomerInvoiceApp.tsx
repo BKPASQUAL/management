@@ -286,7 +286,7 @@ export default function CustomerInvoiceApp() {
 
       // Call backend API
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/customers`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/customer-bills`,
         {
           method: "POST",
           headers: {
@@ -370,51 +370,6 @@ export default function CustomerInvoiceApp() {
     }
   };
 
-  const handlePrint = () => {
-    // Validation checks
-    if (items.length === 0) {
-      addToast({
-        type: "warning",
-        title: "No Items to Print",
-        description: "Please add items to the invoice before printing.",
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (!selectedCustomer) {
-      addToast({
-        type: "warning",
-        title: "Customer Required",
-        description: "Please select a customer before printing.",
-        duration: 3000,
-      });
-      return;
-    }
-
-    if (!paymentMethod) {
-      addToast({
-        type: "warning",
-        title: "Payment Method Required",
-        description: "Please select a payment method before printing.",
-        duration: 3000,
-      });
-      return;
-    }
-
-    // Show preparing toast
-    addToast({
-      type: "info",
-      title: "Preparing Print",
-      description: "Invoice is being prepared for printing...",
-      duration: 2000,
-    });
-
-    // Small delay to allow toast to show, then print
-    setTimeout(() => {
-      window.print();
-    }, 100);
-  };
 
   // Calculations
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
