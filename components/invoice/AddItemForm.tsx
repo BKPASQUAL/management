@@ -480,7 +480,7 @@ export default function AddItemForm({
             </div>
           )} */}
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <Label className="text-sm">Discount (%)</Label>
               <Input
@@ -538,7 +538,7 @@ export default function AddItemForm({
                 }
                 className="w-full bg-blue-600 hover:bg-blue-700 h-10"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 " />
                 {isItemAlreadyAdded(newItem.itemCode)
                   ? "Already Added"
                   : "Add Item"}
