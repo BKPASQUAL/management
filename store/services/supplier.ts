@@ -65,7 +65,7 @@ export interface Business {
 export const supplierApi = createApi({
   reducerPath: "supplierApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/", // ⚡ NestJS backend port
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL ,
   }),
   tagTypes: ["Supplier", "SupplierBill", "Business"],
   endpoints: (builder) => ({

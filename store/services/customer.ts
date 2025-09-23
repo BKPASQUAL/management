@@ -67,7 +67,7 @@ export interface CustomersListResponse {
 export const customerApi = createApi({
   reducerPath: "customerApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/", // Updated base URL - adjust as needed
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL ,
     prepareHeaders: (headers) => {
       headers.set("content-type", "application/json");
       // Add authorization header if needed

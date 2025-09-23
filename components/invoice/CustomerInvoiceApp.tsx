@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { Save, Printer, X, Package, FileCheck } from "lucide-react";
+import { Save, X, Package, FileCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/ToastContext";
 import InvoiceHeader from "./InvoiceHeader";
@@ -482,7 +482,7 @@ export default function CustomerInvoiceApp() {
                   ? "Saving & Printing..."
                   : "Save & Print"}
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 className="border-gray-300"
                 disabled={
@@ -492,7 +492,7 @@ export default function CustomerInvoiceApp() {
               >
                 <Printer className="h-4 w-4 mr-2" />
                 Print Only
-              </Button>
+              </Button> */}
             </div>
           </div>
 
@@ -553,7 +553,7 @@ export default function CustomerInvoiceApp() {
             <FileCheck className="h-5 w-5 mr-2" />
             {isSaveAndPrintLoading ? "Saving & Printing..." : "Save & Print"}
           </Button>
-          <Button
+          {/* <Button
             variant="outline"
             size="lg"
             className="px-8 py-3 border-gray-300"
@@ -562,7 +562,7 @@ export default function CustomerInvoiceApp() {
           >
             <Printer className="h-5 w-5 mr-2" />
             Print Only
-          </Button>
+          </Button> */}
           <Button
             variant="ghost"
             size="lg"

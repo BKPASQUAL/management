@@ -120,7 +120,7 @@ export interface StockTransferResponse {
 export const stockApi = createApi({
   reducerPath: "stockApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/",
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
     prepareHeaders: (headers) => {
       // Add any authentication headers if needed
       // headers.set('authorization', `Bearer ${token}`);

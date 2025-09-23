@@ -140,7 +140,7 @@ export interface BillSummaryResponse {
 export const customerBillApi = createApi({
   reducerPath: "customerBillApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/",
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
     prepareHeaders: (headers) => {
       headers.set("content-type", "application/json");
       // Add authorization header if needed

@@ -48,7 +48,7 @@ export type CreateProductRequest = Omit<Product, "item_code"> & {
 export const productApi = createApi({
   reducerPath: "productApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/",
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL ,
   }),
   tagTypes: ["Product"],
   endpoints: (builder) => ({

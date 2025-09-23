@@ -28,7 +28,7 @@ export interface CreateSupplierRequest {
 export const api = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: "http://localhost:3001/", // Replace with your actual base URL
+    baseUrl: process.env.NEXT_PUBLIC_BASE_URL ,
   }),
   tagTypes: ["Supplier"],
   endpoints: (builder) => ({
