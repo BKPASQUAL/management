@@ -1,459 +1,553 @@
-"use client";
-
-import React, { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import {
-  ShoppingCart,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   Package,
-  CheckCircle2,
-  Truck,
-  ArrowLeft,
-  Clock,
-  User,
-  MapPin,
-  Phone,
-  Building2,
   Calendar,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  DollarSign,
+  Clock,
+  ChevronRight,
+  Eye,
+  Edit3,
+  CheckCircle2,
 } from "lucide-react";
 
-// Types
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerName: string;
-  customerPhone: string;
-  customerAddress: string;
-  items: OrderItem[];
-  totalAmount: number;
-  status: OrderStatus;
-  createdAt: string;
-  representative: string;
-  area: string;
-}
-
+// TypeScript interfaces
 interface OrderItem {
   id: string;
-  itemCode: string;
-  itemName: string;
+  name: string;
+  description: string;
   quantity: number;
-  price: number;
-  total: number;
+  unitPrice: number;
+  totalPrice: number;
+  image?: string;
+  sku: string;
 }
 
-type OrderStatus =
-  | "make_order"
-  | "prepare_order"
-  | "checking_order"
-  | "loading"
-  | "delivered";
-
-// Step configuration
-const STEPS = [
-  {
-    id: 1,
-    key: "make_order" as const,
-    title: "Order Created",
-    description: "Order placed",
-    icon: ShoppingCart,
-    color: "bg-blue-500",
-  },
-  {
-    id: 2,
-    key: "prepare_order" as const,
-    title: "Preparing",
-    description: "Items being packed",
-    icon: Package,
-    color: "bg-amber-500",
-  },
-  {
-    id: 3,
-    key: "checking_order" as const,
-    title: "Quality Check",
-    description: "Verifying items",
-    icon: CheckCircle2,
-    color: "bg-purple-500",
-  },
-  {
-    id: 4,
-    key: "loading" as const,
-    title: "Out for Delivery",
-    description: "On the way",
-    icon: Truck,
-    color: "bg-orange-500",
-  },
-  {
-    id: 5,
-    key: "delivered" as const,
-    title: "Delivered",
-    description: "Completed",
-    icon: CheckCircle2,
-    color: "bg-green-500",
-  },
-];
-
-const OrderProcessPage: React.FC = () => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const orderId = searchParams.get("orderId");
-
-  const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchOrder = async () => {
-      setIsLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const mockOrder: Order = {
-        id: orderId || "ORD001",
-        orderNumber: "ORD-2024-001",
-        customerName: "Acme Electronics Ltd",
-        customerPhone: "+94 11 2345678",
-        customerAddress: "123 Main Street, Colombo 03",
-        representative: "John Silva",
-        area: "Colombo",
-        items: [
-          {
-            id: "1",
-            itemCode: "WH001",
-            itemName: "Wireless Headphones",
-            quantity: 2,
-            price: 15000,
-            total: 30000,
-          },
-          {
-            id: "2",
-            itemCode: "BS002",
-            itemName: "Bluetooth Speaker",
-            quantity: 1,
-            price: 8500,
-            total: 8500,
-          },
-          {
-            id: "3",
-            itemCode: "PC003",
-            itemName: "Phone Case",
-            quantity: 3,
-            price: 2500,
-            total: 7500,
-          },
-        ],
-        totalAmount: 46000,
-        status: "prepare_order",
-        createdAt: "2024-01-15T10:30:00Z",
-      };
-
-      setOrder(mockOrder);
-      setIsLoading(false);
-    };
-
-    fetchOrder();
-  }, [orderId]);
-
-  const handleStatusUpdate = (newStatus: OrderStatus) => {
-    if (order) {
-      setOrder({ ...order, status: newStatus });
-      console.log(`Order ${order.id} status updated to: ${newStatus}`);
-    }
+interface CustomerInfo {
+  name: string;
+  email: string;
+  phone: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
   };
+}
 
-  const getCurrentStepIndex = () => {
-    if (!order) return 0;
-    return STEPS.findIndex((step) => step.key === order.status);
-  };
+interface OrderDetails {
+  orderId: string;
+  orderNumber: string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  orderDate: string;
+  estimatedDelivery: string;
+  subtotal: number;
+  tax: number;
+  shipping: number;
+  total: number;
+  paymentMethod: string;
+  paymentStatus: "pending" | "paid" | "failed";
+  customer: CustomerInfo;
+  items: OrderItem[];
+}
 
-  const getNextStep = () => {
-    const currentIndex = getCurrentStepIndex();
-    return currentIndex < STEPS.length - 1 ? STEPS[currentIndex + 1] : null;
+// Sample data - replace with your actual data source
+const sampleOrderData: OrderDetails = {
+  orderId: "order_1234567890",
+  orderNumber: "ORD-2024-001234",
+  status: "pending",
+  orderDate: "2024-03-15T10:30:00Z",
+  estimatedDelivery: "2024-03-22T17:00:00Z",
+  subtotal: 299.97,
+  tax: 24.0,
+  shipping: 15.0,
+  total: 338.97,
+  paymentMethod: "Credit Card",
+  paymentStatus: "paid",
+  customer: {
+    name: "John Anderson",
+    email: "john.anderson@email.com",
+    phone: "+1 (555) 123-4567",
+    address: {
+      street: "123 Main Street, Apt 4B",
+      city: "New York",
+      state: "NY",
+      zipCode: "10001",
+      country: "United States",
+    },
+  },
+  items: [
+    {
+      id: "1",
+      name: "Wireless Bluetooth Headphones",
+      description: "Premium noise-cancelling headphones with 30hr battery",
+      quantity: 1,
+      unitPrice: 149.99,
+      totalPrice: 149.99,
+      sku: "WBH-001",
+      image: "/api/placeholder/100/100",
+    },
+    {
+      id: "2",
+      name: "USB-C Fast Charging Cable",
+      description: "3ft braided USB-C to USB-A cable, 60W fast charging",
+      quantity: 2,
+      unitPrice: 24.99,
+      totalPrice: 49.98,
+      sku: "USC-002",
+    },
+    {
+      id: "3",
+      name: "Wireless Phone Charger",
+      description: "15W Qi-compatible wireless charging pad",
+      quantity: 1,
+      unitPrice: 99.99,
+      totalPrice: 99.99,
+      sku: "WPC-003",
+    },
+  ],
+};
+
+// Step indicator component
+const StepIndicator: React.FC<{ currentStep: number; totalSteps: number }> = ({
+  currentStep,
+  totalSteps,
+}) => {
+  const steps = [
+    {
+      number: 1,
+      title: "Order Details",
+      description: "Review order information",
+      icon: Eye,
+    },
+    {
+      number: 2,
+      title: "Check Orders",
+      description: "Verify order accuracy",
+      icon: CheckCircle2,
+    },
+    {
+      number: 3,
+      title: "Loading",
+      description: "Add lorry & person",
+      icon: Package,
+    },
+    {
+      number: 4,
+      title: "Delivered",
+      description: "Mark as completed",
+      icon: CheckCircle2,
+    },
+  ];
+
+  return (
+    <div className="bg-white border-b border-gray-200">
+      <nav aria-label="Order processing steps">
+        <ol className="flex items-center justify-between max-w-4xl mx-auto">
+          {steps.map((step, index) => {
+            const IconComponent = step.icon;
+            return (
+              <li key={step.number} className="flex items-center flex-1">
+                <div className="flex items-center">
+                  <div className="flex items-center">
+                    <div
+                      className={`
+                        flex items-center justify-center w-10 h-10 rounded-full border-2 text-sm font-semibold relative
+                        ${
+                          step.number === currentStep
+                            ? "bg-blue-600 border-blue-600 text-white shadow-lg"
+                            : step.number < currentStep
+                            ? "bg-green-600 border-green-600 text-white"
+                            : "bg-white border-gray-300 text-gray-500"
+                        }
+                      `}
+                    >
+                      {step.number < currentStep ? (
+                        <CheckCircle2 className="w-5 h-5" />
+                      ) : (
+                        <IconComponent className="w-5 h-5" />
+                      )}
+                    </div>
+                    <div className="ml-3 min-w-0">
+                      <p
+                        className={`text-sm font-medium ${
+                          step.number <= currentStep
+                            ? "text-gray-900"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {step.title}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {index < steps.length - 1 && (
+                  <ChevronRight className="w-4 h-4 text-gray-400 mx-4 flex-shrink-0" />
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
+    </div>
+  );
+};
+
+// Main component
+const OrderProcessingStep1: React.FC = () => {
+  const order = sampleOrderData;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-LK", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "LKR",
-      minimumFractionDigits: 0,
+      currency: "USD",
     }).format(amount);
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-4">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary mx-auto"></div>
-          <p className="text-muted-foreground">Loading order details...</p>
-        </div>
-      </div>
-    );
-  }
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "secondary";
+      case "processing":
+        return "default";
+      case "shipped":
+        return "default";
+      case "delivered":
+        return "default";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
 
-  if (!order) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Card className="w-full max-w-md text-center">
-          <CardContent className="pt-6">
-            <p className="text-destructive mb-4">Order not found</p>
-            <Button onClick={() => router.push("/admin/orders")}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Orders
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const currentStepIndex = getCurrentStepIndex();
-  const nextStep = getNextStep();
-  const progressPercentage = ((currentStepIndex + 1) / STEPS.length) * 100;
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "processing":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      case "shipped":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "delivered":
+        return "bg-green-100 text-green-800 border-green-200";
+      case "cancelled":
+        return "bg-red-100 text-red-800 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-800 border-gray-200";
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/admin/orders")}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">Order Tracking</h1>
-            <p className="text-sm text-muted-foreground">
-              Monitor order progress
-            </p>
+    <div className="">
+      {/* Step Indicator */}
+      <StepIndicator currentStep={1} totalSteps={4} />
+
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6 py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Package className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Order Processing
+                </h1>
+                <p className="text-sm text-gray-600 mt-1">
+                  Step 1: Review and verify order information before processing
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(
+                  order.status
+                )}`}
+              >
+                <Clock className="w-4 h-4 mr-2" />
+                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+              </div>
+              <div className="text-right">
+                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                  Order Number
+                </p>
+                <p className="font-mono font-bold text-lg text-gray-900">
+                  {order.orderNumber}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-        <Badge variant="secondary" className="px-3 py-1">
-          {order.orderNumber}
-        </Badge>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Progress Section */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Progress Overview */}
-          <Card>
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">Order Progress</CardTitle>
-                  <CardDescription>
-                    {STEPS[currentStepIndex]?.title} • {Math.round(progressPercentage)}% Complete
-                  </CardDescription>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{currentStepIndex + 1}</div>
-                  <div className="text-xs text-muted-foreground">of {STEPS.length}</div>
-                </div>
-              </div>
-              <Progress value={progressPercentage} className="mt-4" />
-            </CardHeader>
-          </Card>
-
-          {/* Steps */}
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {STEPS.map((step, index) => {
-                  const isCompleted = index < currentStepIndex;
-                  const isCurrent = index === currentStepIndex;
-                  const isUpcoming = index > currentStepIndex;
-
-                  return (
-                    <div key={step.id} className="flex items-center gap-4">
-                      <div
-                        className={`
-                          w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
-                          ${isCompleted
-                            ? "bg-green-500 border-green-500 text-white"
-                            : isCurrent
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "bg-muted border-muted-foreground/20 text-muted-foreground"
-                          }
-                        `}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="h-5 w-5" />
-                        ) : (
-                          React.createElement(step.icon, { className: "h-4 w-4" })
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className={`font-medium ${isCurrent ? "text-primary" : isCompleted ? "text-green-600" : "text-muted-foreground"}`}>
-                              {step.title}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {step.description}
+      {/* Main Content */}
+      <div className="px-6 py-6">
+        <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 max-w-full">
+          {/* Order Items Section - Takes 3 columns */}
+          <div className="xl:col-span-3 space-y-6">
+            {/* Order Items Card */}
+            <Card className="shadow-sm">
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Package className="w-5 h-5 mr-3 text-blue-600" />
+                    <span className="text-lg font-semibold">Order Items</span>
+                    <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full">
+                      {order.items.length} items
+                    </span>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[80px]">Image</TableHead>
+                      <TableHead className="w-[120px]">Item Code</TableHead>
+                      <TableHead>Item Name</TableHead>
+                      <TableHead className="w-[100px] text-center">
+                        Unit Type
+                      </TableHead>
+                      <TableHead className="w-[80px] text-center">
+                        Qty
+                      </TableHead>
+                      <TableHead className="w-[120px] text-right">
+                        Unit Price
+                      </TableHead>
+                      <TableHead className="w-[120px] text-right">
+                        Total Price
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {order.items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                            {item.image ? (
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-full h-full object-cover rounded-lg"
+                              />
+                            ) : (
+                              <Package className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-mono text-sm bg-gray-100 px-2 py-1 rounded text-center">
+                            {item.sku}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-gray-900 text-sm">
+                              {item.name}
+                            </h3>
+                            <p className="text-xs text-gray-600 line-clamp-2">
+                              {item.description}
                             </p>
                           </div>
-                          {isCurrent && (
-                            <Badge variant="default" className="text-xs">
-                              Current
-                            </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className="text-xs">
+                            Each
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="inline-flex items-center justify-center w-12 h-8 bg-blue-50 border border-blue-200 rounded text-sm font-semibold text-blue-900">
+                            {item.quantity}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {formatCurrency(item.unitPrice)}
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-lg">
+                          {formatCurrency(item.totalPrice)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {/* Table Summary */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <span>
+                        Total Items:{" "}
+                        <span className="font-semibold text-gray-900">
+                          {order.items.length}
+                        </span>
+                      </span>
+                      <span>
+                        Total Quantity:{" "}
+                        <span className="font-semibold text-gray-900">
+                          {order.items.reduce(
+                            (sum, item) => sum + item.quantity,
+                            0
                           )}
-                          {isCompleted && (
-                            <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">
-                              Complete
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+                        </span>
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
-
-              {/* Action Button */}
-              {nextStep && (
-                <div className="mt-6 pt-4 border-t">
-                  <Button
-                    onClick={() => handleStatusUpdate(nextStep.key)}
-                    className="w-full"
-                    size="lg"
-                  >
-                    Move to {nextStep.title}
-                  </Button>
-                </div>
-              )}
-
-              {currentStepIndex === STEPS.length - 1 && (
-                <div className="mt-6 pt-4 border-t text-center">
-                  <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-3" />
-                  <p className="font-semibold text-green-600 mb-2">
-                    Order Delivered Successfully!
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    This order has been completed.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Order Details Sidebar */}
-        <div className="space-y-6">
-          {/* Customer Info */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">Customer Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-sm">
-                    {order.customerName.split(" ").map(n => n[0]).join("").substring(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm truncate">{order.customerName}</p>
-                  <p className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Building2 className="h-3 w-3" />
-                    {order.area}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
-                  <span>{order.customerPhone}</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <span className="text-xs leading-relaxed">{order.customerAddress}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span>{order.representative}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Order Summary */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">Order Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-start text-sm">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="font-medium truncate">{item.itemName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.itemCode} × {item.quantity}
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Subtotal</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {formatCurrency(order.subtotal)}
                       </p>
                     </div>
-                    <p className="font-medium whitespace-nowrap">
-                      {formatCurrency(item.total)}
-                    </p>
                   </div>
-                ))}
-                
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Summary Sidebar - 1 column */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Order Summary */}
+            <Card className="shadow-sm sticky top-6">
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="flex items-center">
+                  <DollarSign className="w-5 h-5 mr-3 text-green-600" />
+                  <span className="text-lg font-semibold">Order Summary</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span className="font-medium">
+                      {formatCurrency(order.subtotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Tax:</span>
+                    <span className="font-medium">
+                      {formatCurrency(order.tax)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Shipping:</span>
+                    <span className="font-medium">
+                      {formatCurrency(order.shipping)}
+                    </span>
+                  </div>
+                </div>
+
                 <Separator />
-                
-                <div className="flex justify-between items-center font-semibold">
-                  <span>Total</span>
-                  <span className="text-primary">
-                    {formatCurrency(order.totalAmount)}
+
+                <div className="flex justify-between text-lg font-bold">
+                  <span>Total:</span>
+                  <span className="text-green-600">
+                    {formatCurrency(order.total)}
                   </span>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          {/* Order Info */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base">Order Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span>Created</span>
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Payment Method:</span>
+                    <span className="font-medium">{order.paymentMethod}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600">Payment Status:</span>
+                    <Badge
+                      variant={
+                        order.paymentStatus === "paid" ? "default" : "secondary"
+                      }
+                      className="text-xs"
+                    >
+                      {order.paymentStatus}
+                    </Badge>
+                  </div>
                 </div>
-                <span className="text-muted-foreground">
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span>Time</span>
+              </CardContent>
+            </Card>
+
+            {/* Order Timeline */}
+            {/* <Card className="shadow-sm">
+              <CardHeader className="border-b border-gray-100">
+                <CardTitle className="flex items-center">
+                  <Calendar className="w-5 h-5 mr-3 text-purple-600" />
+                  <span className="text-lg font-semibold">Timeline</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Order Date
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">
+                      {formatDate(order.orderDate)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Estimated Delivery
+                    </p>
+                    <p className="text-sm font-semibold text-gray-900 mt-1">
+                      {formatDate(order.estimatedDelivery)}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-muted-foreground">
-                  {new Date(order.createdAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card> */}
+
+            {/* Action Buttons */}
+            <div className="space-y-3">
+              <Button className="w-full" size="lg">
+                Proceed to Check Orders
+                <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button variant="outline" className="w-full" size="lg">
+                Edit Order Details
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-export default OrderProcessPage;
+export default OrderProcessingStep1;
