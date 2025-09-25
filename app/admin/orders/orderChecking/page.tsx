@@ -121,7 +121,7 @@ export default function OrderChecking() {
       </div>
 
       {/* Items Table */}
-      <Card>
+      <div className="border rounded-lg ">
         <CardContent className="p-0">
           <div className="p-4 border-b bg-gray-50/50">
             <div className="flex justify-between items-center">
@@ -288,7 +288,7 @@ export default function OrderChecking() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </div>
     </div>
   );
 }
