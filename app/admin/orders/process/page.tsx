@@ -174,9 +174,6 @@ export default function CompactOrderProcessing() {
                             <div className="font-medium text-sm">
                               {item.itemName}
                             </div>
-                            <div className="text-xs text-gray-500 truncate">
-                              {item.description}
-                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
