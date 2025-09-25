@@ -19,9 +19,11 @@ export function PageTitle() {
     if (path.startsWith("/products/productDetail/")) {
       return "Product Details";
     } else if (path.startsWith("/suppliers/supplierDetail/")) {
-      return "Product Details";
-    }  else if (path.startsWith("/customers/customerDetail/")) {
+      return "Supplier Details";
+    } else if (path.startsWith("/customers/customerDetail/")) {
       return "Customer Details";
+    } else if (path.startsWith("/admin/orders/process")) {
+      return "Step 1 | Process Orders";
     }
 
     // Add more dynamic route patterns here if needed
