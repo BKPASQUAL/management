@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -11,20 +12,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Package,
-  MapPin,
-  Phone,
-  Clock,
-  Building2,
-  Edit,
-  Trash2,
-  Eye,
-  CheckCircle2,
-} from "lucide-react";
+import { Package, Clock, Edit, Eye, CheckCircle2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
-// Sample item data
-const sampleItems = [
+// Utility function for conditional class names with proper TypeScript types
+const cn = (...classes: (string | undefined | null | boolean)[]): string => {
+  return classes.filter(Boolean).join(" ");
+};
+
+// TypeScript interface for items
+interface OrderItem {
+  id: string;
+  itemCode: string;
+  itemName: string;
+  description: string;
+  packType: string;
+  unitQuantity: number;
+  unitType: string;
+  unitPrice: number;
+  totalPrice: number;
+  image: string | null;
+  checked: boolean;
+}
+
+// Sample item data with checkbox state
+const initialItems: OrderItem[] = [
   {
     id: "1",
     itemCode: "ITM-001",
@@ -36,6 +48,7 @@ const sampleItems = [
     unitPrice: 125.5,
     totalPrice: 6275.0,
     image: null,
+    checked: false,
   },
   {
     id: "2",
@@ -48,6 +61,7 @@ const sampleItems = [
     unitPrice: 8.75,
     totalPrice: 875.0,
     image: null,
+    checked: false,
   },
   {
     id: "3",
@@ -60,26 +74,67 @@ const sampleItems = [
     unitPrice: 45.2,
     totalPrice: 1130.0,
     image: null,
+    checked: false,
   },
 ];
 
+// TypeScript interface for Checkbox props
+interface CheckboxProps {
+  checked: boolean;
+  onChange: () => void;
+  className?: string;
+  [key: string]: any;
+}
+
+// Custom Checkbox Component with black styling
 export default function CompactOrderProcessing() {
-  const formatCurrency = (amount: number) => {
+  const [items, setItems] = useState<OrderItem[]>(initialItems);
+  const [selectAll, setSelectAll] = useState<boolean>(false);
+
+  const formatCurrency = (amount: number): string => {
     return `Rs. ${amount.toLocaleString("en-US", {
       minimumFractionDigits: 2,
     })}`;
   };
 
-  const getStockStatus = (quantity: number) => {
+  const getStockStatus = (quantity: number): string => {
     if (quantity <= 10) return "text-red-600 bg-red-100";
     if (quantity <= 30) return "text-yellow-600 bg-yellow-100";
     return "text-green-600 bg-green-100";
   };
 
+  // Handle individual item checkbox change
+  const handleItemCheck = (itemId: string): void => {
+    setItems((prevItems) => {
+      const updatedItems = prevItems.map((item) =>
+        item.id === itemId ? { ...item, checked: !item.checked } : item
+      );
+
+      // Update select all state
+      const allChecked = updatedItems.every((item) => item.checked);
+      setSelectAll(allChecked);
+
+      return updatedItems;
+    });
+  };
+
+  // Handle select all checkbox change
+  const handleSelectAll = (): void => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setItems((prevItems) =>
+      prevItems.map((item) => ({ ...item, checked: newSelectAll }))
+    );
+  };
+
+  // Get checked items count
+  const checkedCount = items.filter((item) => item.checked).length;
+  const totalCount = items.length;
+
   return (
     <div className="">
       {/* Compact Header */}
-      <div className="flex flex-col  sm:flex-row sm:justify-between lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
           <h1 className="font-bold text-xl lg:text-2xl">Champika Hardware</h1>
           <p>Galle</p>
@@ -107,9 +162,14 @@ export default function CompactOrderProcessing() {
                   <div className="flex items-center gap-2">
                     <Badge
                       variant="secondary"
-                      className="bg-blue-50 text-blue-700"
+                      className={cn(
+                        "bg-blue-50 text-blue-700",
+                        checkedCount === totalCount &&
+                          checkedCount > 0 &&
+                          "bg-green-50 text-green-700"
+                      )}
                     >
-                      {sampleItems.length} items
+                      {checkedCount} of {totalCount} selected
                     </Badge>
                     <Button variant="outline" size="sm">
                       <Edit className="h-4 w-4 mr-1" />
@@ -124,6 +184,18 @@ export default function CompactOrderProcessing() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-[8%] font-bold">
+                        <div
+                          className="flex items-center justify-center p-3 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-200 active:scale-95 select-none"
+                          onClick={handleSelectAll}
+                        >
+                          <Checkbox
+                            checked={selectAll}
+                            aria-label="Select all items"
+                            className="h-6 w-6 pointer-events-none"
+                          />
+                        </div>
+                      </TableHead>
                       <TableHead className="w-[8%] font-bold">Image</TableHead>
                       <TableHead className="w-[12%] font-bold">
                         Item Code
@@ -149,13 +221,30 @@ export default function CompactOrderProcessing() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {sampleItems.map((item, index) => (
+                    {items.map((item, index) => (
                       <TableRow
                         key={item.id}
-                        className={`hover:bg-gray-50 ${
-                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                        }`}
+                        className={cn(
+                          "transition-colors group",
+                          index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
+                          item.checked && "bg-gray-50/80"
+                        )}
                       >
+                        <TableCell className="text-center">
+                          <div
+                            className="flex items-center justify-center p-2 cursor-pointer hover:bg-gray-100 rounded-md transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleItemCheck(item.id);
+                            }}
+                          >
+                            <Checkbox
+                              checked={item.checked}
+                              aria-label={`Select ${item.itemName}`}
+                              className="h-6 w-6 pointer-events-none"
+                            />
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
                             <Package className="h-4 w-4 text-gray-400" />
@@ -220,46 +309,73 @@ export default function CompactOrderProcessing() {
                 </Table>
               </div>
 
-              {/* Mobile/Tablet Cards */}
+              {/* Mobile/Tablet Cards - Checking Process Style */}
               <div className="xl:hidden p-4 space-y-4">
-                {sampleItems.map((item) => (
+                {items.map((item) => (
                   <div
                     key={item.id}
-                    className="border rounded-lg p-4 bg-white shadow-sm"
+                    className={cn(
+                      "border rounded-lg p-4 shadow-sm transition-all duration-200",
+                      item.checked
+                        ? "bg-gray-50/80 border-gray-300 shadow-md"
+                        : "bg-white hover:shadow-md"
+                    )}
                   >
                     <div className="flex items-start gap-3 mb-3">
-                      <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center">
+                      {/* Checkbox */}
+                      <div
+                        className="flex-shrink-0 mt-1 p-2 cursor-pointer hover:bg-gray-100 rounded-md transition-colors"
+                        onClick={() => handleItemCheck(item.id)}
+                      >
+                        <Checkbox
+                          checked={item.checked}
+                          aria-label={`Select ${item.itemName}`}
+                          className="h-5 w-5 pointer-events-none"
+                        />
+                      </div>
+
+                      {/* Image */}
+                      <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
                         <Package className="h-5 w-5 text-gray-400" />
                       </div>
-                      <div className="flex-1">
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start mb-1">
-                          <h4 className="font-medium text-sm">
+                          <h4 className="font-medium text-sm pr-2">
                             {item.itemName}
                           </h4>
                           <Badge
                             variant="outline"
-                            className="font-mono text-xs ml-2"
+                            className="font-mono text-xs bg-gray-50 flex-shrink-0"
                           >
                             {item.itemCode}
                           </Badge>
                         </div>
-                        <p className="text-xs text-gray-500 mb-2">
+
+                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
                           {item.description}
                         </p>
-                        <div className="flex items-center justify-between text-sm">
-                          <div className="flex items-center gap-4">
-                            <Badge variant="secondary" className="text-xs">
-                              {item.packType}
-                            </Badge>
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                                item.unitQuantity
-                              )}`}
-                            >
-                              {item.unitQuantity} {item.unitType}
-                            </span>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {item.packType}
+                              </Badge>
+                            </div>
+                            <div>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                                  item.unitQuantity
+                                )}`}
+                              >
+                                {item.unitQuantity} {item.unitType}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-right">
+
+                          <div className="text-right space-y-1">
                             <div className="text-xs text-gray-500">
                               Unit: {formatCurrency(item.unitPrice)}
                             </div>
@@ -270,7 +386,9 @@ export default function CompactOrderProcessing() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t">
+
+                    {/* Actions */}
+                    <div className="flex justify-end gap-2 pt-3 border-t">
                       <Button variant="outline" size="sm" className="h-8">
                         <Eye className="h-4 w-4 mr-1" />
                         View
@@ -291,13 +409,19 @@ export default function CompactOrderProcessing() {
                     <span className="text-gray-600">
                       Total Items:{" "}
                       <span className="font-bold text-gray-900">
-                        {sampleItems.length}
+                        {items.length}
+                      </span>
+                    </span>
+                    <span className="text-gray-600">
+                      Selected:{" "}
+                      <span className="font-bold text-gray-900">
+                        {checkedCount}
                       </span>
                     </span>
                     <span className="text-gray-600">
                       Total Qty:{" "}
                       <span className="font-bold text-gray-900">
-                        {sampleItems.reduce(
+                        {items.reduce(
                           (sum, item) => sum + item.unitQuantity,
                           0
                         )}
@@ -308,10 +432,7 @@ export default function CompactOrderProcessing() {
                     <p className="text-sm text-gray-600">Subtotal</p>
                     <p className="text-xl font-bold text-emerald-600">
                       {formatCurrency(
-                        sampleItems.reduce(
-                          (sum, item) => sum + item.totalPrice,
-                          0
-                        )
+                        items.reduce((sum, item) => sum + item.totalPrice, 0)
                       )}
                     </p>
                   </div>
@@ -356,6 +477,20 @@ export default function CompactOrderProcessing() {
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
+                  <span className="text-gray-600">Selected Items:</span>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "text-xs",
+                      checkedCount === totalCount && checkedCount > 0
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : "bg-gray-50 text-gray-700 border-gray-200"
+                    )}
+                  >
+                    {checkedCount} / {totalCount}
+                  </Badge>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Payment:</span>
                   <Badge variant="outline" className="text-xs">
                     Credit
@@ -370,14 +505,33 @@ export default function CompactOrderProcessing() {
               </div>
 
               <div className="pt-4 space-y-2">
-                <Button className="w-full" size="sm">
+                <Button
+                  className="w-full"
+                  size="sm"
+                  disabled={checkedCount === 0}
+                >
                   <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Proceed to Step 2
+                  Process Selected ({checkedCount})
                 </Button>
                 <Button variant="outline" className="w-full" size="sm">
                   <Edit className="h-4 w-4 mr-1" />
                   Edit Order
                 </Button>
+                {checkedCount > 0 && (
+                  <Button
+                    variant="outline"
+                    className="w-full text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                    size="sm"
+                    onClick={() => {
+                      setItems(
+                        items.map((item) => ({ ...item, checked: false }))
+                      );
+                      setSelectAll(false);
+                    }}
+                  >
+                    Clear Selection
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
