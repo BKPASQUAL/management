@@ -34,6 +34,8 @@ import {
   Download,
   Scale,
   ClipboardCheck,
+  CheckCircle,
+  Loader,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -43,6 +45,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isStockExpanded, setIsStockExpanded] = useState(false);
+  const [isOrderExpanded, setIsOrderExpanded] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
 
   const menuItems = [
@@ -76,23 +79,23 @@ export function AppSidebar() {
       icon: BarChart3,
       href: "/admin/analytics",
     },
-    {
-      title: "Orders",
-      icon: ShoppingCart,
-      href: "/admin/orders",
-    },
   ];
-  
+
   const orderSubItems = [
     {
-      title: "All Orders",
-      icon: ShoppingCart,
-      href: "/admin/orders",
+      title: "Processing Orders",
+      icon: Loader,
+      href: "/admin/orders/processing",
     },
     {
-      title: "Order Process",
+      title: "Checking Orders",
+      icon: CheckCircle,
+      href: "/admin/orders/checking",
+    },
+    {
+      title: "Loading Orders",
       icon: ClipboardCheck,
-      href: "/admin/orders/process",
+      href: "/admin/orders/loading",
     },
   ];
 
@@ -138,6 +141,12 @@ export function AppSidebar() {
   );
   const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
 
+  // Check if any order sub-item is active
+  const isAnyOrderSubItemActive = orderSubItems.some(
+    (item) => pathname === item.href
+  );
+  const isOrderActive = pathname === "/admin/orders" || isAnyOrderSubItemActive;
+
   // Detect tablet screen size
   useEffect(() => {
     const checkScreenSize = () => {
@@ -158,6 +167,13 @@ export function AppSidebar() {
       setIsStockExpanded(true);
     }
   }, [isStockActive]);
+
+  // Auto-expand order menu if we're on an order-related page
+  useEffect(() => {
+    if (isOrderActive) {
+      setIsOrderExpanded(true);
+    }
+  }, [isOrderActive]);
 
   const handleSignOut = () => {
     // Add your sign out logic here
@@ -180,10 +196,30 @@ export function AppSidebar() {
     }
   };
 
-  const handleChevronClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleOrderClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    // If we're already on the orders page, just toggle the submenu
+    if (pathname === "/admin/orders") {
+      setIsOrderExpanded(!isOrderExpanded);
+    } else {
+      // Navigate to orders page and expand submenu
+      router.push("/admin/orders");
+      setIsOrderExpanded(true);
+    }
+  };
+
+  const handleStockChevronClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     setIsStockExpanded(!isStockExpanded);
+  };
+
+  const handleOrderChevronClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOrderExpanded(!isOrderExpanded);
   };
 
   // Hide sidebar on tablet, show on mobile and desktop
@@ -249,6 +285,55 @@ export function AppSidebar() {
                   );
                 })}
 
+                {/* Orders Menu Item with Submenu */}
+                <SidebarMenuItem>
+                  <div className="relative">
+                    <SidebarMenuButton
+                      tooltip="Orders"
+                      isActive={isOrderActive}
+                      className="cursor-pointer pr-8"
+                      onClick={handleOrderClick}
+                    >
+                      <ShoppingCart className="size-4" />
+                      <span>Orders</span>
+                    </SidebarMenuButton>
+                    <button
+                      onClick={handleOrderChevronClick}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
+                      aria-label="Toggle order submenu"
+                    >
+                      <ChevronRight
+                        className={`size-3 transition-transform duration-200 ${
+                          isOrderExpanded ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isOrderExpanded && (
+                    <SidebarMenuSub>
+                      {orderSubItems.map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isSubActive}
+                            >
+                              <Link
+                                href={subItem.href}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <subItem.icon className="size-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+
                 {/* Stock Menu Item with Submenu */}
                 <SidebarMenuItem>
                   <div className="relative">
@@ -262,7 +347,7 @@ export function AppSidebar() {
                       <span>Stock</span>
                     </SidebarMenuButton>
                     <button
-                      onClick={handleChevronClick}
+                      onClick={handleStockChevronClick}
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
                       aria-label="Toggle stock submenu"
                     >
