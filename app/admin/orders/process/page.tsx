@@ -4,15 +4,64 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Package, Clock, Edit, Eye, CheckCircle2 } from "lucide-react";
+// Table components
+const Table = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableElement>) => (
+  <table className="w-full border-collapse" {...props}>
+    {children}
+  </table>
+);
+
+const TableHeader = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableSectionElement>) => (
+  <thead className="bg-gray-50/50 border-b" {...props}>
+    {children}
+  </thead>
+);
+
+const TableRow = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableRowElement>) => (
+  <tr className="border-b border-gray-100 last:border-0" {...props}>
+    {children}
+  </tr>
+);
+
+const TableHead = ({
+  children,
+  className = "",
+  ...props
+}: React.ThHTMLAttributes<HTMLTableCellElement>) => (
+  <th
+    className={`px-3 py-3 text-left text-sm text-gray-600 ${className}`}
+    {...props}
+  >
+    {children}
+  </th>
+);
+
+const TableBody = ({
+  children,
+  ...props
+}: React.HTMLAttributes<HTMLTableSectionElement>) => (
+  <tbody {...props}>{children}</tbody>
+);
+
+const TableCell = ({
+  children,
+  className = "",
+  ...props
+}: React.TdHTMLAttributes<HTMLTableCellElement>) => (
+  <td className={`px-3 py-3 text-sm ${className}`} {...props}>
+    {children}
+  </td>
+);
+import { Package, Clock, Eye, CheckCircle2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 // Utility function for conditional class names with proper TypeScript types
@@ -31,6 +80,7 @@ interface OrderItem {
   unitType: string;
   unitPrice: number;
   totalPrice: number;
+  freeQuantity: number;
   image: string | null;
   checked: boolean;
 }
@@ -47,6 +97,7 @@ const initialItems: OrderItem[] = [
     unitType: "Pieces",
     unitPrice: 125.5,
     totalPrice: 6275.0,
+    freeQuantity: 5,
     image: null,
     checked: false,
   },
@@ -60,6 +111,7 @@ const initialItems: OrderItem[] = [
     unitType: "Bags",
     unitPrice: 8.75,
     totalPrice: 875.0,
+    freeQuantity: 2,
     image: null,
     checked: false,
   },
@@ -73,6 +125,7 @@ const initialItems: OrderItem[] = [
     unitType: "Sheets",
     unitPrice: 45.2,
     totalPrice: 1130.0,
+    freeQuantity: 0,
     image: null,
     checked: false,
   },
@@ -154,28 +207,22 @@ export default function CompactOrderProcessing() {
       {/* Items Table */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         <div className="xl:col-span-3">
-          <Card>
+          <div className="border rounded-lg ">
             <CardContent className="p-0">
               <div className="p-4 border-b bg-gray-50/50">
                 <div className="flex justify-between items-center">
                   <h3 className="font-bold text-lg">Order Items</h3>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "bg-blue-50 text-blue-700",
-                        checkedCount === totalCount &&
-                          checkedCount > 0 &&
-                          "bg-green-50 text-green-700"
-                      )}
-                    >
-                      {checkedCount} of {totalCount} selected
-                    </Badge>
-                    <Button variant="outline" size="sm">
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={cn(
+                      "bg-blue-50 text-blue-700",
+                      checkedCount === totalCount &&
+                        checkedCount > 0 &&
+                        "bg-green-50 text-green-700"
+                    )}
+                  >
+                    {checkedCount} of {totalCount} selected
+                  </Badge>
                 </div>
               </div>
 
@@ -200,22 +247,25 @@ export default function CompactOrderProcessing() {
                       <TableHead className="w-[12%] font-bold">
                         Item Code
                       </TableHead>
-                      <TableHead className="w-[20%] font-bold">
+                      <TableHead className="w-[22%] font-bold">
                         Item Name
                       </TableHead>
                       <TableHead className="w-[12%] font-bold">
                         Pack Type
                       </TableHead>
-                      <TableHead className="w-[10%] font-bold text-center">
+                      <TableHead className="w-[12%] font-bold text-center">
                         Quantity
                       </TableHead>
-                      <TableHead className="w-[12%] font-bold text-right">
+                      <TableHead className="w-[6%] font-bold text-center">
+                        Free Qty
+                      </TableHead>
+                      <TableHead className="w-[10%] font-bold text-right">
                         Unit Price
                       </TableHead>
                       <TableHead className="w-[12%] font-bold text-right">
                         Total
                       </TableHead>
-                      <TableHead className="w-[8%] font-bold text-right">
+                      <TableHead className="w-[8%] font-bold text-center">
                         Actions
                       </TableHead>
                     </TableRow>
@@ -279,29 +329,29 @@ export default function CompactOrderProcessing() {
                             {item.unitQuantity} {item.unitType}
                           </span>
                         </TableCell>
+                        <TableCell className="text-center">
+                          {item.freeQuantity > 0 ? (
+                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                              {item.freeQuantity}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-right font-semibold">
                           {formatCurrency(item.unitPrice)}
                         </TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
                           {formatCurrency(item.totalPrice)}
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                            >
-                              <Eye className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </div>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                          >
+                            <Eye className="h-3 w-3" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -309,7 +359,8 @@ export default function CompactOrderProcessing() {
                 </Table>
               </div>
 
-              {/* Mobile/Tablet Cards - Checking Process Style */}
+              {/* Mobile/Tablet Cards - Improved Layout */}
+              {/* Mobile/Tablet Cards - Improved Layout */}
               <div className="xl:hidden p-4 space-y-4">
                 {items.map((item) => (
                   <div
@@ -341,62 +392,91 @@ export default function CompactOrderProcessing() {
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="font-medium text-sm pr-2">
-                            {item.itemName}
-                          </h4>
-                          <Badge
-                            variant="outline"
-                            className="font-mono text-xs bg-gray-50 flex-shrink-0"
+                        <h4 className="font-medium text-sm leading-tight mb-1">
+                          {item.itemName}
+                        </h4>
+                        <p className="text-xs text-gray-500 mb-2">
+                          {item.itemCode} • {item.packType}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Priority Info: Quantity & Free Quantity - PROMINENT */}
+                    <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 mb-3 border border-blue-100">
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Quantity - Left Side */}
+                        <div>
+                          <p className="text-xs text-gray-600 font-medium mb-1">
+                            Quantity
+                          </p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-2xl font-bold text-gray-900">
+                              {item.unitQuantity}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {item.unitType}
+                            </span>
+                          </div>
+                          <span
+                            className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStockStatus(
+                              item.unitQuantity
+                            )}`}
                           >
-                            {item.itemCode}
-                          </Badge>
+                            {item.unitQuantity <= 10
+                              ? "Low Stock"
+                              : item.unitQuantity <= 30
+                              ? "Medium"
+                              : "In Stock"}
+                          </span>
                         </div>
 
-                        <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                          {item.description}
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="text-xs">
-                                {item.packType}
-                              </Badge>
-                            </div>
-                            <div>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                                  item.unitQuantity
-                                )}`}
-                              >
-                                {item.unitQuantity} {item.unitType}
+                        {/* Free Quantity - Right Side */}
+                        <div className="border-l border-emerald-200 pl-3">
+                          <p className="text-xs text-gray-600 font-medium mb-1">
+                            Free Quantity
+                          </p>
+                          {item.freeQuantity > 0 ? (
+                            <>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold text-emerald-600">
+                                  {item.freeQuantity}
+                                </span>
+                                <span className="text-sm text-gray-600">
+                                  {item.unitType}
+                                </span>
+                              </div>
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                                Bonus
                               </span>
-                            </div>
-                          </div>
-
-                          <div className="text-right space-y-1">
-                            <div className="text-xs text-gray-500">
-                              Unit: {formatCurrency(item.unitPrice)}
-                            </div>
-                            <div className="font-bold text-emerald-600">
-                              {formatCurrency(item.totalPrice)}
-                            </div>
-                          </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-2xl font-bold text-gray-300">
+                                0
+                              </div>
+                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                None
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex justify-end gap-2 pt-3 border-t">
+                    {/* Bottom Actions with Price */}
+                    <div className="flex justify-between items-center pt-3 border-t">
                       <Button variant="outline" size="sm" className="h-8">
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Button>
-                      <Button variant="outline" size="sm" className="h-8">
-                        <Edit className="h-4 w-4 mr-1" />
-                        Edit
-                      </Button>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">
+                          {formatCurrency(item.unitPrice)} per unit
+                        </div>
+                        <div className="font-bold text-emerald-600 text-lg">
+                          {formatCurrency(item.totalPrice)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -427,6 +507,15 @@ export default function CompactOrderProcessing() {
                         )}
                       </span>
                     </span>
+                    <span className="text-gray-600">
+                      Free Qty:{" "}
+                      <span className="font-bold text-emerald-600">
+                        {items.reduce(
+                          (sum, item) => sum + item.freeQuantity,
+                          0
+                        )}
+                      </span>
+                    </span>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-gray-600">Subtotal</p>
@@ -439,12 +528,12 @@ export default function CompactOrderProcessing() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </div>
         </div>
 
         {/* Summary Sidebar */}
         <div className="xl:col-span-1">
-          <Card className="sticky top-4">
+          <div className="border rounded-lg ">
             <CardContent className="p-4 space-y-4">
               <h3 className="font-bold flex items-center gap-2">
                 <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -513,10 +602,6 @@ export default function CompactOrderProcessing() {
                   <CheckCircle2 className="h-4 w-4 mr-1" />
                   Process Selected ({checkedCount})
                 </Button>
-                <Button variant="outline" className="w-full" size="sm">
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit Order
-                </Button>
                 {checkedCount > 0 && (
                   <Button
                     variant="outline"
@@ -534,7 +619,7 @@ export default function CompactOrderProcessing() {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
     </div>
