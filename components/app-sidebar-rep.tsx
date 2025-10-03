@@ -1,4 +1,5 @@
 "use client";
+
 import {
   Sidebar,
   SidebarContent,
@@ -14,28 +15,29 @@ import {
 import {
   Home,
   Package,
-  Users,
   LogOut,
   Store,
   Settings,
-  BarChart3,
-  Truck,
-  FileText,
   Receipt,
   UserCheck,
   ShoppingCart,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
+import { toast } from "sonner";
 
 export function AppSidebar() {
   const pathname = usePathname();
+  const dispatch = useAppDispatch();
+  const router = useRouter();
 
   const menuItems = [
     {
       title: "Dashboard",
       icon: Home,
-      href: "/dashboard",
+      href: "/representative/dashboard",
     },
     {
       title: "Products",
@@ -45,17 +47,17 @@ export function AppSidebar() {
     {
       title: "Customers",
       icon: UserCheck,
-      href: "/representative/createCustomerBill",
+      href: "/representative/customers",
     },
     {
       title: "Orders",
       icon: ShoppingCart,
-      href: "/orders",
+      href: "/representative/orders",
     },
     {
       title: "Settings",
       icon: Settings,
-      href: "/settings",
+      href: "/representative/settings",
     },
   ];
 
@@ -63,24 +65,26 @@ export function AppSidebar() {
     {
       title: "Create Customer Bill",
       icon: Receipt,
-      href: "/createCustomerBill",
+      href: "/representative/createCustomerBill",
     },
   ];
 
   const handleSignOut = () => {
-    // Add your sign out logic here
-    console.log("Sign out clicked");
-    // Example: router.push('/login');
-    // Example: signOut();
+    dispatch(logout());
+    toast.success("Logged out successfully");
+    router.push("/login");
   };
 
   return (
     <Sidebar variant="sidebar" collapsible="offcanvas" className="z-40">
-      <SidebarHeader className="">
+      <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild className="border">
-              <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
+              <Link
+                href="/representative/dashboard"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Store className="size-4" />
                 </div>
@@ -99,7 +103,6 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        {/* Navigation Section */}
         <SidebarGroup className="mb-2">
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -128,7 +131,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Actions Section */}
         <SidebarGroup className="mt-[-20px]">
           <SidebarGroupLabel>Actions</SidebarGroupLabel>
           <SidebarGroupContent>

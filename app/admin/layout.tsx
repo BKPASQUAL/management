@@ -1,16 +1,99 @@
 "use client";
 
-import React from "react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { PageTitle } from "@/components/PageTitle";
-import { CartProvider } from "@/components/representative/CartProvider";
-import { Toaster } from "sonner"; // ✅ import Toaster
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { usePathname, useRouter } from "next/navigation";
+import { Store } from "lucide-react";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { logout } from "@/store/slices/authSlice";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-const user = {
-  name: "John Doe",
-  role: "Administrator",
-};
+function PageTitle() {
+  const pathname = usePathname();
+
+  const getTitleFromPath = (path: string) => {
+    const segments = path.split("/").filter(Boolean);
+    if (segments.length === 0) return "Dashboard";
+
+    const lastSegment = segments[segments.length - 1];
+    return lastSegment
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+      <Store className="h-6 w-6 text-primary" />
+      <h1 className="text-lg font-semibold">{getTitleFromPath(pathname)}</h1>
+    </div>
+  );
+}
+
+function UserMenu() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const user = useAppSelector((state) => state.auth.user);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push("/login");
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "U";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center space-x-3 mr-4 focus:outline-none">
+          <div className="text-right hidden sm:block">
+            <div className="text-sm font-medium text-gray-900">
+              {user?.username || "User"}
+            </div>
+            <div className="text-xs text-gray-400 capitalize">
+              {user?.role || "Role"}
+            </div>
+          </div>
+          <Avatar className="cursor-pointer">
+            <AvatarFallback className="bg-primary text-white">
+              {getInitials(user?.username)}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>My Account</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push("/admin/profile")}>
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => router.push("/admin/settings")}>
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600">
+          Logout
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   return (
@@ -22,26 +105,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
             <SidebarTrigger className="text-black" />
             <PageTitle />
           </div>
-          <div className="flex items-center space-x-20">
-            <div className="flex items-center space-x-3 mr-4">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  {user.name}
-                </div>
-                <div className="text-xs text-gray-400">{user.role}</div>
-              </div>
-              <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                <span className="text-sm font-medium text-gray-800">
-                  {user.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </span>
-              </div>
-            </div>
-          </div>
+
+          <UserMenu />
         </div>
-        <div className="p-4 h-[40%]">{children}</div>
+        <div className="p-4">{children}</div>
       </main>
     </SidebarProvider>
   );
@@ -49,9 +116,8 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <CartProvider>
+    <ProtectedRoute allowedRoles={["admin"]}>
       <LayoutContent>{children}</LayoutContent>
-      <Toaster richColors position="top-right" /> {/* ✅ Sonner Toaster */}
-    </CartProvider>
+    </ProtectedRoute>
   );
 }
