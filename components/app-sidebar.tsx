@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppDispatch } from "@/store/hooks";
 import { logout } from "@/store/slices/authSlice";
 import { toast } from "sonner";
@@ -43,12 +43,18 @@ export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const [isStockExpanded, setIsStockExpanded] = useState(
-    pathname.startsWith("/admin/stock")
-  );
-  const [isOrderExpanded, setIsOrderExpanded] = useState(
-    pathname.startsWith("/admin/orders")
-  );
+
+  // Initialize with false to avoid hydration mismatch
+  const [isStockExpanded, setIsStockExpanded] = useState(false);
+  const [isOrderExpanded, setIsOrderExpanded] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Set expanded state after component mounts (client-side only)
+  useEffect(() => {
+    setIsMounted(true);
+    setIsStockExpanded(pathname.startsWith("/admin/stock"));
+    setIsOrderExpanded(pathname.startsWith("/admin/orders"));
+  }, [pathname]);
 
   const menuItems = [
     {
@@ -239,7 +245,8 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                   <button
                     onClick={handleStockChevronClick}
-                    className="p-2 hover:bg-gray-100 rounded"
+                    className="p-2 hover:bg-accent rounded transition-colors"
+                    aria-label="Toggle stock menu"
                   >
                     <ChevronRight
                       className={`size-4 transition-transform ${
@@ -248,7 +255,7 @@ export function AppSidebar() {
                     />
                   </button>
                 </div>
-                {isStockExpanded && (
+                {isMounted && isStockExpanded && (
                   <SidebarMenuSub>
                     {stockSubItems.map((subItem) => {
                       const isSubActive = pathname === subItem.href;
@@ -283,7 +290,8 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                   <button
                     onClick={handleOrderChevronClick}
-                    className="p-2 hover:bg-gray-100 rounded"
+                    className="p-2 hover:bg-accent rounded transition-colors"
+                    aria-label="Toggle orders menu"
                   >
                     <ChevronRight
                       className={`size-4 transition-transform ${
@@ -292,7 +300,7 @@ export function AppSidebar() {
                     />
                   </button>
                 </div>
-                {isOrderExpanded && (
+                {isMounted && isOrderExpanded && (
                   <SidebarMenuSub>
                     {orderSubItems.map((subItem) => {
                       const isSubActive = pathname === subItem.href;

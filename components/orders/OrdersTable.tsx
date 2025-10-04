@@ -26,193 +26,233 @@ import {
   Edit,
   Trash2,
   Settings,
+  Loader2,
 } from "lucide-react";
+import {
+  useGetOrdersQuery,
+  useCancelOrderMutation,
+  Order,
+  OrderStatus,
+  BillStatus,
+} from "@/store/services/orderApi";
+import { useToast } from "@/hooks/use-toast";
 
-// Types
-interface Order {
-  id: string;
-  orderNumber: string;
-  customerCode: string;
-  customerName: string;
-  area: string;
-  route: string;
-  representative: string;
-  phone: string;
-  totalAmount: number;
-  status:
-    | "make_order"
-    | "prepare_order"
-    | "checking_order"
-    | "loading"
-    | "delivered";
-  orderDate: string;
+interface OrdersTableProps {
+  representativeId?: number;
+  areaId?: number;
 }
 
-const OrdersTable: React.FC = () => {
+const OrdersTable: React.FC<OrdersTableProps> = ({
+  representativeId,
+  areaId,
+}) => {
   const router = useRouter();
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  // Sample orders data - replace with your actual API data
-  const sampleOrders: Order[] = [
-    {
-      id: "1",
-      orderNumber: "ORD-2024-001",
-      customerCode: "CUST001",
-      customerName: "Tech Solutions Ltd",
-      area: "Colombo",
-      route: "Route A1",
-      representative: "John Silva",
-      phone: "+94 11 2345678",
-      totalAmount: 125000,
-      status: "make_order",
-      orderDate: "2024-01-15",
-    },
-    {
-      id: "2",
-      orderNumber: "ORD-2024-002",
-      customerCode: "CUST002",
-      customerName: "Digital Systems Inc",
-      area: "Kandy",
-      route: "Route K1",
-      representative: "Mary Fernando",
-      phone: "+94 81 2234567",
-      totalAmount: 87500,
-      status: "prepare_order",
-      orderDate: "2024-01-14",
-    },
-    {
-      id: "3",
-      orderNumber: "ORD-2024-003",
-      customerCode: "CUST003",
-      customerName: "Smart Electronics",
-      area: "Galle",
-      route: "Route G1",
-      representative: "David Perera",
-      phone: "+94 91 2345678",
-      totalAmount: 156000,
-      status: "checking_order",
-      orderDate: "2024-01-13",
-    },
-    {
-      id: "4",
-      orderNumber: "ORD-2024-004",
-      customerCode: "CUST004",
-      customerName: "Future Tech Corp",
-      area: "Negombo",
-      route: "Route N1",
-      representative: "Sarah De Silva",
-      phone: "+94 31 2234567",
-      totalAmount: 98000,
-      status: "loading",
-      orderDate: "2024-01-12",
-    },
-    {
-      id: "5",
-      orderNumber: "ORD-2024-005",
-      customerCode: "CUST005",
-      customerName: "Innovation Hub",
-      area: "Matara",
-      route: "Route M1",
-      representative: "John Silva",
-      phone: "+94 41 2345678",
-      totalAmount: 234000,
-      status: "delivered",
-      orderDate: "2024-01-11",
-    },
-    {
-      id: "6",
-      orderNumber: "ORD-2024-006",
-      customerCode: "CUST006",
-      customerName: "Prime Electronics",
-      area: "Kurunegala",
-      route: "Route KU1",
-      representative: "Mary Fernando",
-      phone: "+94 37 2234567",
-      totalAmount: 67500,
-      status: "make_order",
-      orderDate: "2024-01-10",
-    },
-  ];
+  // Fetch orders with filters
+  const {
+    data: ordersResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetOrdersQuery({
+    representative_id: representativeId,
+    area_id: areaId,
+    page: currentPage,
+    limit: itemsPerPage,
+  });
 
-  // Calculate pagination
-  const totalPages = Math.ceil(sampleOrders.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentOrders = sampleOrders.slice(startIndex, endIndex);
+  // Cancel order mutation
+  const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
+
+  // Extract data
+  const orders = ordersResponse?.data || [];
+  const total = ordersResponse?.total || 0;
+  const totalPages = Math.ceil(total / itemsPerPage);
 
   // Status badge styling
-  const getStatusBadge = (status: Order["status"]) => {
-    const statusConfig = {
-      make_order: { label: "Make Order", variant: "default" as const },
-      prepare_order: { label: "Preparing", variant: "secondary" as const },
-      checking_order: { label: "Checking", variant: "outline" as const },
-      loading: { label: "Loading", variant: "secondary" as const },
-      delivered: { label: "Delivered", variant: "default" as const },
+  const getOrderStatusBadge = (orderStatus: OrderStatus) => {
+    const statusConfig: Record<
+      OrderStatus,
+      { label: string; className: string }
+    > = {
+      [OrderStatus.PENDING]: {
+        label: "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      },
+      [OrderStatus.CONFIRMED]: {
+        label: "Confirmed",
+        className: "bg-blue-100 text-blue-800 border-blue-300",
+      },
+      [OrderStatus.PROCESSING]: {
+        label: "Processing",
+        className: "bg-purple-100 text-purple-800 border-purple-300",
+      },
+      [OrderStatus.COMPLETED]: {
+        label: "Completed",
+        className: "bg-green-100 text-green-800 border-green-300",
+      },
+      [OrderStatus.CANCELLED]: {
+        label: "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-300",
+      },
+    };
+
+    const config = statusConfig[orderStatus];
+    return (
+      <Badge variant="outline" className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getBillStatusBadge = (status: BillStatus) => {
+    const statusConfig: Record<
+      BillStatus,
+      { label: string; className: string }
+    > = {
+      [BillStatus.DRAFT]: {
+        label: "Draft",
+        className: "bg-gray-100 text-gray-800 border-gray-300",
+      },
+      [BillStatus.PAID]: {
+        label: "Paid",
+        className: "bg-green-100 text-green-800 border-green-300",
+      },
+      [BillStatus.CANCELLED]: {
+        label: "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-300",
+      },
+      [BillStatus.PARTIALLY_PAID]: {
+        label: "Partially Paid",
+        className: "bg-orange-100 text-orange-800 border-orange-300",
+      },
+      [BillStatus.PENDING]: {
+        label: "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      },
     };
 
     const config = statusConfig[status];
     return (
-      <Badge
-        variant={config.variant}
-        className={
-          status === "delivered"
-            ? "bg-green-100 text-green-800 border-green-300"
-            : status === "loading"
-            ? "bg-blue-100 text-blue-800 border-blue-300"
-            : status === "checking_order"
-            ? "bg-purple-100 text-purple-800 border-purple-300"
-            : status === "prepare_order"
-            ? "bg-orange-100 text-orange-800 border-orange-300"
-            : "bg-gray-100 text-gray-800 border-gray-300"
-        }
-      >
+      <Badge variant="outline" className={config.className}>
         {config.label}
       </Badge>
     );
   };
 
   // Format currency
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-LK", {
       style: "currency",
       currency: "LKR",
-    }).format(amount);
+      minimumFractionDigits: 2,
+    }).format(numAmount);
+  };
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   };
 
   // Handler functions
-  const handleRowClick = (orderId: string): void => {
-    // Navigate to order process page
+  const handleRowClick = (orderId: number): void => {
     router.push(`/admin/orders/process?orderId=${orderId}`);
   };
 
-  const handleViewOrder = (event: React.MouseEvent, orderId: string): void => {
+  const handleViewOrder = (event: React.MouseEvent, orderId: number): void => {
     event.stopPropagation();
     router.push(`/admin/orders/process?orderId=${orderId}`);
   };
 
-  const handleEdit = (event: React.MouseEvent, orderId: string): void => {
+  const handleEdit = (event: React.MouseEvent, orderId: number): void => {
     event.stopPropagation();
-    console.log("Edit order:", orderId);
-    // Add your edit logic here
+    router.push(`/admin/orders/edit/${orderId}`);
   };
 
-  const handleDelete = (event: React.MouseEvent, orderId: string): void => {
+  const handleDelete = async (
+    event: React.MouseEvent,
+    orderId: number
+  ): Promise<void> => {
     event.stopPropagation();
-    console.log("Delete order:", orderId);
-    // Add your delete logic here
-    if (window.confirm("Are you sure you want to delete this order?")) {
-      // Delete logic here
+
+    if (window.confirm("Are you sure you want to cancel this order?")) {
+      try {
+        await cancelOrder({
+          id: orderId,
+          notes: "Cancelled by admin",
+        }).unwrap();
+
+        toast({
+          title: "Success",
+          description: "Order cancelled successfully",
+          variant: "default",
+        });
+
+        refetch();
+      } catch (err: any) {
+        toast({
+          title: "Error",
+          description:
+            err?.data?.message || "Failed to cancel order. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const handleManageProcess = (
     event: React.MouseEvent,
-    orderId: string
+    orderId: number
   ): void => {
     event.stopPropagation();
     router.push(`/admin/orders/process?orderId=${orderId}`);
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2 text-gray-600">Loading orders...</span>
+      </div>
+    );
+  }
+
+  // Error state
+  if (isError) {
+    return (
+      <div className="rounded-md border border-red-200 bg-red-50 p-6 text-center">
+        <p className="text-red-800 font-medium mb-2">Failed to load orders</p>
+        <p className="text-sm text-red-600 mb-4">
+          {(error as any)?.data?.message || "An error occurred"}
+        </p>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (orders.length === 0) {
+    return (
+      <div className="rounded-md border border-gray-200 bg-gray-50 p-12 text-center">
+        <p className="text-gray-600 font-medium mb-2">No orders found</p>
+        <p className="text-sm text-gray-500">
+          Orders will appear here once they are created
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -220,50 +260,54 @@ const OrdersTable: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-50">
-              <TableHead className="font-semibold">Order #</TableHead>
+              <TableHead className="font-semibold">Invoice No</TableHead>
               <TableHead className="font-semibold">Customer</TableHead>
               <TableHead className="font-semibold">Area</TableHead>
               <TableHead className="font-semibold">Representative</TableHead>
               <TableHead className="font-semibold">Amount</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Order Date</TableHead>
+              <TableHead className="font-semibold">Order Status</TableHead>
+              <TableHead className="font-semibold">Payment Status</TableHead>
+              <TableHead className="font-semibold">Date</TableHead>
               <TableHead className="font-semibold text-right">
                 Actions
               </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentOrders.map((order) => (
+            {orders.map((order: Order) => (
               <TableRow
-                key={order.id}
+                key={order.bill_id}
                 className="cursor-pointer hover:bg-gray-50 transition-colors"
-                onClick={() => handleRowClick(order.id)}
+                onClick={() => handleRowClick(order.bill_id)}
               >
                 <TableCell className="font-medium text-blue-600">
-                  {order.orderNumber}
+                  {order.invoice_no}
                 </TableCell>
                 <TableCell>
                   <div>
-                    <p className="font-medium">{order.customerName}</p>
+                    <p className="font-medium">{order.customer.shopName}</p>
                     <p className="text-sm text-gray-500">
-                      {order.customerCode}
+                      {order.customer.customerCode}
                     </p>
                   </div>
                 </TableCell>
                 <TableCell>
+                  <p className="font-medium">{order.customer.address}</p>
+                </TableCell>
+                <TableCell>
                   <div>
-                    <p className="font-medium">{order.area}</p>
-                    <p className="text-sm text-gray-500">{order.route}</p>
+                    <p className="font-medium">{order.created_by.username}</p>
+                    <p className="text-sm text-gray-500">
+                      {order.created_by.role}
+                    </p>
                   </div>
                 </TableCell>
-                <TableCell>{order.representative}</TableCell>
                 <TableCell className="font-medium">
-                  {formatCurrency(order.totalAmount)}
+                  {formatCurrency(order.total_amount)}
                 </TableCell>
-                <TableCell>{getStatusBadge(order.status)}</TableCell>
-                <TableCell>
-                  {new Date(order.orderDate).toLocaleDateString()}
-                </TableCell>
+                <TableCell>{getOrderStatusBadge(order.order_status)}</TableCell>
+                <TableCell>{getBillStatusBadge(order.status)}</TableCell>
+                <TableCell>{formatDate(order.billing_date)}</TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -278,29 +322,34 @@ const OrdersTable: React.FC = () => {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem
-                        onClick={(e) => handleViewOrder(e, order.id)}
+                        onClick={(e) => handleViewOrder(e, order.bill_id)}
                       >
                         <Eye className="mr-2 h-4 w-4" />
                         View Order
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => handleManageProcess(e, order.id)}
+                        onClick={(e) => handleManageProcess(e, order.bill_id)}
                       >
                         <Settings className="mr-2 h-4 w-4" />
                         Manage Process
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => handleEdit(e, order.id)}
+                        onClick={(e) => handleEdit(e, order.bill_id)}
+                        disabled={order.order_status === OrderStatus.CANCELLED}
                       >
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={(e) => handleDelete(e, order.id)}
+                        onClick={(e) => handleDelete(e, order.bill_id)}
                         className="text-red-600"
+                        disabled={
+                          order.order_status === OrderStatus.CANCELLED ||
+                          isCancelling
+                        }
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        Cancel Order
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -315,9 +364,8 @@ const OrdersTable: React.FC = () => {
       {totalPages > 1 && (
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="text-sm text-gray-500">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(endIndex, sampleOrders.length)} of {sampleOrders.length}{" "}
-            orders
+            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+            {Math.min(currentPage * itemsPerPage, total)} of {total} orders
           </div>
           <div className="flex items-center space-x-2">
             <Button
@@ -330,19 +378,30 @@ const OrdersTable: React.FC = () => {
               Previous
             </Button>
             <div className="flex items-center space-x-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+
+                return (
                   <Button
-                    key={page}
-                    variant={currentPage === page ? "default" : "outline"}
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setCurrentPage(page)}
+                    onClick={() => setCurrentPage(pageNum)}
                     className="w-8 h-8 p-0"
                   >
-                    {page}
+                    {pageNum}
                   </Button>
-                )
-              )}
+                );
+              })}
             </div>
             <Button
               variant="outline"

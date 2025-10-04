@@ -8,6 +8,7 @@ import { productApi } from "./services/product";
 import { stockApi } from "./services/stock";
 import { customerApi } from "./services/customer";
 import { customerBillApi } from "./services/customerBill";
+import { orderApi } from "./services/orderApi"; // NEW: Import orderApi
 import authReducer from "./slices/authSlice";
 
 export const store = configureStore({
@@ -20,6 +21,7 @@ export const store = configureStore({
     [stockApi.reducerPath]: stockApi.reducer,
     [customerApi.reducerPath]: customerApi.reducer,
     [customerBillApi.reducerPath]: customerBillApi.reducer,
+    [orderApi.reducerPath]: orderApi.reducer, // NEW: Add orderApi reducer
 
     // Regular slices
     auth: authReducer,
@@ -32,7 +34,8 @@ export const store = configureStore({
       productApi.middleware,
       stockApi.middleware,
       customerApi.middleware,
-      customerBillApi.middleware
+      customerBillApi.middleware,
+      orderApi.middleware // NEW: Add orderApi middleware
     ),
 });
 
