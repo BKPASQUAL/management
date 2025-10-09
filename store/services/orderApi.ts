@@ -1,12 +1,12 @@
 // store/services/orderApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-// Enums
+// Enums - Updated to match backend
 export enum OrderStatus {
   PENDING = "pending",
-  CONFIRMED = "confirmed",
   PROCESSING = "processing",
-  COMPLETED = "completed",
+  CHECKING = "checking",
+  DELIVERED = "delivered",
   CANCELLED = "cancelled",
 }
 
@@ -81,6 +81,7 @@ export interface Order {
   is_order: boolean;
   order_status: OrderStatus;
   order_confirmed_at?: string;
+  confirmed_by?: OrderCreatedBy;
   subtotal: string;
   discount_percentage: string;
   discount_amount: string;
@@ -109,9 +110,10 @@ export interface OrdersResponse {
 export interface SingleOrderResponse {
   success: boolean;
   data: Order;
+  message?: string;
 }
 
-// Filter parameters - made all properties optional
+// Filter parameters
 export interface OrderFilterParams {
   status?: OrderStatus;
   order_status?: OrderStatus;
@@ -159,7 +161,6 @@ export const orderApi = createApi({
       query: (params) => {
         const searchParams = new URLSearchParams();
 
-        // Type-safe parameter handling
         if (params?.status) searchParams.append("status", params.status);
         if (params?.order_status)
           searchParams.append("order_status", params.order_status);
@@ -230,7 +231,91 @@ export const orderApi = createApi({
       },
     }),
 
-    // Update order status
+    // Move to processing (PENDING → PROCESSING)
+    moveToProcessing: builder.mutation<SingleOrderResponse, number>({
+      query: (id) => ({
+        url: `customer-bills/orders/${id}/move-to-processing`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Order", id },
+        { type: "Order", id: "LIST" },
+        "OrderStats",
+      ],
+      transformResponse: (response: SingleOrderResponse) => {
+        console.log("moveToProcessing API Response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("moveToProcessing API Error:", response);
+        return {
+          message:
+            response?.data?.message ||
+            response?.message ||
+            "Failed to move order to processing",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
+
+    // Move to checking (PROCESSING → CHECKING)
+    moveToChecking: builder.mutation<SingleOrderResponse, number>({
+      query: (id) => ({
+        url: `customer-bills/orders/${id}/move-to-checking`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Order", id },
+        { type: "Order", id: "LIST" },
+        "OrderStats",
+      ],
+      transformResponse: (response: SingleOrderResponse) => {
+        console.log("moveToChecking API Response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("moveToChecking API Error:", response);
+        return {
+          message:
+            response?.data?.message ||
+            response?.message ||
+            "Failed to move order to checking",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
+
+    // Move to delivered (CHECKING → DELIVERED)
+    moveToDelivered: builder.mutation<SingleOrderResponse, number>({
+      query: (id) => ({
+        url: `customer-bills/orders/${id}/move-to-delivered`,
+        method: "PATCH",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Order", id },
+        { type: "Order", id: "LIST" },
+        "OrderStats",
+      ],
+      transformResponse: (response: SingleOrderResponse) => {
+        console.log("moveToDelivered API Response:", response);
+        return response;
+      },
+      transformErrorResponse: (response: any) => {
+        console.error("moveToDelivered API Error:", response);
+        return {
+          message:
+            response?.data?.message ||
+            response?.message ||
+            "Failed to mark order as delivered",
+          status: response?.status || 500,
+          data: response?.data || null,
+        };
+      },
+    }),
+
+    // Update order status (generic)
     updateOrderStatus: builder.mutation<
       SingleOrderResponse,
       { id: number; data: UpdateOrderStatusPayload }
@@ -262,47 +347,18 @@ export const orderApi = createApi({
       },
     }),
 
-    // Confirm order
-    confirmOrder: builder.mutation<
-      SingleOrderResponse,
-      { id: number; data?: ConfirmOrderPayload }
-    >({
-      query: ({ id, data = {} }) => ({
-        url: `customer-bills/orders/${id}/confirm`,
-        method: "POST",
-        body: data,
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: "Order", id },
-        { type: "Order", id: "LIST" },
-        "OrderStats",
-      ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("confirmOrder API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("confirmOrder API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to confirm order",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
-    }),
-
     // Cancel order
     cancelOrder: builder.mutation<
       SingleOrderResponse,
       { id: number; notes?: string }
     >({
       query: ({ id, notes }) => ({
-        url: `customer-bills/orders/${id}/cancel`,
-        method: "POST",
-        body: { notes },
+        url: `customer-bills/orders/${id}/status`,
+        method: "PATCH",
+        body: {
+          order_status: OrderStatus.CANCELLED,
+          notes: notes || "Order cancelled",
+        },
       }),
       invalidatesTags: (result, error, { id }) => [
         { type: "Order", id },
@@ -370,8 +426,10 @@ export const orderApi = createApi({
 export const {
   useGetOrdersQuery,
   useGetOrderByIdQuery,
+  useMoveToProcessingMutation,
+  useMoveToCheckingMutation,
+  useMoveToDeliveredMutation,
   useUpdateOrderStatusMutation,
-  useConfirmOrderMutation,
   useCancelOrderMutation,
   useGetOrderStatsQuery,
 } = orderApi;

@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Sidebar,
   SidebarContent,
@@ -28,33 +27,26 @@ import {
   Receipt,
   UserCheck,
   ShoppingCart,
+  Boxes,
   ChevronRight,
-  Box,
-  Building2,
+  ArrowRightLeft,
+  ClipboardList,
+  Download,
+  Scale,
+  ClipboardCheck,
+  CheckCircle,
+  Loader,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { useAppDispatch } from "@/store/hooks";
-import { logout } from "@/store/slices/authSlice";
-import { toast } from "sonner";
 
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const dispatch = useAppDispatch();
-
-  // Initialize with false to avoid hydration mismatch
   const [isStockExpanded, setIsStockExpanded] = useState(false);
   const [isOrderExpanded, setIsOrderExpanded] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Set expanded state after component mounts (client-side only)
-  useEffect(() => {
-    setIsMounted(true);
-    setIsStockExpanded(pathname.startsWith("/admin/stock"));
-    setIsOrderExpanded(pathname.startsWith("/admin/orders"));
-  }, [pathname]);
+  const [isTablet, setIsTablet] = useState(false);
 
   const menuItems = [
     {
@@ -68,55 +60,65 @@ export function AppSidebar() {
       href: "/admin/products",
     },
     {
-      title: "Customers",
-      icon: UserCheck,
-      href: "/admin/customers",
-    },
-    {
       title: "Suppliers",
       icon: Truck,
       href: "/admin/suppliers",
     },
     {
-      title: "Reports",
+      title: "Customers",
+      icon: UserCheck,
+      href: "/admin/customers",
+    },
+    {
+      title: "Users",
+      icon: Users,
+      href: "/admin/users",
+    },
+    {
+      title: "Analytics",
       icon: BarChart3,
-      href: "/admin/reports",
-    },
-  ];
-
-  const stockSubItems = [
-    {
-      title: "Stock Overview",
-      icon: Box,
-      href: "/admin/stock",
-    },
-    {
-      title: "Stock Transfer",
-      icon: Package,
-      href: "/admin/stock/stockTransfer",
-    },
-    {
-      title: "Stock Locations",
-      icon: Building2,
-      href: "/admin/stock/locations",
+      href: "/admin/analytics",
     },
   ];
 
   const orderSubItems = [
     {
-      title: "All Orders",
-      icon: ShoppingCart,
-      href: "/admin/orders",
+      title: "Processing Orders",
+      icon: Loader,
+      href: "/admin/orders/processing",
     },
     {
-      title: "Supplier Bills",
-      icon: FileText,
-      href: "/admin/orders/supplierBills",
+      title: "Checking Orders",
+      icon: CheckCircle,
+      href: "/admin/orders/checking",
     },
     {
-      title: "Customer Bills",
-      icon: Receipt,
-      href: "/admin/orders/customerBills",
+      title: "Loading Orders",
+      icon: ClipboardCheck,
+      href: "/admin/orders/loading",
+    },
+  ];
+
+  const stockSubItems = [
+    {
+      title: "Stock Transfer",
+      icon: ArrowRightLeft,
+      href: "/admin/stock/stockTransfer",
+    },
+    {
+      title: "Stock Audit",
+      icon: ClipboardList,
+      href: "/admin/stock/audit",
+    },
+    {
+      title: "Stock Export Report",
+      icon: Download,
+      href: "/admin/stock/export-report",
+    },
+    {
+      title: "Stock Balance",
+      icon: Scale,
+      href: "/admin/stock/balance",
     },
   ];
 
@@ -133,19 +135,62 @@ export function AppSidebar() {
     },
   ];
 
+  // Check if any stock sub-item is active
+  const isAnyStockSubItemActive = stockSubItems.some(
+    (item) => pathname === item.href
+  );
+  const isStockActive = pathname === "/admin/stock" || isAnyStockSubItemActive;
+
+  // Check if any order sub-item is active
+  const isAnyOrderSubItemActive = orderSubItems.some(
+    (item) => pathname === item.href
+  );
+  const isOrderActive = pathname === "/admin/orders" || isAnyOrderSubItemActive;
+
+  // Detect tablet screen size
+  useEffect(() => {
+    const checkScreenSize = () => {
+      // Tablet range: 768px to 1023px (between mobile and desktop)
+      const width = window.innerWidth;
+      setIsTablet(width >= 768 && width <= 1023);
+    };
+
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  // Auto-expand stock menu if we're on a stock-related page
+  useEffect(() => {
+    if (isStockActive) {
+      setIsStockExpanded(true);
+    }
+  }, [isStockActive]);
+
+  // Auto-expand order menu if we're on an order-related page
+  useEffect(() => {
+    if (isOrderActive) {
+      setIsOrderExpanded(true);
+    }
+  }, [isOrderActive]);
+
   const handleSignOut = () => {
-    dispatch(logout());
-    toast.success("Logged out successfully");
-    router.push("/login");
+    // Add your sign out logic here
+    console.log("Sign out clicked");
+    // Example: router.push('/login');
+    // Example: signOut();
   };
 
   const handleStockClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
+    // If we're already on the stock page, just toggle the submenu
     if (pathname === "/admin/stock") {
       setIsStockExpanded(!isStockExpanded);
     } else {
+      // Navigate to stock page and expand submenu
       router.push("/admin/stock");
       setIsStockExpanded(true);
     }
@@ -155,9 +200,11 @@ export function AppSidebar() {
     e.preventDefault();
     e.stopPropagation();
 
+    // If we're already on the orders page, just toggle the submenu
     if (pathname === "/admin/orders") {
       setIsOrderExpanded(!isOrderExpanded);
     } else {
+      // Navigate to orders page and expand submenu
       router.push("/admin/orders");
       setIsOrderExpanded(true);
     }
@@ -175,211 +222,228 @@ export function AppSidebar() {
     setIsOrderExpanded(!isOrderExpanded);
   };
 
+  // Hide sidebar on tablet, show on mobile and desktop
+  const shouldHideSidebar = isTablet;
+
+  if (shouldHideSidebar) {
+    return null; // Don't render sidebar on tablet
+  }
+
   return (
-    <Sidebar
-      collapsible="icon"
-      variant="floating"
-      className="hidden md:flex xl:flex lg:hidden"
-    >
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild className="border">
-              <Link
-                href="/admin/dashboard"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                  <Store className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    Champika Hardware
-                  </span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Enterprise
-                  </span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+    <div className="hidden md:block xl:block">
+      <Sidebar
+        collapsible="icon"
+        variant="floating"
+        className="hidden md:flex xl:flex lg:hidden" // Hide on tablet (lg), show on mobile (md) and desktop (xl)
+      >
+        <SidebarHeader className="">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild className="border">
+                <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Store className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      Champika Hardware
+                    </span>
+                    <span className="truncate text-xs text-muted-foreground">
+                      Enterprise
+                    </span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup className="mb-2">
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive}
-                    >
-                      <Link
-                        href={item.href}
-                        onClick={(e) => e.stopPropagation()}
+        <SidebarContent>
+          {/* Navigation Section */}
+          <SidebarGroup className="mb-2">
+            <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
                       >
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+                        <Link
+                          href={item.href}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
 
-              <SidebarMenuItem>
-                <div className="flex items-center">
-                  <SidebarMenuButton
-                    onClick={handleStockClick}
-                    tooltip="Stock"
-                    isActive={pathname.startsWith("/admin/stock")}
-                    className="flex-1"
-                  >
-                    <Package className="size-4" />
-                    <span>Stock</span>
-                  </SidebarMenuButton>
-                  <button
-                    onClick={handleStockChevronClick}
-                    className="p-2 hover:bg-accent rounded transition-colors"
-                    aria-label="Toggle stock menu"
-                  >
-                    <ChevronRight
-                      className={`size-4 transition-transform ${
-                        isStockExpanded ? "rotate-90" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
-                {isMounted && isStockExpanded && (
-                  <SidebarMenuSub>
-                    {stockSubItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild isActive={isSubActive}>
-                            <Link
-                              href={subItem.href}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <subItem.icon className="size-4" />
-                              <span>{subItem.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      );
-                    })}
-                  </SidebarMenuSub>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <div className="flex items-center">
-                  <SidebarMenuButton
-                    onClick={handleOrderClick}
-                    tooltip="Orders"
-                    isActive={pathname.startsWith("/admin/orders")}
-                    className="flex-1"
-                  >
-                    <ShoppingCart className="size-4" />
-                    <span>Orders</span>
-                  </SidebarMenuButton>
-                  <button
-                    onClick={handleOrderChevronClick}
-                    className="p-2 hover:bg-accent rounded transition-colors"
-                    aria-label="Toggle orders menu"
-                  >
-                    <ChevronRight
-                      className={`size-4 transition-transform ${
-                        isOrderExpanded ? "rotate-90" : ""
-                      }`}
-                    />
-                  </button>
-                </div>
-                {isMounted && isOrderExpanded && (
-                  <SidebarMenuSub>
-                    {orderSubItems.map((subItem) => {
-                      const isSubActive = pathname === subItem.href;
-                      return (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton asChild isActive={isSubActive}>
-                            <Link
-                              href={subItem.href}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <subItem.icon className="size-4" />
-                              <span>{subItem.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      );
-                    })}
-                  </SidebarMenuSub>
-                )}
-              </SidebarMenuItem>
-
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  tooltip="Settings"
-                  isActive={pathname === "/admin/settings"}
-                >
-                  <Link
-                    href="/admin/settings"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Settings className="size-4" />
-                    <span>Settings</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup className="mt-[-20px]">
-          <SidebarGroupLabel>Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {actionItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <SidebarMenuItem key={item.title}>
+                {/* Orders Menu Item with Submenu */}
+                <SidebarMenuItem>
+                  <div className="relative">
                     <SidebarMenuButton
-                      asChild
-                      tooltip={item.title}
-                      isActive={isActive}
+                      tooltip="Orders"
+                      isActive={isOrderActive}
+                      className="cursor-pointer pr-8"
+                      onClick={handleOrderClick}
                     >
-                      <Link
-                        href={item.href}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <item.icon className="size-4" />
-                        <span>{item.title}</span>
-                      </Link>
+                      <ShoppingCart className="size-4" />
+                      <span>Orders</span>
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+                    <button
+                      onClick={handleOrderChevronClick}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
+                      aria-label="Toggle order submenu"
+                    >
+                      <ChevronRight
+                        className={`size-3 transition-transform duration-200 ${
+                          isOrderExpanded ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isOrderExpanded && (
+                    <SidebarMenuSub>
+                      {orderSubItems.map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isSubActive}
+                            >
+                              <Link
+                                href={subItem.href}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <subItem.icon className="size-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
 
-      <SidebarFooter className="border-t">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
-              <LogOut className="size-4" />
-              <span>Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
-    </Sidebar>
+                {/* Stock Menu Item with Submenu */}
+                <SidebarMenuItem>
+                  <div className="relative">
+                    <SidebarMenuButton
+                      tooltip="Stock"
+                      isActive={isStockActive}
+                      className="cursor-pointer pr-8"
+                      onClick={handleStockClick}
+                    >
+                      <Boxes className="size-4" />
+                      <span>Stock</span>
+                    </SidebarMenuButton>
+                    <button
+                      onClick={handleStockChevronClick}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-sm transition-colors z-10"
+                      aria-label="Toggle stock submenu"
+                    >
+                      <ChevronRight
+                        className={`size-3 transition-transform duration-200 ${
+                          isStockExpanded ? "rotate-90" : ""
+                        }`}
+                      />
+                    </button>
+                  </div>
+                  {isStockExpanded && (
+                    <SidebarMenuSub>
+                      {stockSubItems.map((subItem) => {
+                        const isSubActive = pathname === subItem.href;
+                        return (
+                          <SidebarMenuSubItem key={subItem.title}>
+                            <SidebarMenuSubButton
+                              asChild
+                              isActive={isSubActive}
+                            >
+                              <Link
+                                href={subItem.href}
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <subItem.icon className="size-4" />
+                                <span>{subItem.title}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        );
+                      })}
+                    </SidebarMenuSub>
+                  )}
+                </SidebarMenuItem>
+
+                {/* Settings */}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="Settings"
+                    isActive={pathname === "/admin/settings"}
+                  >
+                    <Link
+                      href="/admin/settings"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Settings className="size-4" />
+                      <span>Settings</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
+          {/* Actions Section */}
+          <SidebarGroup className="mt-[-20px]">
+            <SidebarGroupLabel>Actions</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {actionItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        isActive={isActive}
+                      >
+                        <Link
+                          href={item.href}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <item.icon className="size-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+
+        <SidebarFooter className="border-t">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton onClick={handleSignOut} tooltip="Sign Out">
+                <LogOut className="size-4" />
+                <span>Sign Out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+    </div>
   );
 }

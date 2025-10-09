@@ -51,7 +51,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  // Fetch orders with filters
   const {
     data: ordersResponse,
     isLoading,
@@ -65,15 +64,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     limit: itemsPerPage,
   });
 
-  // Cancel order mutation
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
 
-  // Extract data
   const orders = ordersResponse?.data || [];
   const total = ordersResponse?.total || 0;
   const totalPages = Math.ceil(total / itemsPerPage);
 
-  // Status badge styling
   const getOrderStatusBadge = (orderStatus: OrderStatus) => {
     const statusConfig: Record<
       OrderStatus,
@@ -83,16 +79,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         label: "Pending",
         className: "bg-yellow-100 text-yellow-800 border-yellow-300",
       },
-      [OrderStatus.CONFIRMED]: {
-        label: "Confirmed",
-        className: "bg-blue-100 text-blue-800 border-blue-300",
-      },
       [OrderStatus.PROCESSING]: {
         label: "Processing",
         className: "bg-purple-100 text-purple-800 border-purple-300",
       },
-      [OrderStatus.COMPLETED]: {
-        label: "Completed",
+      [OrderStatus.CHECKING]: {
+        label: "Checking",
+        className: "bg-blue-100 text-blue-800 border-blue-300",
+      },
+      [OrderStatus.DELIVERED]: {
+        label: "Delivered",
         className: "bg-green-100 text-green-800 border-green-300",
       },
       [OrderStatus.CANCELLED]: {
@@ -144,7 +140,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   };
 
-  // Format currency
   const formatCurrency = (amount: string | number) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
     return new Intl.NumberFormat("en-LK", {
@@ -154,7 +149,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     }).format(numAmount);
   };
 
-  // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -163,7 +157,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     });
   };
 
-  // Handler functions
   const handleRowClick = (orderId: number): void => {
     router.push(`/admin/orders/process?orderId=${orderId}`);
   };
@@ -217,7 +210,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     router.push(`/admin/orders/process?orderId=${orderId}`);
   };
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -227,7 +219,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   }
 
-  // Error state
   if (isError) {
     return (
       <div className="rounded-md border border-red-200 bg-red-50 p-6 text-center">
@@ -242,7 +233,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     );
   }
 
-  // Empty state
   if (orders.length === 0) {
     return (
       <div className="rounded-md border border-gray-200 bg-gray-50 p-12 text-center">
@@ -345,6 +335,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         className="text-red-600"
                         disabled={
                           order.order_status === OrderStatus.CANCELLED ||
+                          order.order_status === OrderStatus.DELIVERED ||
                           isCancelling
                         }
                       >
@@ -360,7 +351,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         </Table>
       </div>
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between space-x-2 py-4">
           <div className="text-sm text-gray-500">

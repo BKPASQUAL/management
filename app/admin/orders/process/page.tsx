@@ -1,177 +1,199 @@
 "use client";
+
 import React, { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
-// Table components
-const Table = ({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLTableElement>) => (
-  <table className="w-full border-collapse" {...props}>
-    {children}
-  </table>
-);
-
-const TableHeader = ({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>) => (
-  <thead className="bg-gray-50/50 border-b" {...props}>
-    {children}
-  </thead>
-);
-
-const TableRow = ({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLTableRowElement>) => (
-  <tr className="border-b border-gray-100 last:border-0" {...props}>
-    {children}
-  </tr>
-);
-
-const TableHead = ({
-  children,
-  className = "",
-  ...props
-}: React.ThHTMLAttributes<HTMLTableCellElement>) => (
-  <th
-    className={`px-3 py-3 text-left text-sm text-gray-600 ${className}`}
-    {...props}
-  >
-    {children}
-  </th>
-);
-
-const TableBody = ({
-  children,
-  ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>) => (
-  <tbody {...props}>{children}</tbody>
-);
-
-const TableCell = ({
-  children,
-  className = "",
-  ...props
-}: React.TdHTMLAttributes<HTMLTableCellElement>) => (
-  <td className={`px-3 py-3 text-sm ${className}`} {...props}>
-    {children}
-  </td>
-);
-import { Package, Clock, Eye, CheckCircle2 } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Package,
+  Clock,
+  Eye,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  ArrowLeft,
+  PackageCheck,
+  ClipboardCheck,
+} from "lucide-react";
+import {
+  useGetOrderByIdQuery,
+  useMoveToProcessingMutation,
+  useMoveToCheckingMutation,
+  useMoveToDeliveredMutation,
+  OrderStatus,
+  BillStatus,
+  type OrderItem,
+} from "@/store/services/orderApi";
+import { useToast } from "@/hooks/use-toast";
 
-// Utility function for conditional class names with proper TypeScript types
 const cn = (...classes: (string | undefined | null | boolean)[]): string => {
   return classes.filter(Boolean).join(" ");
 };
 
-// TypeScript interface for items
-interface OrderItem {
-  id: string;
-  itemCode: string;
-  itemName: string;
-  description: string;
-  packType: string;
-  unitQuantity: number;
-  unitType: string;
-  unitPrice: number;
-  totalPrice: number;
-  freeQuantity: number;
-  image: string | null;
+interface ProcessOrderItem extends OrderItem {
   checked: boolean;
+  processed: boolean;
 }
 
-// Sample item data with checkbox state
-const initialItems: OrderItem[] = [
-  {
-    id: "1",
-    itemCode: "ITM-001",
-    itemName: "Premium Steel Pipes",
-    description: "High quality steel pipes for construction",
-    packType: "Bundle",
-    unitQuantity: 50,
-    unitType: "Pieces",
-    unitPrice: 125.5,
-    totalPrice: 6275.0,
-    freeQuantity: 5,
-    image: null,
-    checked: false,
-  },
-  {
-    id: "2",
-    itemCode: "ITM-002",
-    itemName: "Cement Bags",
-    description: "Portland cement 50kg bags",
-    packType: "Bag",
-    unitQuantity: 100,
-    unitType: "Bags",
-    unitPrice: 8.75,
-    totalPrice: 875.0,
-    freeQuantity: 2,
-    image: null,
-    checked: false,
-  },
-  {
-    id: "3",
-    itemCode: "ITM-003",
-    itemName: "Wire Mesh Sheets",
-    description: "Galvanized wire mesh for reinforcement",
-    packType: "Sheet",
-    unitQuantity: 25,
-    unitType: "Sheets",
-    unitPrice: 45.2,
-    totalPrice: 1130.0,
-    freeQuantity: 0,
-    image: null,
-    checked: false,
-  },
-];
+export default function OrderProcessingPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("orderId");
+  const { toast } = useToast();
 
-// TypeScript interface for Checkbox props
-interface CheckboxProps {
-  checked: boolean;
-  onChange: () => void;
-  className?: string;
-  [key: string]: any;
-}
-
-// Custom Checkbox Component with black styling
-export default function CompactOrderProcessing() {
-  const [items, setItems] = useState<OrderItem[]>(initialItems);
+  const [items, setItems] = useState<ProcessOrderItem[]>([]);
   const [selectAll, setSelectAll] = useState<boolean>(false);
+  const [processingAction, setProcessingAction] = useState<string | null>(null);
 
-  const formatCurrency = (amount: number): string => {
-    return `Rs. ${amount.toLocaleString("en-US", {
+  const {
+    data: orderResponse,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetOrderByIdQuery(Number(orderId), {
+    skip: !orderId || isNaN(Number(orderId)),
+  });
+
+  const [moveToProcessing, { isLoading: isMovingToProcessing }] =
+    useMoveToProcessingMutation();
+  const [moveToChecking, { isLoading: isMovingToChecking }] =
+    useMoveToCheckingMutation();
+  const [moveToDelivered, { isLoading: isMovingToDelivered }] =
+    useMoveToDeliveredMutation();
+
+  const order = orderResponse?.data;
+
+  React.useEffect(() => {
+    if (order?.items) {
+      setItems(
+        order.items.map((item) => ({
+          ...item,
+          checked: false,
+          processed: false,
+        }))
+      );
+    }
+  }, [order]);
+
+  const checkedCount = items.filter((item) => item.checked).length;
+  const processedCount = items.filter((item) => item.processed).length;
+  const totalCount = items.length;
+  const allItemsProcessed = processedCount === totalCount && totalCount > 0;
+
+  const displayItems =
+    order?.order_status === OrderStatus.CHECKING
+      ? items.filter((item) => item.processed)
+      : items;
+
+  const formatCurrency = (amount: string | number): string => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return `Rs. ${numAmount.toLocaleString("en-US", {
       minimumFractionDigits: 2,
     })}`;
   };
 
-  const getStockStatus = (quantity: number): string => {
-    if (quantity <= 10) return "text-red-600 bg-red-100";
-    if (quantity <= 30) return "text-yellow-600 bg-yellow-100";
+  const getStockStatus = (quantity: string | number): string => {
+    const qty = typeof quantity === "string" ? parseFloat(quantity) : quantity;
+    if (qty <= 10) return "text-red-600 bg-red-100";
+    if (qty <= 30) return "text-yellow-600 bg-yellow-100";
     return "text-green-600 bg-green-100";
   };
 
-  // Handle individual item checkbox change
-  const handleItemCheck = (itemId: string): void => {
+  const getOrderStatusBadge = (status: OrderStatus) => {
+    const statusConfig: Record<
+      OrderStatus,
+      { label: string; className: string }
+    > = {
+      [OrderStatus.PENDING]: {
+        label: "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      },
+      [OrderStatus.PROCESSING]: {
+        label: "Processing",
+        className: "bg-purple-100 text-purple-800 border-purple-300",
+      },
+      [OrderStatus.CHECKING]: {
+        label: "Checking",
+        className: "bg-blue-100 text-blue-800 border-blue-300",
+      },
+      [OrderStatus.DELIVERED]: {
+        label: "Delivered",
+        className: "bg-green-100 text-green-800 border-green-300",
+      },
+      [OrderStatus.CANCELLED]: {
+        label: "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-300",
+      },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <Badge variant="outline" className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getBillStatusBadge = (status: BillStatus) => {
+    const statusConfig: Record<
+      BillStatus,
+      { label: string; className: string }
+    > = {
+      [BillStatus.DRAFT]: {
+        label: "Draft",
+        className: "bg-gray-100 text-gray-800 border-gray-300",
+      },
+      [BillStatus.PAID]: {
+        label: "Paid",
+        className: "bg-green-100 text-green-800 border-green-300",
+      },
+      [BillStatus.CANCELLED]: {
+        label: "Cancelled",
+        className: "bg-red-100 text-red-800 border-red-300",
+      },
+      [BillStatus.PARTIALLY_PAID]: {
+        label: "Partially Paid",
+        className: "bg-orange-100 text-orange-800 border-orange-300",
+      },
+      [BillStatus.PENDING]: {
+        label: "Pending",
+        className: "bg-yellow-100 text-yellow-800 border-yellow-300",
+      },
+    };
+
+    const config = statusConfig[status];
+    return (
+      <Badge variant="outline" className={config.className}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const handleItemCheck = (itemId: number): void => {
     setItems((prevItems) => {
       const updatedItems = prevItems.map((item) =>
-        item.id === itemId ? { ...item, checked: !item.checked } : item
+        item.bill_item_id === itemId
+          ? { ...item, checked: !item.checked }
+          : item
       );
-
-      // Update select all state
       const allChecked = updatedItems.every((item) => item.checked);
       setSelectAll(allChecked);
-
       return updatedItems;
     });
   };
 
-  // Handle select all checkbox change
   const handleSelectAll = (): void => {
     const newSelectAll = !selectAll;
     setSelectAll(newSelectAll);
@@ -180,69 +202,298 @@ export default function CompactOrderProcessing() {
     );
   };
 
-  // Get checked items count
-  const checkedCount = items.filter((item) => item.checked).length;
-  const totalCount = items.length;
+  const handleClearSelection = (): void => {
+    setItems((prevItems) =>
+      prevItems.map((item) => ({ ...item, checked: false }))
+    );
+    setSelectAll(false);
+  };
+
+  const handleMoveToProcessing = async (): Promise<void> => {
+    if (!orderId) return;
+
+    try {
+      setProcessingAction("processing");
+      await moveToProcessing(Number(orderId)).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Order moved to PROCESSING status",
+        variant: "default",
+      });
+
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description:
+          err?.data?.message || "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleProcessSelected = (): void => {
+    if (checkedCount === 0) {
+      toast({
+        title: "No Items Selected",
+        description: "Please select at least one item to process",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setItems((prevItems) =>
+      prevItems.map((item) =>
+        item.checked ? { ...item, processed: true, checked: false } : item
+      )
+    );
+    setSelectAll(false);
+
+    toast({
+      title: "Items Processed",
+      description: `${checkedCount} item(s) have been marked as processed`,
+      variant: "default",
+    });
+  };
+
+  const handleMoveToChecking = async (): Promise<void> => {
+    if (!orderId) return;
+
+    if (!allItemsProcessed) {
+      toast({
+        title: "Cannot Move to Checking",
+        description: "Please process all items before moving to checking stage",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setProcessingAction("checking");
+      await moveToChecking(Number(orderId)).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Order moved to CHECKING status",
+        variant: "default",
+      });
+
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description:
+          err?.data?.message || "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  const handleMoveToDelivered = async (): Promise<void> => {
+    if (!orderId) return;
+
+    try {
+      setProcessingAction("delivered");
+      await moveToDelivered(Number(orderId)).unwrap();
+
+      toast({
+        title: "Success",
+        description: "Order marked as DELIVERED",
+        variant: "default",
+      });
+
+      refetch();
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description:
+          err?.data?.message || "Failed to update status. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingAction(null);
+    }
+  };
+
+  if (!orderId || isNaN(Number(orderId))) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Invalid Order ID
+          </h2>
+          <p className="text-gray-600">Please provide a valid order ID</p>
+          <Button onClick={() => router.push("/admin/orders")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Orders
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2 text-gray-600">Loading order details...</span>
+      </div>
+    );
+  }
+
+  if (isError || !order) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-semibold text-gray-900">
+            Failed to Load Order
+          </h2>
+          <p className="text-gray-600">
+            {(error as any)?.data?.message ||
+              (error as any)?.message ||
+              "Order not found"}
+          </p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => refetch()} variant="outline">
+              Try Again
+            </Button>
+            <Button onClick={() => router.push("/admin/orders")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="">
-      {/* Compact Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-bold text-xl lg:text-2xl">Champika Hardware</h1>
-          <p>Galle</p>
+          <h1 className="font-bold text-xl lg:text-2xl">
+            {order.customer.shopName}
+          </h1>
+          <p>{order.customer.address}</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge className="px-3 py-1 bg-amber-50 text-amber-700 border-amber-200">
             <Clock className="h-3 w-3 mr-1" />
-            Processing
+            {getOrderStatusBadge(order.order_status)}
           </Badge>
           <div className="text-right">
             <p className="text-lg text-gray-500">Order Number</p>
-            <p className="font-mono font-bold text-lg">ORD-2024-001234</p>
+            <p className="font-mono font-bold text-lg">{order.invoice_no}</p>
           </div>
         </div>
       </div>
 
-      {/* Items Table */}
+      {order.order_status === OrderStatus.PROCESSING && (
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-blue-900">Processing Progress</h3>
+            <Badge variant="outline" className="bg-blue-100 text-blue-700">
+              {processedCount} / {totalCount} Items Processed
+            </Badge>
+          </div>
+          <div className="w-full bg-blue-200 rounded-full h-3">
+            <div
+              className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+              style={{ width: `${(processedCount / totalCount) * 100}%` }}
+            />
+          </div>
+          {allItemsProcessed && (
+            <p className="text-sm text-blue-700 mt-2 font-medium">
+              ✓ All items processed! Ready to move to checking stage.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
         <div className="xl:col-span-3">
-          <div className="border rounded-lg ">
+          <div className="border rounded-lg">
             <CardContent className="p-0">
               <div className="p-4 border-b bg-gray-50/50">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-lg">Order Items</h3>
-                  <Badge
-                    variant="secondary"
-                    className={cn(
-                      "bg-blue-50 text-blue-700",
-                      checkedCount === totalCount &&
-                        checkedCount > 0 &&
-                        "bg-green-50 text-green-700"
-                    )}
-                  >
-                    {checkedCount} of {totalCount} selected
-                  </Badge>
+                  <h3 className="font-bold text-lg">
+                    {order.order_status === OrderStatus.CHECKING
+                      ? "Processed Items (Checking)"
+                      : "Order Items"}
+                  </h3>
+                  {order.order_status === OrderStatus.PENDING && (
+                    <div className="border rounded-lg mt-4 bg-yellow-50">
+                      <CardContent className="p-4">
+                        <h4 className="font-semibold text-sm mb-3 text-yellow-900">
+                          Pending Order
+                        </h4>
+                        <div className="space-y-2 text-xs text-yellow-800">
+                          <p className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Review order details
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Verify items and quantities
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Click "Move to Processing" to start
+                          </p>
+                        </div>
+                      </CardContent>
+                    </div>
+                  )}
+
+                  {order.order_status === OrderStatus.PROCESSING && (
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "bg-blue-50 text-blue-700",
+                        checkedCount === totalCount &&
+                          checkedCount > 0 &&
+                          "bg-green-50 text-green-700"
+                      )}
+                    >
+                      {checkedCount} of {totalCount} selected
+                    </Badge>
+                  )}
+                  {order.order_status === OrderStatus.CHECKING && (
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-50 text-green-700"
+                    >
+                      {processedCount} Processed Items
+                    </Badge>
+                  )}
                 </div>
               </div>
 
-              {/* Desktop Table */}
               <div className="hidden xl:block">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[8%] font-bold">
-                        <div
-                          className="flex items-center justify-center p-3 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-200 active:scale-95 select-none"
-                          onClick={handleSelectAll}
-                        >
-                          <Checkbox
-                            checked={selectAll}
-                            aria-label="Select all items"
-                            className="h-6 w-6 pointer-events-none"
-                          />
-                        </div>
-                      </TableHead>
+                      {order.order_status === OrderStatus.PROCESSING && (
+                        <TableHead className="w-[8%] font-bold">
+                          <div
+                            className="flex items-center justify-center p-3 cursor-pointer hover:bg-blue-50 rounded-lg transition-all duration-200 active:scale-95 select-none"
+                            onClick={handleSelectAll}
+                          >
+                            <Checkbox
+                              checked={selectAll}
+                              aria-label="Select all items"
+                              className="h-6 w-6 pointer-events-none"
+                            />
+                          </div>
+                        </TableHead>
+                      )}
                       <TableHead className="w-[8%] font-bold">Image</TableHead>
                       <TableHead className="w-[12%] font-bold">
                         Item Code
@@ -266,35 +517,46 @@ export default function CompactOrderProcessing() {
                         Total
                       </TableHead>
                       <TableHead className="w-[8%] font-bold text-center">
-                        Actions
+                        {order.order_status === OrderStatus.PROCESSING
+                          ? "Status"
+                          : "Actions"}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((item, index) => (
+                    {displayItems.map((item, index) => (
                       <TableRow
-                        key={item.id}
+                        key={item.bill_item_id}
                         className={cn(
                           "transition-colors group",
                           index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
-                          item.checked && "bg-gray-50/80"
+                          item.checked && "bg-blue-50/80",
+                          item.processed && "bg-green-50/50"
                         )}
                       >
-                        <TableCell className="text-center">
-                          <div
-                            className="flex items-center justify-center p-2 cursor-pointer hover:bg-gray-100 rounded-md transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleItemCheck(item.id);
-                            }}
-                          >
-                            <Checkbox
-                              checked={item.checked}
-                              aria-label={`Select ${item.itemName}`}
-                              className="h-6 w-6 pointer-events-none"
-                            />
-                          </div>
-                        </TableCell>
+                        {order.order_status === OrderStatus.PROCESSING && (
+                          <TableCell className="text-center">
+                            {!item.processed ? (
+                              <div
+                                className="flex items-center justify-center p-2 cursor-pointer hover:bg-gray-100 rounded-md transition-colors"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleItemCheck(item.bill_item_id);
+                                }}
+                              >
+                                <Checkbox
+                                  checked={item.checked}
+                                  aria-label={`Select ${item.item_name}`}
+                                  className="h-6 w-6 pointer-events-none"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex items-center justify-center">
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
                             <Package className="h-4 w-4 text-gray-400" />
@@ -305,53 +567,58 @@ export default function CompactOrderProcessing() {
                             variant="outline"
                             className="font-mono text-xs"
                           >
-                            {item.itemCode}
+                            {item.item_code}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <div className="font-medium text-sm">
-                              {item.itemName}
-                            </div>
+                          <div className="font-medium text-sm">
+                            {item.item_name}
                           </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className="text-xs">
-                            {item.packType}
+                            {item.category_name}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           <span
                             className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                              item.unitQuantity
+                              item.quantity
                             )}`}
                           >
-                            {item.unitQuantity} {item.unitType}
+                            {item.quantity} {item.unit_type}
                           </span>
                         </TableCell>
                         <TableCell className="text-center">
-                          {item.freeQuantity > 0 ? (
+                          {parseFloat(item.free_quantity.toString()) > 0 ? (
                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                              {item.freeQuantity}
+                              {item.free_quantity}
                             </span>
                           ) : (
                             <span className="text-gray-400 text-xs">-</span>
                           )}
                         </TableCell>
                         <TableCell className="text-right font-semibold">
-                          {formatCurrency(item.unitPrice)}
+                          {formatCurrency(item.unit_price)}
                         </TableCell>
                         <TableCell className="text-right font-bold text-emerald-600">
-                          {formatCurrency(item.totalPrice)}
+                          {formatCurrency(item.total_amount)}
                         </TableCell>
                         <TableCell className="text-center">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                          >
-                            <Eye className="h-3 w-3" />
-                          </Button>
+                          {item.processed ? (
+                            <Badge className="bg-green-100 text-green-700 border-green-300">
+                              <PackageCheck className="h-3 w-3 mr-1" />
+                              Processed
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                            >
+                              <Eye className="h-3 w-3" />
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -359,169 +626,46 @@ export default function CompactOrderProcessing() {
                 </Table>
               </div>
 
-              {/* Mobile/Tablet Cards - Improved Layout */}
-              {/* Mobile/Tablet Cards - Improved Layout */}
-              <div className="xl:hidden p-4 space-y-4">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "border rounded-lg p-4 shadow-sm transition-all duration-200",
-                      item.checked
-                        ? "bg-gray-50/80 border-gray-300 shadow-md"
-                        : "bg-white hover:shadow-md"
-                    )}
-                  >
-                    <div className="flex items-start gap-3 mb-3">
-                      {/* Checkbox */}
-                      <div
-                        className="flex-shrink-0 mt-1 p-2 cursor-pointer hover:bg-gray-100 rounded-md transition-colors"
-                        onClick={() => handleItemCheck(item.id)}
-                      >
-                        <Checkbox
-                          checked={item.checked}
-                          aria-label={`Select ${item.itemName}`}
-                          className="h-5 w-5 pointer-events-none"
-                        />
-                      </div>
-
-                      {/* Image */}
-                      <div className="w-12 h-12 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
-                        <Package className="h-5 w-5 text-gray-400" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-sm leading-tight mb-1">
-                          {item.itemName}
-                        </h4>
-                        <p className="text-xs text-gray-500 mb-2">
-                          {item.itemCode} • {item.packType}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Priority Info: Quantity & Free Quantity - PROMINENT */}
-                    <div className="bg-gradient-to-r from-blue-50 to-emerald-50 rounded-lg p-3 mb-3 border border-blue-100">
-                      <div className="grid grid-cols-2 gap-3">
-                        {/* Quantity - Left Side */}
-                        <div>
-                          <p className="text-xs text-gray-600 font-medium mb-1">
-                            Quantity
-                          </p>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-2xl font-bold text-gray-900">
-                              {item.unitQuantity}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                              {item.unitType}
-                            </span>
-                          </div>
-                          <span
-                            className={`inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${getStockStatus(
-                              item.unitQuantity
-                            )}`}
-                          >
-                            {item.unitQuantity <= 10
-                              ? "Low Stock"
-                              : item.unitQuantity <= 30
-                              ? "Medium"
-                              : "In Stock"}
-                          </span>
-                        </div>
-
-                        {/* Free Quantity - Right Side */}
-                        <div className="border-l border-emerald-200 pl-3">
-                          <p className="text-xs text-gray-600 font-medium mb-1">
-                            Free Quantity
-                          </p>
-                          {item.freeQuantity > 0 ? (
-                            <>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-2xl font-bold text-emerald-600">
-                                  {item.freeQuantity}
-                                </span>
-                                <span className="text-sm text-gray-600">
-                                  {item.unitType}
-                                </span>
-                              </div>
-                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                                Bonus
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <div className="text-2xl font-bold text-gray-300">
-                                0
-                              </div>
-                              <span className="inline-block mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-                                None
-                              </span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Actions with Price */}
-                    <div className="flex justify-between items-center pt-3 border-t">
-                      <Button variant="outline" size="sm" className="h-8">
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">
-                          {formatCurrency(item.unitPrice)} per unit
-                        </div>
-                        <div className="font-bold text-emerald-600 text-lg">
-                          {formatCurrency(item.totalPrice)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Table Summary */}
               <div className="p-4 border-t bg-gray-50/50">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-6 text-sm">
+                  <div className="flex items-center gap-6 text-sm flex-wrap">
                     <span className="text-gray-600">
                       Total Items:{" "}
                       <span className="font-bold text-gray-900">
-                        {items.length}
+                        {totalCount}
                       </span>
                     </span>
-                    <span className="text-gray-600">
-                      Selected:{" "}
-                      <span className="font-bold text-gray-900">
-                        {checkedCount}
-                      </span>
-                    </span>
-                    <span className="text-gray-600">
-                      Total Qty:{" "}
-                      <span className="font-bold text-gray-900">
-                        {items.reduce(
-                          (sum, item) => sum + item.unitQuantity,
-                          0
-                        )}
-                      </span>
-                    </span>
-                    <span className="text-gray-600">
-                      Free Qty:{" "}
-                      <span className="font-bold text-emerald-600">
-                        {items.reduce(
-                          (sum, item) => sum + item.freeQuantity,
-                          0
-                        )}
-                      </span>
-                    </span>
+                    {order.order_status === OrderStatus.PROCESSING && (
+                      <>
+                        <span className="text-gray-600">
+                          Processed:{" "}
+                          <span className="font-bold text-green-600">
+                            {processedCount}
+                          </span>
+                        </span>
+                        <span className="text-gray-600">
+                          Selected:{" "}
+                          <span className="font-bold text-blue-600">
+                            {checkedCount}
+                          </span>
+                        </span>
+                      </>
+                    )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">Subtotal</p>
+                    <p className="text-sm text-gray-600">
+                      {order.order_status === OrderStatus.CHECKING
+                        ? "Processed"
+                        : ""}{" "}
+                      Subtotal
+                    </p>
                     <p className="text-xl font-bold text-emerald-600">
                       {formatCurrency(
-                        items.reduce((sum, item) => sum + item.totalPrice, 0)
+                        displayItems.reduce(
+                          (sum, item) =>
+                            sum + parseFloat(item.total_amount.toString()),
+                          0
+                        )
                       )}
                     </p>
                   </div>
@@ -531,9 +675,8 @@ export default function CompactOrderProcessing() {
           </div>
         </div>
 
-        {/* Summary Sidebar */}
         <div className="xl:col-span-1">
-          <div className="border rounded-lg ">
+          <div className="border rounded-lg">
             <CardContent className="p-4 space-y-4">
               <h3 className="font-bold flex items-center gap-2">
                 <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
@@ -545,20 +688,26 @@ export default function CompactOrderProcessing() {
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="font-semibold">Rs. 8,280.00</span>
+                  <span className="font-semibold">
+                    {formatCurrency(order.subtotal)}
+                  </span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Tax (10%):</span>
-                  <span className="font-semibold">Rs. 828.00</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Shipping:</span>
-                  <span className="font-semibold">Rs. 150.00</span>
-                </div>
+                {parseFloat(order.discount_amount.toString()) > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      Discount ({order.discount_percentage}%):
+                    </span>
+                    <span className="font-semibold">
+                      -{formatCurrency(order.discount_amount)}
+                    </span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total:</span>
-                  <span className="text-emerald-600">Rs. 9,258.00</span>
+                  <span className="text-emerald-600">
+                    {formatCurrency(order.total_amount)}
+                  </span>
                 </div>
               </div>
 
@@ -566,60 +715,230 @@ export default function CompactOrderProcessing() {
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Selected Items:</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-xs",
-                      checkedCount === totalCount && checkedCount > 0
-                        ? "bg-green-50 text-green-700 border-green-200"
-                        : "bg-gray-50 text-gray-700 border-gray-200"
-                    )}
-                  >
-                    {checkedCount} / {totalCount}
+                  <span className="text-gray-600">Total Items:</span>
+                  <Badge variant="outline" className="text-xs">
+                    {totalCount}
                   </Badge>
                 </div>
+                {order.order_status === OrderStatus.PROCESSING && (
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Processed:</span>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        "text-xs",
+                        allItemsProcessed
+                          ? "bg-green-50 text-green-700 border-green-200"
+                          : "bg-gray-50 text-gray-700 border-gray-200"
+                      )}
+                    >
+                      {processedCount} / {totalCount}
+                    </Badge>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-gray-600">Payment:</span>
                   <Badge variant="outline" className="text-xs">
-                    Credit
+                    {order.payment_method}
                   </Badge>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Status:</span>
-                  <Badge className="text-xs bg-emerald-50 text-emerald-700">
-                    Paid
-                  </Badge>
+                  {getBillStatusBadge(order.status)}
                 </div>
               </div>
 
-              <div className="pt-4 space-y-2">
-                <Button
-                  className="w-full"
-                  size="sm"
-                  disabled={checkedCount === 0}
-                >
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Process Selected ({checkedCount})
-                </Button>
-                {checkedCount > 0 && (
+              <Separator />
+
+              <div className="pt-2 space-y-2">
+                {order.order_status === OrderStatus.PENDING && (
                   <Button
-                    variant="outline"
-                    className="w-full text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                    className="w-full bg-purple-600 hover:bg-purple-700"
                     size="sm"
-                    onClick={() => {
-                      setItems(
-                        items.map((item) => ({ ...item, checked: false }))
-                      );
-                      setSelectAll(false);
-                    }}
+                    onClick={handleMoveToProcessing}
+                    disabled={isMovingToProcessing || processingAction !== null}
                   >
-                    Clear Selection
+                    {isMovingToProcessing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Moving to Processing...
+                      </>
+                    ) : (
+                      <>
+                        <PackageCheck className="h-4 w-4 mr-1" />
+                        Move to Processing
+                      </>
+                    )}
                   </Button>
                 )}
+
+                {order.order_status === OrderStatus.PROCESSING && (
+                  <>
+                    <Button
+                      className="w-full"
+                      size="sm"
+                      variant={checkedCount > 0 ? "default" : "outline"}
+                      disabled={checkedCount === 0}
+                      onClick={handleProcessSelected}
+                    >
+                      <PackageCheck className="h-4 w-4 mr-1" />
+                      Process Selected ({checkedCount})
+                    </Button>
+
+                    {checkedCount > 0 && (
+                      <Button
+                        variant="outline"
+                        className="w-full text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                        size="sm"
+                        onClick={handleClearSelection}
+                      >
+                        Clear Selection
+                      </Button>
+                    )}
+
+                    {allItemsProcessed && (
+                      <Button
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        size="sm"
+                        onClick={handleMoveToChecking}
+                        disabled={
+                          isMovingToChecking || processingAction !== null
+                        }
+                      >
+                        {isMovingToChecking ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            Moving to Checking...
+                          </>
+                        ) : (
+                          <>
+                            <ClipboardCheck className="h-4 w-4 mr-1" />
+                            Move to Checking
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </>
+                )}
+
+                {order.order_status === OrderStatus.CHECKING && (
+                  <Button
+                    className="w-full bg-green-600 hover:bg-green-700"
+                    size="sm"
+                    onClick={handleMoveToDelivered}
+                    disabled={isMovingToDelivered || processingAction !== null}
+                  >
+                    {isMovingToDelivered ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Marking as Delivered...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-1" />
+                        Mark as Delivered
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {(order.order_status === OrderStatus.DELIVERED ||
+                  order.order_status === OrderStatus.CANCELLED) && (
+                  <div className="text-center py-4">
+                    {getOrderStatusBadge(order.order_status)}
+                    <p className="text-xs text-gray-500 mt-2">
+                      This order has been {order.order_status.toLowerCase()}
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  size="sm"
+                  onClick={() => router.push("/admin/orders")}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Back to Orders
+                </Button>
               </div>
             </CardContent>
           </div>
+
+          {order.order_status === OrderStatus.PROCESSING && (
+            <div className="border rounded-lg mt-4 bg-blue-50">
+              <CardContent className="p-4">
+                <h4 className="font-semibold text-sm mb-3 text-blue-900">
+                  Processing Steps
+                </h4>
+                <ol className="space-y-2 text-xs text-blue-800">
+                  <li className="flex items-start gap-2">
+                    <span
+                      className={cn(
+                        "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+                        processedCount > 0
+                          ? "bg-green-500 text-white"
+                          : "bg-blue-200 text-blue-700"
+                      )}
+                    >
+                      1
+                    </span>
+                    <span>Select items to process</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span
+                      className={cn(
+                        "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+                        processedCount > 0
+                          ? "bg-green-500 text-white"
+                          : "bg-blue-200 text-blue-700"
+                      )}
+                    >
+                      2
+                    </span>
+                    <span>Click "Process Selected" button</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span
+                      className={cn(
+                        "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold",
+                        allItemsProcessed
+                          ? "bg-green-500 text-white"
+                          : "bg-blue-200 text-blue-700"
+                      )}
+                    >
+                      4
+                    </span>
+                    <span>Click "Move to Checking" when ready</span>
+                  </li>
+                </ol>
+              </CardContent>
+            </div>
+          )}
+
+          {order.order_status === OrderStatus.CHECKING && (
+            <div className="border rounded-lg mt-4 bg-green-50">
+              <CardContent className="p-4">
+                <h4 className="font-semibold text-sm mb-3 text-green-900">
+                  Checking Stage
+                </h4>
+                <div className="space-y-2 text-xs text-green-800">
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Review all processed items
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Verify quantities and quality
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Mark as delivered when ready
+                  </p>
+                </div>
+              </CardContent>
+            </div>
+          )}
         </div>
       </div>
     </div>
