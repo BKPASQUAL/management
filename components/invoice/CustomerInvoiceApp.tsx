@@ -1,4 +1,4 @@
-// components/invoice/CustomerInvoiceApp.tsx - Updated version with Save and Print functionality
+// components/invoice/CustomerInvoiceApp.tsx - With Authentication
 "use client";
 
 import * as React from "react";
@@ -14,13 +14,11 @@ import {
   CustomersListResponse,
   Item,
   NewItemRow,
-  InvoiceData,
   paymentMethods,
 } from "./types";
 import PrintInvoice from "./PrintInvoice";
 
 export default function CustomerInvoiceApp() {
-  // Toast hook
   const { addToast } = useToast();
 
   // Customer API state
@@ -33,8 +31,6 @@ export default function CustomerInvoiceApp() {
   // Header state
   const [customerOpen, setCustomerOpen] = React.useState(false);
   const [selectedCustomer, setSelectedCustomer] = React.useState("");
-
-  // Fix hydration issue by using useEffect for invoice number generation
   const [invoiceNo, setInvoiceNo] = React.useState("");
   const [billingDate, setBillingDate] = React.useState<Date>(new Date());
   const [billingDateOpen, setBillingDateOpen] = React.useState(false);
@@ -52,7 +48,7 @@ export default function CustomerInvoiceApp() {
   const [isSaveAndPrintLoading, setIsSaveAndPrintLoading] =
     React.useState(false);
 
-  // New item state - Updated for stock-based form
+  // New item state
   const [newItem, setNewItem] = React.useState<NewItemRow>({
     itemCode: "",
     itemName: "",
@@ -65,14 +61,31 @@ export default function CustomerInvoiceApp() {
   const [itemCodeOpen, setItemCodeOpen] = React.useState(false);
   const [itemNameOpen, setItemNameOpen] = React.useState(false);
 
-  // Generate invoice number on client side to avoid hydration mismatch
+  // Helper function to get auth headers
+  const getAuthHeaders = React.useCallback(() => {
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+    };
+
+    // Get token from localStorage
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+    }
+
+    return headers;
+  }, []);
+
+  // Generate invoice number on client side
   React.useEffect(() => {
     if (!invoiceNo) {
       setInvoiceNo(`INV-${Date.now().toString().slice(-6)}`);
     }
   }, [invoiceNo]);
 
-  // Fetch customers from API
+  // Fetch customers from API with authentication
   const fetchCustomers = React.useCallback(async () => {
     setCustomersLoading(true);
     setCustomersError(null);
@@ -82,13 +95,14 @@ export default function CustomerInvoiceApp() {
         `${process.env.NEXT_PUBLIC_BASE_URL}/customers`,
         {
           method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
         }
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized. Please login again.");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -105,10 +119,19 @@ export default function CustomerInvoiceApp() {
         error instanceof Error ? error.message : "Failed to fetch customers"
       );
       setCustomers([]);
+
+      // Show error toast
+      addToast({
+        type: "error",
+        title: "Failed to Load Customers",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch customers",
+        duration: 5000,
+      });
     } finally {
       setCustomersLoading(false);
     }
-  }, []);
+  }, [getAuthHeaders, addToast]);
 
   // Load customers on component mount
   React.useEffect(() => {
@@ -245,7 +268,7 @@ export default function CustomerInvoiceApp() {
     return true;
   };
 
-  // Save invoice function
+  // Save invoice function with authentication
   const saveInvoice = async (shouldPrint = false) => {
     if (!validateInvoice()) return;
 
@@ -284,19 +307,20 @@ export default function CustomerInvoiceApp() {
         totalItems: totalItems,
       };
 
-      // Call backend API
+      // Call backend API with authentication headers
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BASE_URL}/customer-bills`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(invoiceData),
         }
       );
 
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Unauthorized. Please login again.");
+        }
         const errorData = await response.json();
         throw new Error(
           errorData.message || `HTTP error! status: ${response.status}`
@@ -319,18 +343,15 @@ export default function CustomerInvoiceApp() {
         duration: 6000,
       });
 
-      // Clear form after successful save - but delay if printing
+      // Clear form after successful save
       if (shouldPrint) {
-        // For save & print: delay clearing until after print is done
         setTimeout(() => {
           window.print();
-          // Clear fields after print dialog appears
           setTimeout(() => {
             clearAllFields();
-          }, 2000); // Give time for print dialog and user interaction
+          }, 2000);
         }, 1000);
       } else {
-        // For save only: clear immediately
         clearAllFields();
       }
     } catch (error) {
@@ -370,14 +391,13 @@ export default function CustomerInvoiceApp() {
     }
   };
 
-
   // Calculations
   const subtotal = items.reduce((sum, item) => sum + item.amount, 0);
   const extraDiscountAmount = (subtotal * parseFloat(extraDiscount)) / 100;
   const finalTotal = subtotal - extraDiscountAmount;
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Don't render until we have an invoice number
+  // Loading state
   if (!invoiceNo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -443,21 +463,10 @@ export default function CustomerInvoiceApp() {
                   ? "Saving & Printing..."
                   : "Save & Print"}
               </Button>
-              {/* <Button
-                variant="outline"
-                className="border-gray-300"
-                disabled={
-                  items.length === 0 || !selectedCustomer || !paymentMethod
-                }
-                onClick={handlePrint}
-              >
-                <Printer className="h-4 w-4 mr-2" />
-                Print Only
-              </Button> */}
             </div>
           </div>
 
-          {/* Updated Add Item Form - Now uses stock API */}
+          {/* Add Item Form */}
           <AddItemForm
             newItem={newItem}
             setNewItem={setNewItem}
@@ -514,16 +523,6 @@ export default function CustomerInvoiceApp() {
             <FileCheck className="h-5 w-5 mr-2" />
             {isSaveAndPrintLoading ? "Saving & Printing..." : "Save & Print"}
           </Button>
-          {/* <Button
-            variant="outline"
-            size="lg"
-            className="px-8 py-3 border-gray-300"
-            disabled={items.length === 0 || !selectedCustomer || !paymentMethod}
-            onClick={handlePrint}
-          >
-            <Printer className="h-5 w-5 mr-2" />
-            Print Only
-          </Button> */}
           <Button
             variant="ghost"
             size="lg"
@@ -535,7 +534,7 @@ export default function CustomerInvoiceApp() {
           </Button>
         </div>
 
-        {/* Print Invoice Component - Hidden but rendered for printing */}
+        {/* Print Invoice Component */}
         <PrintInvoice
           selectedCustomer={selectedCustomer}
           customers={customers}
