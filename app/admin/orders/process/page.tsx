@@ -30,7 +30,6 @@ import {
   useGetOrderByIdQuery,
   useMoveToProcessingMutation,
   useMoveToCheckingMutation,
-  useMoveToDeliveredMutation,
   OrderStatus,
   BillStatus,
   type OrderItem,
@@ -70,8 +69,6 @@ export default function OrderProcessingPage() {
     useMoveToProcessingMutation();
   const [moveToChecking, { isLoading: isMovingToChecking }] =
     useMoveToCheckingMutation();
-  const [moveToDelivered, { isLoading: isMovingToDelivered }] =
-    useMoveToDeliveredMutation();
 
   const order = orderResponse?.data;
 
@@ -87,15 +84,17 @@ export default function OrderProcessingPage() {
     }
   }, [order]);
 
+  // Redirect if order is in CHECKING, DELIVERED, or CANCELLED status
+  React.useEffect(() => {
+    if (order && order.order_status === OrderStatus.CHECKING) {
+      router.push(`/admin/orders/checking?orderId=${orderId}`);
+    }
+  }, [order, orderId, router]);
+
   const checkedCount = items.filter((item) => item.checked).length;
   const processedCount = items.filter((item) => item.processed).length;
   const totalCount = items.length;
   const allItemsProcessed = processedCount === totalCount && totalCount > 0;
-
-  const displayItems =
-    order?.order_status === OrderStatus.CHECKING
-      ? items.filter((item) => item.processed)
-      : items;
 
   const formatCurrency = (amount: string | number): string => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
@@ -277,11 +276,15 @@ export default function OrderProcessingPage() {
 
       toast({
         title: "Success",
-        description: "Order moved to CHECKING status",
+        description:
+          "Order moved to CHECKING status. Redirecting to checking page...",
         variant: "default",
       });
 
-      refetch();
+      // Navigate to the checking page after successful status update
+      setTimeout(() => {
+        router.push(`/admin/orders/checking?orderId=${orderId}`);
+      }, 1000);
     } catch (err: any) {
       toast({
         title: "Error",
@@ -289,33 +292,6 @@ export default function OrderProcessingPage() {
           err?.data?.message || "Failed to update status. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setProcessingAction(null);
-    }
-  };
-
-  const handleMoveToDelivered = async (): Promise<void> => {
-    if (!orderId) return;
-
-    try {
-      setProcessingAction("delivered");
-      await moveToDelivered(Number(orderId)).unwrap();
-
-      toast({
-        title: "Success",
-        description: "Order marked as DELIVERED",
-        variant: "default",
-      });
-
-      refetch();
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description:
-          err?.data?.message || "Failed to update status. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
       setProcessingAction(null);
     }
   };
@@ -374,6 +350,19 @@ export default function OrderProcessingPage() {
     );
   }
 
+  // Only show PENDING and PROCESSING orders on this page
+  if (
+    order.order_status !== OrderStatus.PENDING &&
+    order.order_status !== OrderStatus.PROCESSING
+  ) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+        <span className="ml-2 text-gray-600">Redirecting...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="">
       <div className="flex flex-col sm:flex-row sm:justify-between lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
@@ -423,33 +412,15 @@ export default function OrderProcessingPage() {
             <CardContent className="p-0">
               <div className="p-4 border-b bg-gray-50/50">
                 <div className="flex justify-between items-center">
-                  <h3 className="font-bold text-lg">
-                    {order.order_status === OrderStatus.CHECKING
-                      ? "Processed Items (Checking)"
-                      : "Order Items"}
-                  </h3>
+                  <h3 className="font-bold text-lg">Order Items</h3>
+
                   {order.order_status === OrderStatus.PENDING && (
-                    <div className="border rounded-lg mt-4 bg-yellow-50">
-                      <CardContent className="p-4">
-                        <h4 className="font-semibold text-sm mb-3 text-yellow-900">
-                          Pending Order
-                        </h4>
-                        <div className="space-y-2 text-xs text-yellow-800">
-                          <p className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Review order details
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Verify items and quantities
-                          </p>
-                          <p className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Click "Move to Processing" to start
-                          </p>
-                        </div>
-                      </CardContent>
-                    </div>
+                    <Badge
+                      variant="secondary"
+                      className="bg-yellow-50 text-yellow-700"
+                    >
+                      Pending Review
+                    </Badge>
                   )}
 
                   {order.order_status === OrderStatus.PROCESSING && (
@@ -463,14 +434,6 @@ export default function OrderProcessingPage() {
                       )}
                     >
                       {checkedCount} of {totalCount} selected
-                    </Badge>
-                  )}
-                  {order.order_status === OrderStatus.CHECKING && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-50 text-green-700"
-                    >
-                      {processedCount} Processed Items
                     </Badge>
                   )}
                 </div>
@@ -524,7 +487,7 @@ export default function OrderProcessingPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {displayItems.map((item, index) => (
+                    {items.map((item, index) => (
                       <TableRow
                         key={item.bill_item_id}
                         className={cn(
@@ -653,15 +616,10 @@ export default function OrderProcessingPage() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-gray-600">
-                      {order.order_status === OrderStatus.CHECKING
-                        ? "Processed"
-                        : ""}{" "}
-                      Subtotal
-                    </p>
+                    <p className="text-sm text-gray-600">Subtotal</p>
                     <p className="text-xl font-bold text-emerald-600">
                       {formatCurrency(
-                        displayItems.reduce(
+                        items.reduce(
                           (sum, item) =>
                             sum + parseFloat(item.total_amount.toString()),
                           0
@@ -821,37 +779,6 @@ export default function OrderProcessingPage() {
                   </>
                 )}
 
-                {order.order_status === OrderStatus.CHECKING && (
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    size="sm"
-                    onClick={handleMoveToDelivered}
-                    disabled={isMovingToDelivered || processingAction !== null}
-                  >
-                    {isMovingToDelivered ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Marking as Delivered...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="h-4 w-4 mr-1" />
-                        Mark as Delivered
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {(order.order_status === OrderStatus.DELIVERED ||
-                  order.order_status === OrderStatus.CANCELLED) && (
-                  <div className="text-center py-4">
-                    {getOrderStatusBadge(order.order_status)}
-                    <p className="text-xs text-gray-500 mt-2">
-                      This order has been {order.order_status.toLowerCase()}
-                    </p>
-                  </div>
-                )}
-
                 <Button
                   variant="outline"
                   className="w-full"
@@ -864,6 +791,30 @@ export default function OrderProcessingPage() {
               </div>
             </CardContent>
           </div>
+
+          {order.order_status === OrderStatus.PENDING && (
+            <div className="border rounded-lg mt-4 bg-yellow-50">
+              <CardContent className="p-4">
+                <h4 className="font-semibold text-sm mb-3 text-yellow-900">
+                  Pending Order
+                </h4>
+                <div className="space-y-2 text-xs text-yellow-800">
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Review order details
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Verify items and quantities
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Click "Move to Processing" to start
+                  </p>
+                </div>
+              </CardContent>
+            </div>
+          )}
 
           {order.order_status === OrderStatus.PROCESSING && (
             <div className="border rounded-lg mt-4 bg-blue-50">
@@ -907,35 +858,11 @@ export default function OrderProcessingPage() {
                           : "bg-blue-200 text-blue-700"
                       )}
                     >
-                      4
+                      3
                     </span>
                     <span>Click "Move to Checking" when ready</span>
                   </li>
                 </ol>
-              </CardContent>
-            </div>
-          )}
-
-          {order.order_status === OrderStatus.CHECKING && (
-            <div className="border rounded-lg mt-4 bg-green-50">
-              <CardContent className="p-4">
-                <h4 className="font-semibold text-sm mb-3 text-green-900">
-                  Checking Stage
-                </h4>
-                <div className="space-y-2 text-xs text-green-800">
-                  <p className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Review all processed items
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Verify quantities and quality
-                  </p>
-                  <p className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Mark as delivered when ready
-                  </p>
-                </div>
               </CardContent>
             </div>
           )}

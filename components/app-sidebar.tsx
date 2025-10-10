@@ -85,7 +85,7 @@ export function AppSidebar() {
     {
       title: "Processing Orders",
       icon: Loader,
-      href: "/admin/orders/processing",
+      href: "/admin/orders/processingOrders",
     },
     {
       title: "Checking Orders",
