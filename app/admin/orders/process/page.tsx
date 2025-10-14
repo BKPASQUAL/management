@@ -131,6 +131,10 @@ export default function OrderProcessingPage() {
         label: "Delivered",
         className: "bg-green-100 text-green-800 border-green-300",
       },
+      [OrderStatus.CONFIRMED]: {
+        label: "Confirmed",
+        className: "bg-teal-100 text-teal-800 border-teal-300",
+      },
       [OrderStatus.CANCELLED]: {
         label: "Cancelled",
         className: "bg-red-100 text-red-800 border-red-300",

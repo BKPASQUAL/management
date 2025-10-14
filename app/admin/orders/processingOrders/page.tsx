@@ -29,13 +29,13 @@ export default function ProcessingOrdersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRepresentative, setSelectedRepresentative] = useState("all");
 
-  // Fetch only pending orders
+  // Fetch only CONFIRMED orders
   const {
     data: ordersResponse,
     isLoading,
     isError,
   } = useGetOrdersQuery({
-    order_status: OrderStatus.PENDING,
+    order_status: OrderStatus.CONFIRMED,
   });
 
   const orders = ordersResponse?.data || [];
@@ -46,10 +46,10 @@ export default function ProcessingOrdersPage() {
     ...Array.from(new Set(orders.map((o) => o.created_by.username))),
   ];
 
-  // Filter orders
+  // Filter orders - only show CONFIRMED status
   const filteredOrders = orders.filter(
     (order) =>
-      order.order_status === OrderStatus.PENDING &&
+      order.order_status === OrderStatus.CONFIRMED &&
       (selectedRepresentative === "all" ||
         order.created_by.username === selectedRepresentative) &&
       (order.invoice_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -109,17 +109,17 @@ export default function ProcessingOrdersPage() {
 
   return (
     <div className="">
-      {/* Header Section - Matching your design */}
+      {/* Header Section */}
       <div className="mb-2 sm:mb-4">
         <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl">
           Processing Orders
         </h1>
         <p className="text-gray-500 text-sm sm:text-base mt-1">
-          Manage pending orders ({filteredOrders.length} orders)
+          Manage confirmed orders ({filteredOrders.length} orders)
         </p>
       </div>
 
-      {/* Filters Section - Responsive width */}
+      {/* Filters Section */}
       <div className="mb-4 sm:mb-6 w-full lg:w-1/3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {/* Search Input */}
@@ -157,7 +157,7 @@ export default function ProcessingOrdersPage() {
         </div>
       </div>
 
-      {/* Mobile Card View (Hidden on larger screens) */}
+      {/* Mobile Card View */}
       <div className="block lg:hidden space-y-3">
         {filteredOrders.map((order) => (
           <Card
@@ -177,9 +177,9 @@ export default function ProcessingOrdersPage() {
                 </div>
                 <Badge
                   variant="outline"
-                  className="bg-yellow-100 text-yellow-800 border-yellow-300"
+                  className="bg-green-100 text-green-800 border-green-300"
                 >
-                  Pending
+                  Confirmed
                 </Badge>
               </div>
 
@@ -244,19 +244,19 @@ export default function ProcessingOrdersPage() {
             <CardContent className="text-center py-12">
               <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <p className="text-gray-600 font-medium mb-2">
-                No pending orders found
+                No confirmed orders found
               </p>
               <p className="text-sm text-gray-500">
                 {searchTerm || selectedRepresentative !== "all"
                   ? "Try adjusting your filters"
-                  : "All orders have been processed"}
+                  : "No confirmed orders available"}
               </p>
             </CardContent>
           </Card>
         )}
       </div>
 
-      {/* Desktop Table View (Hidden on mobile) */}
+      {/* Desktop Table View */}
       <div className="hidden lg:block border p-4 rounded-lg">
         <div className="rounded-md border overflow-x-auto">
           <Table>
@@ -316,9 +316,9 @@ export default function ProcessingOrdersPage() {
                   <TableCell>
                     <Badge
                       variant="outline"
-                      className="bg-yellow-100 text-yellow-800 border-yellow-300"
+                      className="bg-green-100 text-green-800 border-green-300"
                     >
-                      Pending
+                      Confirmed
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -346,12 +346,12 @@ export default function ProcessingOrdersPage() {
           <div className="text-center py-12 bg-gray-50 rounded-b-lg mt-4">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-600 font-medium mb-2">
-              No pending orders found
+              No confirmed orders found
             </p>
             <p className="text-sm text-gray-500">
               {searchTerm || selectedRepresentative !== "all"
                 ? "Try adjusting your filters"
-                : "All orders have been processed"}
+                : "No confirmed orders available"}
             </p>
           </div>
         )}
