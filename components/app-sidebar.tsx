@@ -36,6 +36,7 @@ import {
   ClipboardCheck,
   CheckCircle,
   Loader,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -86,6 +87,11 @@ export function AppSidebar() {
       title: "Processing Orders",
       icon: Loader,
       href: "/admin/orders/processingOrders",
+    },
+    {
+      title: "Pending Orders",
+      icon: Clock, // 🕒 Indicates waiting/pending status
+      href: "/admin/orders/pending",
     },
     {
       title: "Checking Orders",
