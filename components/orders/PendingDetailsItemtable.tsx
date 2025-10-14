@@ -1,11 +1,11 @@
 import React from 'react'
 
-function pendingDetailsItemtable() {
+function PendingDetailsItemtable() {
   return (
     <div>
-      
+      dddddddddddd
     </div>
   )
 }
 
-export default pendingDetailsItemtable
+export default PendingDetailsItemtable

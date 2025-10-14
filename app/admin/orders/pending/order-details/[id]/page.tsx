@@ -1,6 +1,6 @@
 import React from "react";
 import { DollarSign, FileText, AlertCircle, Calendar, User, CreditCard } from "lucide-react";
-import PendingDetailsItemtable from "@/components/orders/pendingDetailsItemtable";
+import PendingDetailsItemtable from "@/components/orders/PendingDetailsItemtable";
 
 export default function Page() {
   return (
