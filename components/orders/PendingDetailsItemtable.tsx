@@ -1,11 +1,457 @@
-import React from 'react'
+"use client";
 
-function PendingDetailsItemtable() {
-  return (
-    <div>
-      dddddddddddd
-    </div>
-  )
+import React, { useState } from "react";
+import { CheckCircle, Package, Edit, Trash2, Check, X } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+
+interface OrderItem {
+  id: number;
+  itemCode: string;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  unitPrice: number;
+  discount: number;
+  total: number;
 }
 
-export default PendingDetailsItemtable
+function PendingDetailsItemtable() {
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editValues, setEditValues] = useState<{
+    quantity: number;
+    unitPrice: number;
+    discount: number;
+  }>({
+    quantity: 0,
+    unitPrice: 0,
+    discount: 0,
+  });
+
+  // Sample order items data
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([
+    {
+      id: 1,
+      itemCode: "HW-001",
+      itemName: "Steel Nails 3 inch",
+      quantity: 50,
+      unit: "kg",
+      unitPrice: 450,
+      discount: 5,
+      total: 21375,
+    },
+    {
+      id: 2,
+      itemCode: "HW-002",
+      itemName: "Cement Portland",
+      quantity: 100,
+      unit: "bags",
+      unitPrice: 1200,
+      discount: 10,
+      total: 108000,
+    },
+    {
+      id: 3,
+      itemCode: "HW-003",
+      itemName: "Wood Screws Assorted",
+      quantity: 20,
+      unit: "boxes",
+      unitPrice: 350,
+      discount: 0,
+      total: 7000,
+    },
+    {
+      id: 4,
+      itemCode: "HW-004",
+      itemName: "Paint Roller Set",
+      quantity: 15,
+      unit: "sets",
+      unitPrice: 800,
+      discount: 8,
+      total: 11040,
+    },
+    {
+      id: 5,
+      itemCode: "HW-005",
+      itemName: "PVC Pipe 2 inch",
+      quantity: 30,
+      unit: "meters",
+      unitPrice: 250,
+      discount: 5,
+      total: 7125,
+    },
+  ]);
+
+  // Calculate summary
+  const subtotal = orderItems.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0
+  );
+  const totalDiscount = orderItems.reduce(
+    (sum, item) => sum + (item.quantity * item.unitPrice * item.discount) / 100,
+    0
+  );
+  const grandTotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+
+  const handleConfirmOrder = () => {
+    setIsConfirming(true);
+    // Simulate API call
+    setTimeout(() => {
+      setIsConfirming(false);
+      alert("Order confirmed successfully!");
+    }, 1500);
+  };
+
+  const handleEditItem = (item: OrderItem) => {
+    setEditingItemId(item.id);
+    setEditValues({
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      discount: item.discount,
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingItemId !== null) {
+      setOrderItems(
+        orderItems.map((item) => {
+          if (item.id === editingItemId) {
+            const newTotal =
+              editValues.quantity *
+              editValues.unitPrice *
+              (1 - editValues.discount / 100);
+            return {
+              ...item,
+              quantity: editValues.quantity,
+              unitPrice: editValues.unitPrice,
+              discount: editValues.discount,
+              total: newTotal,
+            };
+          }
+          return item;
+        })
+      );
+      setEditingItemId(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingItemId(null);
+  };
+
+  const handleDeleteItem = (itemId: number) => {
+    if (confirm("Are you sure you want to delete this item?")) {
+      setOrderItems(orderItems.filter((item) => item.id !== itemId));
+    }
+  };
+
+  const getStockStatus = (quantity: number) => {
+    if (quantity > 50) return "bg-green-100 text-green-700";
+    if (quantity > 20) return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
+  };
+
+  return (
+    <div className="mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Table Section - Left Side (2/3 width) */}
+        <div className="lg:col-span-2">
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+            {/* Table Header */}
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Package className="w-5 h-5 text-gray-600" />
+                  <h2 className="font-bold text-lg text-gray-800">
+                    Order Items
+                  </h2>
+                </div>
+                <Badge variant="secondary" className="text-sm">
+                  {orderItems.length} items
+                </Badge>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[8%] font-bold">Image</TableHead>
+                    <TableHead className="w-[15%] font-bold">
+                      Item Code
+                    </TableHead>
+                    <TableHead className="w-[20%] font-bold">
+                      Item Name
+                    </TableHead>
+                    <TableHead className="w-[12%] font-bold text-center">
+                      Quantity
+                    </TableHead>
+                    <TableHead className="w-[12%] font-bold text-right">
+                      Unit Price
+                    </TableHead>
+                    <TableHead className="w-[10%] font-bold text-right">
+                      Discount
+                    </TableHead>
+                    <TableHead className="w-[13%] font-bold text-right">
+                      Total
+                    </TableHead>
+                    <TableHead className="w-[10%] font-bold text-center">
+                      Actions
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orderItems.map((item, index) => (
+                    <TableRow
+                      key={item.id}
+                      className={`transition-colors ${
+                        index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
+                      } ${editingItemId === item.id ? "bg-blue-50/50" : ""}`}
+                    >
+                      <TableCell>
+                        <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+                          <Package className="h-4 w-4 text-gray-400" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {item.itemCode}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium text-sm">
+                          {item.itemName}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {editingItemId === item.id ? (
+                          <Input
+                            type="number"
+                            value={editValues.quantity}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                quantity: Number(e.target.value),
+                              })
+                            }
+                            className="w-20 h-8 text-center text-sm"
+                            min="0"
+                          />
+                        ) : (
+                          <span
+                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                              item.quantity
+                            )}`}
+                          >
+                            {item.quantity} {item.unit}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {editingItemId === item.id ? (
+                          <Input
+                            type="number"
+                            value={editValues.unitPrice}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                unitPrice: Number(e.target.value),
+                              })
+                            }
+                            className="w-24 h-8 text-right text-sm"
+                            min="0"
+                          />
+                        ) : (
+                          <span className="font-semibold">
+                            Rs {item.unitPrice.toLocaleString()}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {editingItemId === item.id ? (
+                          <Input
+                            type="number"
+                            value={editValues.discount}
+                            onChange={(e) =>
+                              setEditValues({
+                                ...editValues,
+                                discount: Number(e.target.value),
+                              })
+                            }
+                            className="w-20 h-8 text-right text-sm"
+                            min="0"
+                            max="100"
+                          />
+                        ) : item.discount > 0 ? (
+                          <span className="text-green-600 font-medium text-sm">
+                            {item.discount}%
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-emerald-600">
+                        Rs {item.total.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {editingItemId === item.id ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-green-50 hover:border-green-300"
+                              onClick={handleSaveEdit}
+                            >
+                              <Check className="h-3 w-3 text-green-600" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-gray-100 hover:border-gray-300"
+                              onClick={handleCancelEdit}
+                            >
+                              <X className="h-3 w-3 text-gray-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-blue-50 hover:border-blue-300"
+                              onClick={() => handleEditItem(item)}
+                            >
+                              <Edit className="h-3 w-3 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-300"
+                              onClick={() => handleDeleteItem(item.id)}
+                            >
+                              <Trash2 className="h-3 w-3 text-red-600" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+
+        {/* Summary Section - Right Side (1/3 width) */}
+        <div className="lg:col-span-1">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm sticky top-4">
+            {/* Summary Header */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+              <h3 className="font-bold text-lg text-gray-800">Order Summary</h3>
+            </div>
+
+            {/* Summary Details */}
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">Subtotal:</span>
+                <span className="font-semibold text-gray-900">
+                  Rs {subtotal.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">Total Discount:</span>
+                <span className="font-semibold text-green-600">
+                  - Rs {totalDiscount.toLocaleString()}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center pt-2">
+                <span className="font-bold text-gray-900">Grand Total:</span>
+                <span className="font-bold text-2xl text-emerald-600">
+                  Rs {grandTotal.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            {/* Additional Info */}
+            <div className="px-6 pb-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-2">
+                  <div className="bg-blue-100 p-1.5 rounded-full mt-0.5">
+                    <Package className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-blue-900 mb-1">
+                      Total Items
+                    </p>
+                    <p className="text-lg font-bold text-blue-700">
+                      {orderItems.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <div className="bg-amber-100 p-1.5 rounded-full mt-0.5">
+                    <CheckCircle className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-amber-900 mb-1">
+                      Payment Terms
+                    </p>
+                    <p className="text-sm font-medium text-amber-700">
+                      Credit - 30 Days
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="px-6 pb-6 space-y-3">
+              <Button
+                onClick={handleConfirmOrder}
+                disabled={isConfirming}
+                className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-base font-semibold"
+              >
+                {isConfirming ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Confirming Order...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Confirm Order
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full py-6 text-base font-semibold border-2"
+              >
+                Cancel Order
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default PendingDetailsItemtable;
