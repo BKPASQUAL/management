@@ -235,71 +235,77 @@ function PendingDetailsItemtable() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        {editingItemId === item.id ? (
-                          <Input
-                            type="number"
-                            value={editValues.quantity}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                quantity: Number(e.target.value),
-                              })
-                            }
-                            className="w-20 h-8 text-center text-sm"
-                            min="0"
-                          />
-                        ) : (
-                          <span
-                            className={`px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                              item.quantity
-                            )}`}
-                          >
-                            {item.quantity} {item.unit}
-                          </span>
-                        )}
+                        <div className="flex justify-center">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.quantity}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  quantity: Number(e.target.value),
+                                })
+                              }
+                              className="w-20 h-7 text-center text-sm px-2"
+                              min="0"
+                            />
+                          ) : (
+                            <span
+                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
+                                item.quantity
+                              )}`}
+                            >
+                              {item.quantity} {item.unit}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {editingItemId === item.id ? (
-                          <Input
-                            type="number"
-                            value={editValues.unitPrice}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                unitPrice: Number(e.target.value),
-                              })
-                            }
-                            className="w-24 h-8 text-right text-sm"
-                            min="0"
-                          />
-                        ) : (
-                          <span className="font-semibold">
-                            Rs {item.unitPrice.toLocaleString()}
-                          </span>
-                        )}
+                        <div className="flex justify-end">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.unitPrice}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  unitPrice: Number(e.target.value),
+                                })
+                              }
+                              className="w-28 h-7 text-right text-sm px-2"
+                              min="0"
+                            />
+                          ) : (
+                            <span className="font-semibold">
+                              Rs {item.unitPrice.toLocaleString()}
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {editingItemId === item.id ? (
-                          <Input
-                            type="number"
-                            value={editValues.discount}
-                            onChange={(e) =>
-                              setEditValues({
-                                ...editValues,
-                                discount: Number(e.target.value),
-                              })
-                            }
-                            className="w-20 h-8 text-right text-sm"
-                            min="0"
-                            max="100"
-                          />
-                        ) : item.discount > 0 ? (
-                          <span className="text-green-600 font-medium text-sm">
-                            {item.discount}%
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-sm">-</span>
-                        )}
+                        <div className="flex justify-end">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.discount}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  discount: Number(e.target.value),
+                                })
+                              }
+                              className="w-16 h-7 text-right text-sm px-2"
+                              min="0"
+                              max="100"
+                            />
+                          ) : item.discount > 0 ? (
+                            <span className="text-green-600 font-medium text-sm">
+                              {item.discount}%
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-sm">-</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-bold text-emerald-600">
                         Rs {item.total.toLocaleString()}
