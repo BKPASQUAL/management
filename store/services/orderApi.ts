@@ -71,6 +71,13 @@ export interface OrderCreatedBy {
   email: string;
 }
 
+export interface CustomerSummary {
+  dueAmount: number;
+  pendingBillsCount: number;
+  over45DaysAmount: number;
+  lastBillingDate: string | null;
+}
+
 // Main Order interface
 export interface Order {
   bill_id: number;
@@ -99,6 +106,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
+  customerSummary?: CustomerSummary; // Add this line
 }
 
 // API Response interfaces

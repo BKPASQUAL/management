@@ -1,18 +1,173 @@
-import React from "react";
-import { DollarSign, FileText, AlertCircle, Calendar, User, CreditCard } from "lucide-react";
+// app/admin/orders/pending/order-details/[id]/page.tsx
+"use client";
+
+import React, { useMemo } from "react";
+import { useParams } from "next/navigation";
+import {
+  DollarSign,
+  FileText,
+  AlertCircle,
+  Calendar,
+  User,
+  CreditCard,
+  Loader2,
+} from "lucide-react";
 import PendingDetailsItemtable from "@/components/orders/PendingDetailsItemtable";
+import {
+  useGetOrderByIdQuery,
+  Order,
+  OrderStatus,
+  BillStatus,
+} from "@/store/services/orderApi";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Helper function moved outside component
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return "N/A";
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 export default function Page() {
+  const params = useParams();
+  const orderId = Number(params.id);
+
+  const {
+    data: orderResponse,
+    isLoading,
+    isError,
+    error,
+  } = useGetOrderByIdQuery(orderId);
+
+  const orderData: Order | undefined = orderResponse?.data;
+
+  // ✅ Move ALL hooks to the top, before any conditional returns
+  const dueDate = useMemo(() => {
+    if (!orderData?.billing_date) return "N/A";
+    const billingDate = new Date(orderData.billing_date);
+    billingDate.setDate(billingDate.getDate() + 30);
+    return formatDate(billingDate.toISOString());
+  }, [orderData]);
+
+  const mappedItems = useMemo(() => {
+    if (!orderData?.items) return [];
+    return orderData.items.map((item) => ({
+      id: item.bill_item_id,
+      itemCode: item.item_code,
+      itemName: item.item_name,
+      quantity: parseFloat(item.quantity),
+      unit: item.unit_type,
+      unitPrice: parseFloat(item.unit_price),
+      discount: parseFloat(item.discount_percentage),
+      total: parseFloat(item.total_amount),
+    }));
+  }, [orderData]);
+
+  const getOrderStatusBadge = (orderStatus: OrderStatus) => {
+    switch (orderStatus) {
+      case OrderStatus.PENDING:
+        return (
+          <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
+            Pending
+          </Badge>
+        );
+      case OrderStatus.CONFIRMED:
+        return (
+          <Badge className="bg-teal-100 text-teal-800 border-teal-300">
+            Confirmed
+          </Badge>
+        );
+      case OrderStatus.PROCESSING:
+        return (
+          <Badge className="bg-purple-100 text-purple-800 border-purple-300">
+            Processing
+          </Badge>
+        );
+      case OrderStatus.CHECKING:
+        return (
+          <Badge className="bg-blue-100 text-blue-800 border-blue-300">
+            Checking
+          </Badge>
+        );
+      case OrderStatus.DELIVERED:
+        return (
+          <Badge className="bg-green-100 text-green-800 border-green-300">
+            Delivered
+          </Badge>
+        );
+      case OrderStatus.CANCELLED:
+        return (
+          <Badge className="bg-red-100 text-red-800 border-red-300">
+            Cancelled
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const getPaymentMethodIcon = (paymentMethod: any) => {
+    switch (paymentMethod) {
+      case "cash":
+        return <DollarSign className="w-5 h-5 text-green-600" />;
+      case "credit_card":
+        return <CreditCard className="w-5 h-5 text-blue-600" />;
+      default:
+        return <CreditCard className="w-5 h-5 text-gray-600" />;
+    }
+  };
+
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat("en-LK", {
+      style: "currency",
+      currency: "LKR",
+      minimumFractionDigits: 2,
+    }).format(numAmount);
+  };
+
+  // ✅ NOW conditional returns are safe - all hooks are already called
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2 text-gray-600">Loading order details...</span>
+      </div>
+    );
+  }
+
+  if (isError || !orderData) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-lg text-red-600">
+          Error loading order details: {JSON.stringify(error)}
+        </div>
+      </div>
+    );
+  }
+
+  // Extract customerSummary with fallback values
+  const customerSummary = orderData.customerSummary || {
+    dueAmount: 0,
+    pendingBillsCount: 0,
+    over45DaysAmount: 0,
+    lastBillingDate: null,
+  };
+
   return (
     <div className="">
       <div>
         <div></div>
-        <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-gray-800 ">
-          Champika Hardware
+        <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-gray-800">
+          {orderData.customer.shopName}
         </h1>
-        <p className="mb-3">No. 45, Main Street, Galle, Sri Lanka</p>
+        <p className="mb-3">{orderData.customer.address}</p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Due Amount Card */}
+          {/* Due Amount Card - NOW USING customerSummary.dueAmount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -20,7 +175,7 @@ export default function Page() {
                   Due Amount
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mb-1">
-                  Rs 45,000
+                  {formatCurrency(customerSummary.dueAmount)}
                 </p>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">
                   OUTSTANDING
@@ -32,14 +187,16 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Pending Bills Card */}
+          {/* Pending Bills Card - NOW USING customerSummary.pendingBillsCount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-600 text-xs font-medium mb-2">
                   Pending Bills
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">6</p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {customerSummary.pendingBillsCount}
+                </p>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">
                   AWAITING
                 </p>
@@ -50,7 +207,7 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Over 45 Days Card */}
+          {/* Over 45 Days Card - NOW USING customerSummary.over45DaysAmount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -58,10 +215,12 @@ export default function Page() {
                   Over 45 Days Amount
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mb-1">
-                  Rs 30,000
+                  {customerSummary.over45DaysAmount > 0
+                    ? formatCurrency(customerSummary.over45DaysAmount)
+                    : "Rs 0"}
                 </p>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">
-                  IN PROGRESS
+                  {customerSummary.over45DaysAmount > 0 ? "OVERDUE" : "N/A"}
                 </p>
               </div>
               <div className="bg-orange-50 p-2 rounded-full">
@@ -70,16 +229,18 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Last Billing Date Card */}
+          {/* Last Billing Date Card - NOW USING customerSummary.lastBillingDate */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-gray-600 text-xs font-medium mb-2">
                   Last Billing Date
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">Oct 10</p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {customerSummary.lastBillingDate || "N/A"}
+                </p>
                 <p className="text-xs text-gray-400 uppercase tracking-wide">
-                  THIS MONTH
+                  LAST ORDER
                 </p>
               </div>
               <div className="bg-green-50 p-2 rounded-full">
@@ -90,8 +251,6 @@ export default function Page() {
         </div>
       </div>
       <div className="bg-white border border-gray-200 rounded-lg p-3 mt-3">
-        {/* <h2 className="font-bold text-lg text-gray-800 mb-4">Order Details</h2> */}
-
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-4">
           {/* Invoice Number */}
           <div className="flex items-start gap-3">
@@ -103,7 +262,7 @@ export default function Page() {
                 Invoice Number
               </p>
               <p className="text-base font-semibold text-gray-900">
-                INV-108287
+                {orderData.invoice_no}
               </p>
             </div>
           </div>
@@ -118,7 +277,7 @@ export default function Page() {
                 Billing Date
               </p>
               <p className="text-base font-semibold text-gray-900">
-                October 10, 2025
+                {formatDate(orderData.billing_date)}
               </p>
             </div>
           </div>
@@ -126,20 +285,22 @@ export default function Page() {
           {/* Payment Method */}
           <div className="flex items-start gap-3">
             <div className="bg-green-50 p-2 rounded-lg mt-1">
-              <CreditCard className="w-5 h-5 text-green-600" />
+              {getPaymentMethodIcon(orderData.payment_method)}
             </div>
             <div>
               <p className="text-xs text-gray-500 font-medium mb-1">
                 Payment Method
               </p>
               <p className="text-base font-semibold text-gray-900">
-                Credit - 30 Days
+                {orderData.payment_method
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (l) => l.toUpperCase())}
               </p>
             </div>
           </div>
 
           {/* Representative Name */}
-          <div className="flex  items-start gap-3">
+          <div className="flex items-start gap-3">
             <div className="bg-indigo-50 p-2 rounded-lg mt-1">
               <User className="w-5 h-5 text-indigo-600" />
             </div>
@@ -148,7 +309,7 @@ export default function Page() {
                 Representative Name
               </p>
               <p className="text-base font-semibold text-gray-900">
-                Kasun Perera
+                {orderData.created_by.username}
               </p>
             </div>
           </div>
@@ -162,9 +323,7 @@ export default function Page() {
               <p className="text-xs text-gray-500 font-medium mb-1">
                 Order Status
               </p>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                Pending Payment
-              </span>
+              {getOrderStatusBadge(orderData.order_status)}
             </div>
           </div>
 
@@ -175,15 +334,13 @@ export default function Page() {
             </div>
             <div>
               <p className="text-xs text-gray-500 font-medium mb-1">Due Date</p>
-              <p className="text-base font-semibold text-red-600">
-                November 09, 2025
-              </p>
+              <p className="text-base font-semibold text-red-600">{dueDate}</p>
             </div>
           </div>
         </div>
       </div>
       <div>
-        <PendingDetailsItemtable/>
+        <PendingDetailsItemtable initialOrderItems={mappedItems} />
       </div>
     </div>
   );

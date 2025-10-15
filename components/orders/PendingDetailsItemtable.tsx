@@ -1,3 +1,4 @@
+// components/orders/PendingDetailsItemtable.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -27,7 +28,13 @@ interface OrderItem {
   total: number;
 }
 
-const PendingDetailsItemtable = () => {
+interface PendingDetailsItemtableProps {
+  initialOrderItems: OrderItem[];
+}
+
+const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
+  initialOrderItems,
+}) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<{
@@ -40,58 +47,7 @@ const PendingDetailsItemtable = () => {
     discount: 0,
   });
 
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([
-    {
-      id: 1,
-      itemCode: "HW-001",
-      itemName: "Steel Nails 3 inch",
-      quantity: 50,
-      unit: "kg",
-      unitPrice: 450,
-      discount: 5,
-      total: 21375,
-    },
-    {
-      id: 2,
-      itemCode: "HW-002",
-      itemName: "Cement Portland",
-      quantity: 100,
-      unit: "bags",
-      unitPrice: 1200,
-      discount: 10,
-      total: 108000,
-    },
-    {
-      id: 3,
-      itemCode: "HW-003",
-      itemName: "Wood Screws Assorted",
-      quantity: 20,
-      unit: "boxes",
-      unitPrice: 350,
-      discount: 0,
-      total: 7000,
-    },
-    {
-      id: 4,
-      itemCode: "HW-004",
-      itemName: "Paint Roller Set",
-      quantity: 15,
-      unit: "sets",
-      unitPrice: 800,
-      discount: 8,
-      total: 11040,
-    },
-    {
-      id: 5,
-      itemCode: "HW-005",
-      itemName: "PVC Pipe 2 inch",
-      quantity: 30,
-      unit: "meters",
-      unitPrice: 250,
-      discount: 5,
-      total: 7125,
-    },
-  ]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>(initialOrderItems);
 
   const subtotal = orderItems.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
