@@ -155,11 +155,11 @@ function PendingDetailsItemtable() {
     }
   };
 
-  const getStockStatus = (quantity: number) => {
-    if (quantity > 50) return "bg-green-100 text-green-700";
-    if (quantity > 20) return "bg-yellow-100 text-yellow-700";
-    return "bg-red-100 text-red-700";
-  };
+  //   const getStockStatus = (quantity: number) => {
+  //     if (quantity > 50) return "bg-green-100 text-black";
+  //     if (quantity > 20) return "bg-yellow-100 text-black";
+  //     return "bg-red-100 text-black";
+  //   };
 
   return (
     <div className="mt-6">
@@ -171,12 +171,10 @@ function PendingDetailsItemtable() {
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-gray-600" />
-                  <h2 className="font-bold text-lg text-gray-800">
-                    Order Items
-                  </h2>
+                  <Package className="w-5 h-5 text-black" />
+                  <h2 className="font-bold text-lg text-black">Order Items</h2>
                 </div>
-                <Badge variant="secondary" className="text-sm">
+                <Badge variant="secondary" className="text-sm text-black">
                   {orderItems.length} items
                 </Badge>
               </div>
@@ -187,26 +185,28 @@ function PendingDetailsItemtable() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[8%] font-bold">Image</TableHead>
-                    <TableHead className="w-[15%] font-bold">
+                    <TableHead className="w-[8%] font-bold text-black">
+                      Image
+                    </TableHead>
+                    <TableHead className="w-[15%] font-bold text-black">
                       Item Code
                     </TableHead>
-                    <TableHead className="w-[20%] font-bold">
+                    <TableHead className="w-[20%] font-bold text-black">
                       Item Name
                     </TableHead>
-                    <TableHead className="w-[12%] font-bold text-center">
+                    <TableHead className="w-[12%] font-bold text-center text-black">
                       Quantity
                     </TableHead>
-                    <TableHead className="w-[12%] font-bold text-right">
+                    <TableHead className="w-[12%] font-bold text-right text-black">
                       Unit Price
                     </TableHead>
-                    <TableHead className="w-[10%] font-bold text-right">
+                    <TableHead className="w-[10%] font-bold text-right text-black">
                       Discount
                     </TableHead>
-                    <TableHead className="w-[13%] font-bold text-right">
+                    <TableHead className="w-[13%] font-bold text-right text-black">
                       Total
                     </TableHead>
-                    <TableHead className="w-[10%] font-bold text-center">
+                    <TableHead className="w-[10%] font-bold text-center text-black">
                       Actions
                     </TableHead>
                   </TableRow>
@@ -225,16 +225,19 @@ function PendingDetailsItemtable() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-mono text-xs">
+                        <Badge
+                          variant="outline"
+                          className="font-mono text-xs text-black"
+                        >
                           {item.itemCode}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="font-medium text-sm">
+                        <div className="font-medium text-sm text-black">
                           {item.itemName}
                         </div>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-right">
                         <div className="flex justify-center">
                           {editingItemId === item.id ? (
                             <Input
@@ -246,14 +249,13 @@ function PendingDetailsItemtable() {
                                   quantity: Number(e.target.value),
                                 })
                               }
-                              className="w-20 h-7 text-center text-sm px-2"
+                              className="w-20 h-7 text-right text-sm px-2 text-black"
                               min="0"
                             />
                           ) : (
                             <span
-                              className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStockStatus(
-                                item.quantity
-                              )}`}
+                              className={`font-bold text-sm text-black text-right
+                              `}
                             >
                               {item.quantity} {item.unit}
                             </span>
@@ -272,11 +274,11 @@ function PendingDetailsItemtable() {
                                   unitPrice: Number(e.target.value),
                                 })
                               }
-                              className="w-28 h-7 text-right text-sm px-2"
+                              className="w-28 h-7 text-right text-sm px-2 text-black"
                               min="0"
                             />
                           ) : (
-                            <span className="font-semibold">
+                            <span className="font-semibold text-black">
                               Rs {item.unitPrice.toLocaleString()}
                             </span>
                           )}
@@ -294,12 +296,12 @@ function PendingDetailsItemtable() {
                                   discount: Number(e.target.value),
                                 })
                               }
-                              className="w-16 h-7 text-right text-sm px-2"
+                              className="w-16 h-7 text-right text-sm px-2 text-black"
                               min="0"
                               max="100"
                             />
                           ) : item.discount > 0 ? (
-                            <span className="text-green-600 font-medium text-sm">
+                            <span className="text-black font-medium text-sm">
                               {item.discount}%
                             </span>
                           ) : (
@@ -307,7 +309,7 @@ function PendingDetailsItemtable() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-bold text-emerald-600">
+                      <TableCell className="text-right font-bold text-black">
                         Rs {item.total.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">

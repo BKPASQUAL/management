@@ -10,7 +10,7 @@ export default function Page() {
         <h1 className="font-bold text-xl sm:text-2xl lg:text-3xl text-gray-800 ">
           Champika Hardware
         </h1>
-        <p>No. 45, Main Street, Galle, Sri Lanka</p>
+        <p className="mb-3">No. 45, Main Street, Galle, Sri Lanka</p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Due Amount Card */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -89,7 +89,7 @@ export default function Page() {
           </div>
         </div>
       </div>
-      <div className="bg-white border border-gray-200 rounded-lg p-3 mt-6">
+      <div className="bg-white border border-gray-200 rounded-lg p-3 mt-3">
         {/* <h2 className="font-bold text-lg text-gray-800 mb-4">Order Details</h2> */}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-4">
