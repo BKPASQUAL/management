@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface OrderItem {
   id: number;
@@ -25,7 +27,7 @@ interface OrderItem {
   total: number;
 }
 
-function PendingDetailsItemtable() {
+const PendingDetailsItemtable = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editValues, setEditValues] = useState<{
@@ -38,7 +40,6 @@ function PendingDetailsItemtable() {
     discount: 0,
   });
 
-  // Sample order items data
   const [orderItems, setOrderItems] = useState<OrderItem[]>([
     {
       id: 1,
@@ -92,7 +93,6 @@ function PendingDetailsItemtable() {
     },
   ]);
 
-  // Calculate summary
   const subtotal = orderItems.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
     0
@@ -105,7 +105,6 @@ function PendingDetailsItemtable() {
 
   const handleConfirmOrder = () => {
     setIsConfirming(true);
-    // Simulate API call
     setTimeout(() => {
       setIsConfirming(false);
       alert("Order confirmed successfully!");
@@ -155,11 +154,49 @@ function PendingDetailsItemtable() {
     }
   };
 
-  //   const getStockStatus = (quantity: number) => {
-  //     if (quantity > 50) return "bg-green-100 text-black";
-  //     if (quantity > 20) return "bg-yellow-100 text-black";
-  //     return "bg-red-100 text-black";
-  //   };
+  const renderActions = (item: OrderItem) => (
+    <div className="flex items-center justify-center gap-2">
+      {editingItemId === item.id ? (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-green-50 hover:border-green-300"
+            onClick={handleSaveEdit}
+          >
+            <Check className="h-3 w-3 text-green-600" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-gray-100 hover:border-gray-300"
+            onClick={handleCancelEdit}
+          >
+            <X className="h-3 w-3 text-gray-600" />
+          </Button>
+        </>
+      ) : (
+        <>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-blue-50 hover:border-blue-300"
+            onClick={() => handleEditItem(item)}
+          >
+            <Edit className="h-3 w-3 text-blue-600" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-300"
+            onClick={() => handleDeleteItem(item.id)}
+          >
+            <Trash2 className="h-3 w-3 text-red-600" />
+          </Button>
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div className="mt-6">
@@ -167,7 +204,6 @@ function PendingDetailsItemtable() {
         {/* Table Section - Left Side (2/3 width) */}
         <div className="lg:col-span-2">
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-            {/* Table Header */}
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -180,8 +216,8 @@ function PendingDetailsItemtable() {
               </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -215,9 +251,11 @@ function PendingDetailsItemtable() {
                   {orderItems.map((item, index) => (
                     <TableRow
                       key={item.id}
-                      className={`transition-colors ${
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50/30"
-                      } ${editingItemId === item.id ? "bg-blue-50/50" : ""}`}
+                      className={cn(
+                        "transition-colors",
+                        index % 2 === 0 ? "bg-white" : "bg-gray-50/30",
+                        editingItemId === item.id && "bg-blue-50/50"
+                      )}
                     >
                       <TableCell>
                         <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
@@ -253,10 +291,7 @@ function PendingDetailsItemtable() {
                               min="0"
                             />
                           ) : (
-                            <span
-                              className={`font-bold text-sm text-black text-right
-                              `}
-                            >
+                            <span className="font-bold text-sm text-black text-right">
                               {item.quantity} {item.unit}
                             </span>
                           )}
@@ -313,63 +348,124 @@ function PendingDetailsItemtable() {
                         Rs {item.total.toLocaleString()}
                       </TableCell>
                       <TableCell className="text-center">
-                        {editingItemId === item.id ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-green-50 hover:border-green-300"
-                              onClick={handleSaveEdit}
-                            >
-                              <Check className="h-3 w-3 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-gray-100 hover:border-gray-300"
-                              onClick={handleCancelEdit}
-                            >
-                              <X className="h-3 w-3 text-gray-600" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-blue-50 hover:border-blue-300"
-                              onClick={() => handleEditItem(item)}
-                            >
-                              <Edit className="h-3 w-3 text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-7 w-7 p-0 hover:bg-red-50 hover:border-red-300"
-                              onClick={() => handleDeleteItem(item.id)}
-                            >
-                              <Trash2 className="h-3 w-3 text-red-600" />
-                            </Button>
-                          </div>
-                        )}
+                        {renderActions(item)}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
+
+            {/* Mobile/Tablet Card View */}
+            <div className="block lg:hidden p-4 space-y-4">
+              {orderItems.map((item) => (
+                <Card key={item.id}>
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-md flex items-center justify-center">
+                          <Package className="h-4 w-4 text-gray-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-base">
+                            {item.itemName}
+                          </h3>
+                          <p className="font-mono text-xs text-gray-500">
+                            {item.itemCode}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0">{renderActions(item)}</div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-gray-600">Quantity:</span>
+                        <div className="font-bold text-sm">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.quantity}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  quantity: Number(e.target.value),
+                                })
+                              }
+                              className="w-20 h-7 text-sm px-2 mt-1"
+                              min="0"
+                            />
+                          ) : (
+                            <span>
+                              {item.quantity} {item.unit}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gray-600">Unit Price:</span>
+                        <div className="font-semibold text-sm">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.unitPrice}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  unitPrice: Number(e.target.value),
+                                })
+                              }
+                              className="w-24 h-7 text-sm px-2 mt-1 ml-auto"
+                              min="0"
+                            />
+                          ) : (
+                            <span>Rs {item.unitPrice.toLocaleString()}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-600">Discount:</span>
+                        <div className="font-medium text-sm">
+                          {editingItemId === item.id ? (
+                            <Input
+                              type="number"
+                              value={editValues.discount}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  discount: Number(e.target.value),
+                                })
+                              }
+                              className="w-16 h-7 text-sm px-2 mt-1"
+                              min="0"
+                              max="100"
+                            />
+                          ) : item.discount > 0 ? (
+                            <span>{item.discount}%</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-gray-900">Total:</span>
+                        <div className="font-bold text-lg text-emerald-600">
+                          Rs {item.total.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Summary Section - Right Side (1/3 width) */}
         <div className="lg:col-span-1">
-          <div className="bg-white border border-gray-200 rounded-lg shadow-sm sticky top-4">
-            {/* Summary Header */}
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm lg:sticky lg:top-4">
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
               <h3 className="font-bold text-lg text-gray-800">Order Summary</h3>
             </div>
-
-            {/* Summary Details */}
             <div className="p-6 space-y-4">
               <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                 <span className="text-sm text-gray-600">Subtotal:</span>
@@ -377,14 +473,12 @@ function PendingDetailsItemtable() {
                   Rs {subtotal.toLocaleString()}
                 </span>
               </div>
-
               <div className="flex justify-between items-center pb-3 border-b border-gray-200">
                 <span className="text-sm text-gray-600">Total Discount:</span>
                 <span className="font-semibold text-green-600">
                   - Rs {totalDiscount.toLocaleString()}
                 </span>
               </div>
-
               <div className="flex justify-between items-center pt-2">
                 <span className="font-bold text-gray-900">Grand Total:</span>
                 <span className="font-bold text-2xl text-emerald-600">
@@ -392,8 +486,6 @@ function PendingDetailsItemtable() {
                 </span>
               </div>
             </div>
-
-            {/* Additional Info */}
             <div className="px-6 pb-4">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
                 <div className="flex items-start gap-2">
@@ -410,7 +502,6 @@ function PendingDetailsItemtable() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <div className="flex items-start gap-2">
                   <div className="bg-amber-100 p-1.5 rounded-full mt-0.5">
@@ -427,8 +518,6 @@ function PendingDetailsItemtable() {
                 </div>
               </div>
             </div>
-
-            {/* Action Buttons */}
             <div className="px-6 pb-6 space-y-3">
               <Button
                 onClick={handleConfirmOrder}
@@ -447,7 +536,6 @@ function PendingDetailsItemtable() {
                   </>
                 )}
               </Button>
-
               <Button
                 variant="outline"
                 className="w-full py-6 text-base font-semibold border-2"
@@ -460,6 +548,6 @@ function PendingDetailsItemtable() {
       </div>
     </div>
   );
-}
+};
 
 export default PendingDetailsItemtable;

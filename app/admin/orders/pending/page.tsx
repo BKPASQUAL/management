@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   Search,
   MoreVertical,
@@ -43,6 +44,7 @@ export default function PendingOrdersPage() {
   const [selectedRepresentative, setSelectedRepresentative] =
     useState<string>("all");
   const { toast } = useToast();
+  const router = useRouter();
 
   // Fetch pending orders
   const {
@@ -98,8 +100,18 @@ export default function PendingOrdersPage() {
     });
   }, [pendingOrders, searchTerm, selectedRepresentative]);
 
+  // Navigate to order details
+  const handleRowClick = (orderId: number) => {
+    router.push(`/admin/orders/pending/order-details/${orderId}`);
+  };
+
   // Action handlers
-  const handleConfirmOrder = async (orderId: number, invoiceNo: string) => {
+  const handleConfirmOrder = async (
+    e: React.MouseEvent,
+    orderId: number,
+    invoiceNo: string
+  ) => {
+    e.stopPropagation(); // Prevent row click when clicking action button
     try {
       const response = await fetch(
         `${
@@ -134,7 +146,12 @@ export default function PendingOrdersPage() {
     }
   };
 
-  const handleCancelOrder = async (orderId: number, invoiceNo: string) => {
+  const handleCancelOrder = async (
+    e: React.MouseEvent,
+    orderId: number,
+    invoiceNo: string
+  ) => {
+    e.stopPropagation(); // Prevent row click when clicking action button
     try {
       await cancelOrder({
         id: orderId,
@@ -154,7 +171,12 @@ export default function PendingOrdersPage() {
     }
   };
 
-  const handleDeleteOrder = async (orderId: number, invoiceNo: string) => {
+  const handleDeleteOrder = async (
+    e: React.MouseEvent,
+    orderId: number,
+    invoiceNo: string
+  ) => {
+    e.stopPropagation(); // Prevent row click when clicking action button
     if (!confirm(`Are you sure you want to delete order ${invoiceNo}?`)) {
       return;
     }
@@ -306,7 +328,11 @@ export default function PendingOrdersPage() {
             <TableBody>
               {filteredOrders.length > 0 ? (
                 filteredOrders.map((order) => (
-                  <TableRow key={order.bill_id}>
+                  <TableRow
+                    key={order.bill_id}
+                    onClick={() => handleRowClick(order.bill_id)}
+                    className="cursor-pointer hover:bg-gray-50"
+                  >
                     <TableCell className="font-medium">
                       {order.invoice_no}
                     </TableCell>
@@ -326,14 +352,19 @@ export default function PendingOrdersPage() {
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() =>
+                            onClick={(e) =>
                               handleConfirmOrder(
+                                e,
                                 order.bill_id,
                                 order.invoice_no
                               )
@@ -344,8 +375,12 @@ export default function PendingOrdersPage() {
                             <span>Confirm Order</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleCancelOrder(order.bill_id, order.invoice_no)
+                            onClick={(e) =>
+                              handleCancelOrder(
+                                e,
+                                order.bill_id,
+                                order.invoice_no
+                              )
                             }
                             className="cursor-pointer"
                           >
@@ -353,8 +388,12 @@ export default function PendingOrdersPage() {
                             <span>Cancel Order</span>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() =>
-                              handleDeleteOrder(order.bill_id, order.invoice_no)
+                            onClick={(e) =>
+                              handleDeleteOrder(
+                                e,
+                                order.bill_id,
+                                order.invoice_no
+                              )
                             }
                             className="cursor-pointer text-red-600"
                           >
