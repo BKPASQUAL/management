@@ -130,7 +130,7 @@ export default function OrderChecking() {
       {/* Page Header */}
       <div className="flex flex-row justify-between sm:flex-row sm:justify-between lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-bold text-xl lg:text-2xl">Order Checking</h1>
+          <h1 className="font-bold text-xl lg:text-2xl">Order Processing</h1>
           <p className="text-gray-600 ">Champika Hardware - Galle</p>
         </div>
         <div className="flex items-center gap-3">

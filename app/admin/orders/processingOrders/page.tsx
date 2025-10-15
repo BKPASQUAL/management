@@ -79,7 +79,7 @@ export default function ProcessingOrdersPage() {
   };
 
   const handleViewOrder = (orderId: number) => {
-    router.push(`/admin/orders/process?orderId=${orderId}`);
+    router.push(`/admin/orders/processingOrders/process-details/${orderId}`);
   };
 
   if (isLoading) {
