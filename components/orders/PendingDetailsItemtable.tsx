@@ -10,6 +10,7 @@ import {
   Check,
   X,
   Pencil,
+  AlertCircle,
 } from "lucide-react";
 import {
   Table,
@@ -25,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Order, useConfirmOrderMutation } from "@/store/services/orderApi";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 
 interface OrderItem {
   id: number;
@@ -42,6 +43,93 @@ interface PendingDetailsItemtableProps {
   initialOrderItems: OrderItem[];
   orderData: Order;
 }
+
+// Confirmation Modal Component
+const ConfirmationModal: React.FC<{
+  isOpen: boolean;
+  title: string;
+  message: string;
+  icon: React.ReactNode;
+  confirmText: string;
+  cancelText: string;
+  confirmColor: "green" | "red";
+  isLoading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({
+  isOpen,
+  title,
+  message,
+  icon,
+  confirmText,
+  cancelText,
+  confirmColor,
+  isLoading,
+  onConfirm,
+  onCancel,
+}) => {
+  if (!isOpen) return null;
+
+  const confirmColorClasses =
+    confirmColor === "green"
+      ? "bg-green-600 hover:bg-green-700 text-white"
+      : "bg-red-600 hover:bg-red-700 text-white";
+
+  return (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-2xl max-w-md w-full transform transition-all animate-in fade-in zoom-in-95 duration-200">
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div
+              className={cn(
+                "flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center",
+                confirmColor === "green" ? "bg-green-100" : "bg-red-100"
+              )}
+            >
+              <div
+                className={cn(
+                  "w-6 h-6",
+                  confirmColor === "green" ? "text-green-600" : "text-red-600"
+                )}
+              >
+                {icon}
+              </div>
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-600">{message}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gray-50 px-6 py-4 flex items-center justify-end gap-3 rounded-b-lg">
+          <Button
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="px-4 py-2 font-medium"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className={cn(confirmColorClasses, "px-4 py-2 font-medium")}
+          >
+            {isLoading ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Processing...
+              </>
+            ) : (
+              confirmText
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   initialOrderItems,
@@ -60,7 +148,12 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   });
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>(initialOrderItems);
-  const router = useRouter(); // Initialize router for navigation
+  const router = useRouter();
+
+  // Modal states
+  const [confirmOrderModal, setConfirmOrderModal] = useState(false);
+  const [cancelOrderModal, setCancelOrderModal] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
 
   // State for summary values
   const [isEditingDiscount, setIsEditingDiscount] = useState(false);
@@ -84,36 +177,50 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   const grandTotal = subtotal - totalDiscount;
   const [confirmOrder, { isLoading }] = useConfirmOrderMutation();
 
-  const handleConfirm = async () => {
-    // Start local loading state
-    setIsConfirming(true);
+  const handleConfirmOrder = async () => {
+    setModalLoading(true);
 
-    // Safety check for bill_id
     if (!orderData.bill_id) {
       console.error("Order ID is missing from orderData.");
       alert("❌ Failed to confirm order: Order ID not found.");
-      setIsConfirming(false);
+      setModalLoading(false);
       return;
     }
 
     try {
       const orderId = orderData.bill_id;
-
-      // The .unwrap() method is used with RTK-Query to throw an error on failure.
       await confirmOrder(orderId).unwrap();
 
       console.log(`✅ Order ${orderId} confirmed successfully!`);
-      // NOTE: Alerts are generally discouraged in favor of custom UI modals, but kept for direct translation.
-      alert("✅ Order confirmed successfully!");
 
-      // NAVIGATION: Navigate to the specified pending orders URL
+      // Close modal and navigate
+      setConfirmOrderModal(false);
       router.push("/admin/orders/pending");
     } catch (error) {
       console.error("Confirm order failed:", error);
       alert("❌ Failed to confirm order");
+      setModalLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async () => {
+    setModalLoading(true);
+
+    // Simulate cancel order API call
+    try {
+      // Replace this with your actual cancel order API call
+      // await cancelOrder(orderData.bill_id).unwrap();
+
+      console.log(`✅ Order ${orderData.bill_id} cancelled successfully!`);
+
+      // Close modal and navigate
+      setCancelOrderModal(false);
+      router.push("/admin/orders/pending");
+    } catch (error) {
+      console.error("Cancel order failed:", error);
+      alert("❌ Failed to cancel order");
     } finally {
-      // End local loading state regardless of success or failure
-      setIsConfirming(false);
+      setModalLoading(false);
     }
   };
 
@@ -222,6 +329,35 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
 
   return (
     <div className="mt-6">
+      {/* Confirmation Modals */}
+      <ConfirmationModal
+        isOpen={confirmOrderModal}
+        title="Confirm Order"
+        message={`Are you sure you want to confirm this order? The total amount is Rs ${grandTotal
+          .toFixed(2)
+          .toLocaleString()}.`}
+        icon={<CheckCircle className="w-6 h-6" />}
+        confirmText="Yes, Confirm"
+        cancelText="No, Cancel"
+        confirmColor="green"
+        isLoading={modalLoading}
+        onConfirm={handleConfirmOrder}
+        onCancel={() => setConfirmOrderModal(false)}
+      />
+
+      <ConfirmationModal
+        isOpen={cancelOrderModal}
+        title="Cancel Order"
+        message="Are you sure you want to cancel this order? This action cannot be undone."
+        icon={<AlertCircle className="w-6 h-6" />}
+        confirmText="Yes, Cancel Order"
+        cancelText="No, Keep It"
+        confirmColor="red"
+        isLoading={modalLoading}
+        onConfirm={handleCancelOrder}
+        onCancel={() => setCancelOrderModal(false)}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Table Section - Left Side (2/3 width) */}
         <div className="lg:col-span-2">
@@ -582,25 +718,17 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
             </div>
             <div className="px-6 pb-6 space-y-3">
               <Button
-                onClick={handleConfirm}
-                disabled={isLoading}
+                onClick={() => setConfirmOrderModal(true)}
+                disabled={isLoading || modalLoading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-base font-semibold"
               >
-                {isConfirming ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Confirming Order...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Confirm Order
-                  </>
-                )}
+                <CheckCircle className="w-5 h-5 mr-2" />
+                Confirm Order
               </Button>
               <Button
-                variant="outline"
-                className="w-full py-6 text-base font-semibold border-2"
+                onClick={() => setCancelOrderModal(true)}
+                disabled={isLoading || modalLoading}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-6 text-base font-semibold"
               >
                 Cancel Order
               </Button>
