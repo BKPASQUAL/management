@@ -1,4 +1,3 @@
-// app/admin/orders/pending/order-details/[id]/page.tsx
 "use client";
 
 import React, { useMemo } from "react";
@@ -45,7 +44,6 @@ export default function Page() {
 
   const orderData: Order | undefined = orderResponse?.data;
 
-  // ✅ Move ALL hooks to the top, before any conditional returns
   const dueDate = useMemo(() => {
     if (!orderData?.billing_date) return "N/A";
     const billingDate = new Date(orderData.billing_date);
@@ -130,7 +128,6 @@ export default function Page() {
     }).format(numAmount);
   };
 
-  // ✅ NOW conditional returns are safe - all hooks are already called
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-8">
@@ -150,7 +147,6 @@ export default function Page() {
     );
   }
 
-  // Extract customerSummary with fallback values
   const customerSummary = orderData.customerSummary || {
     dueAmount: 0,
     pendingBillsCount: 0,
@@ -167,7 +163,6 @@ export default function Page() {
         </h1>
         <p className="mb-3">{orderData.customer.address}</p>
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Due Amount Card - NOW USING customerSummary.dueAmount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -187,7 +182,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Pending Bills Card - NOW USING customerSummary.pendingBillsCount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -207,7 +201,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Over 45 Days Card - NOW USING customerSummary.over45DaysAmount */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -229,7 +222,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Last Billing Date Card - NOW USING customerSummary.lastBillingDate */}
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-start justify-between">
               <div>
@@ -252,7 +244,6 @@ export default function Page() {
       </div>
       <div className="bg-white border border-gray-200 rounded-lg p-3 mt-3">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 mt-4">
-          {/* Invoice Number */}
           <div className="flex items-start gap-3">
             <div className="bg-blue-50 p-2 rounded-lg mt-1">
               <FileText className="w-5 h-5 text-blue-600" />
@@ -267,7 +258,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Billing Date */}
           <div className="flex items-start gap-3">
             <div className="bg-purple-50 p-2 rounded-lg mt-1">
               <Calendar className="w-5 h-5 text-purple-600" />
@@ -282,7 +272,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Payment Method */}
           <div className="flex items-start gap-3">
             <div className="bg-green-50 p-2 rounded-lg mt-1">
               {getPaymentMethodIcon(orderData.payment_method)}
@@ -299,7 +288,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Representative Name */}
           <div className="flex items-start gap-3">
             <div className="bg-indigo-50 p-2 rounded-lg mt-1">
               <User className="w-5 h-5 text-indigo-600" />
@@ -314,7 +302,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Order Status */}
           <div className="flex items-start gap-3">
             <div className="bg-yellow-50 p-2 rounded-lg mt-1">
               <AlertCircle className="w-5 h-5 text-yellow-600" />
@@ -327,7 +314,6 @@ export default function Page() {
             </div>
           </div>
 
-          {/* Due Date */}
           <div className="flex items-start gap-3">
             <div className="bg-red-50 p-2 rounded-lg mt-1">
               <Calendar className="w-5 h-5 text-red-600" />
@@ -340,7 +326,10 @@ export default function Page() {
         </div>
       </div>
       <div>
-        <PendingDetailsItemtable initialOrderItems={mappedItems} />
+        <PendingDetailsItemtable
+          initialOrderItems={mappedItems}
+          orderData={orderData}
+        />
       </div>
     </div>
   );

@@ -1,8 +1,16 @@
 // components/orders/PendingDetailsItemtable.tsx
 "use client";
 
-import React, { useState } from "react";
-import { CheckCircle, Package, Edit, Trash2, Check, X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import {
+  CheckCircle,
+  Package,
+  Edit,
+  Trash2,
+  Check,
+  X,
+  Pencil,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -16,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { Order } from "@/store/services/orderApi";
 
 interface OrderItem {
   id: number;
@@ -30,10 +39,12 @@ interface OrderItem {
 
 interface PendingDetailsItemtableProps {
   initialOrderItems: OrderItem[];
+  orderData: Order;
 }
 
 const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   initialOrderItems,
+  orderData,
 }) => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -49,15 +60,26 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>(initialOrderItems);
 
-  const subtotal = orderItems.reduce(
-    (sum, item) => sum + item.quantity * item.unitPrice,
-    0
+  // State for summary values
+  const [isEditingDiscount, setIsEditingDiscount] = useState(false);
+  const [discountPercentage, setDiscountPercentage] = useState(
+    parseFloat(orderData.discount_percentage)
   );
-  const totalDiscount = orderItems.reduce(
-    (sum, item) => sum + (item.quantity * item.unitPrice * item.discount) / 100,
-    0
-  );
-  const grandTotal = orderItems.reduce((sum, item) => sum + item.total, 0);
+  const [tempDiscountPercentage, setTempDiscountPercentage] =
+    useState(discountPercentage);
+
+  // Calculate subtotal from order items
+  const calculateSubtotal = () => {
+    return orderItems.reduce((sum, item) => {
+      const itemSubtotal = item.quantity * item.unitPrice;
+      return sum + itemSubtotal;
+    }, 0);
+  };
+
+  // Calculate values based on current state
+  const subtotal = calculateSubtotal();
+  const totalDiscount = (subtotal * discountPercentage) / 100;
+  const grandTotal = subtotal - totalDiscount;
 
   const handleConfirmOrder = () => {
     setIsConfirming(true);
@@ -108,6 +130,22 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
     if (confirm("Are you sure you want to delete this item?")) {
       setOrderItems(orderItems.filter((item) => item.id !== itemId));
     }
+  };
+
+  // Handlers for discount editing
+  const handleEditDiscount = () => {
+    setIsEditingDiscount(true);
+    setTempDiscountPercentage(discountPercentage);
+  };
+
+  const handleSaveDiscount = () => {
+    setDiscountPercentage(tempDiscountPercentage);
+    setIsEditingDiscount(false);
+  };
+
+  const handleCancelDiscount = () => {
+    setTempDiscountPercentage(discountPercentage);
+    setIsEditingDiscount(false);
   };
 
   const renderActions = (item: OrderItem) => (
@@ -267,6 +305,7 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                               }
                               className="w-28 h-7 text-right text-sm px-2 text-black"
                               min="0"
+                              step="0.01"
                             />
                           ) : (
                             <span className="font-semibold text-black">
@@ -290,6 +329,7 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                               className="w-16 h-7 text-right text-sm px-2 text-black"
                               min="0"
                               max="100"
+                              step="0.01"
                             />
                           ) : item.discount > 0 ? (
                             <span className="text-black font-medium text-sm">
@@ -372,6 +412,7 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                               }
                               className="w-24 h-7 text-sm px-2 mt-1 ml-auto"
                               min="0"
+                              step="0.01"
                             />
                           ) : (
                             <span>Rs {item.unitPrice.toLocaleString()}</span>
@@ -394,6 +435,7 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                               className="w-16 h-7 text-sm px-2 mt-1"
                               min="0"
                               max="100"
+                              step="0.01"
                             />
                           ) : item.discount > 0 ? (
                             <span>{item.discount}%</span>
@@ -430,15 +472,66 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                 </span>
               </div>
               <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                <span className="text-sm text-gray-600">Total Discount:</span>
+                <span className="text-sm text-gray-600">Extra Discount:</span>
+                <div className="flex items-center gap-2">
+                  {isEditingDiscount ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        type="number"
+                        value={tempDiscountPercentage}
+                        onChange={(e) =>
+                          setTempDiscountPercentage(Number(e.target.value))
+                        }
+                        className="w-16 h-7 text-right text-sm px-2 text-black"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                      />
+                      <span className="text-sm">%</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 ml-1 hover:bg-green-50 hover:border-green-300"
+                        onClick={handleSaveDiscount}
+                      >
+                        <Check className="h-3 w-3 text-green-600" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 hover:bg-gray-100 hover:border-gray-300"
+                        onClick={handleCancelDiscount}
+                      >
+                        <X className="h-3 w-3 text-gray-600" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">
+                        {discountPercentage.toFixed(2)}%
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 hover:bg-blue-50 hover:border-blue-300"
+                        onClick={handleEditDiscount}
+                      >
+                        <Pencil className="h-3 w-3 text-blue-600" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-between items-center pb-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">Discount Amount:</span>
                 <span className="font-semibold text-green-600">
-                  - Rs {totalDiscount.toLocaleString()}
+                  - Rs {totalDiscount.toFixed(2).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between items-center pt-2">
-                <span className="font-bold text-gray-900">Grand Total:</span>
+                <span className="font-bold text-gray-900">Total:</span>
                 <span className="font-bold text-2xl text-emerald-600">
-                  Rs {grandTotal.toLocaleString()}
+                  Rs {grandTotal.toFixed(2).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -454,21 +547,6 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
                     </p>
                     <p className="text-lg font-bold text-blue-700">
                       {orderItems.length}
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <div className="flex items-start gap-2">
-                  <div className="bg-amber-100 p-1.5 rounded-full mt-0.5">
-                    <CheckCircle className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold text-amber-900 mb-1">
-                      Payment Terms
-                    </p>
-                    <p className="text-sm font-medium text-amber-700">
-                      Credit - 30 Days
                     </p>
                   </div>
                 </div>
