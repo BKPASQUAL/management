@@ -24,7 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { Order } from "@/store/services/orderApi";
+import { Order, useConfirmOrderMutation } from "@/store/services/orderApi";
+import { useRouter } from "next/navigation"; 
 
 interface OrderItem {
   id: number;
@@ -59,6 +60,7 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   });
 
   const [orderItems, setOrderItems] = useState<OrderItem[]>(initialOrderItems);
+  const router = useRouter(); // Initialize router for navigation
 
   // State for summary values
   const [isEditingDiscount, setIsEditingDiscount] = useState(false);
@@ -80,13 +82,39 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
   const subtotal = calculateSubtotal();
   const totalDiscount = (subtotal * discountPercentage) / 100;
   const grandTotal = subtotal - totalDiscount;
+  const [confirmOrder, { isLoading }] = useConfirmOrderMutation();
 
-  const handleConfirmOrder = () => {
+  const handleConfirm = async () => {
+    // Start local loading state
     setIsConfirming(true);
-    setTimeout(() => {
+
+    // Safety check for bill_id
+    if (!orderData.bill_id) {
+      console.error("Order ID is missing from orderData.");
+      alert("❌ Failed to confirm order: Order ID not found.");
       setIsConfirming(false);
-      alert("Order confirmed successfully!");
-    }, 1500);
+      return;
+    }
+
+    try {
+      const orderId = orderData.bill_id;
+
+      // The .unwrap() method is used with RTK-Query to throw an error on failure.
+      await confirmOrder(orderId).unwrap();
+
+      console.log(`✅ Order ${orderId} confirmed successfully!`);
+      // NOTE: Alerts are generally discouraged in favor of custom UI modals, but kept for direct translation.
+      alert("✅ Order confirmed successfully!");
+
+      // NAVIGATION: Navigate to the specified pending orders URL
+      router.push("/admin/orders/pending");
+    } catch (error) {
+      console.error("Confirm order failed:", error);
+      alert("❌ Failed to confirm order");
+    } finally {
+      // End local loading state regardless of success or failure
+      setIsConfirming(false);
+    }
   };
 
   const handleEditItem = (item: OrderItem) => {
@@ -554,8 +582,8 @@ const PendingDetailsItemtable: React.FC<PendingDetailsItemtableProps> = ({
             </div>
             <div className="px-6 pb-6 space-y-3">
               <Button
-                onClick={handleConfirmOrder}
-                disabled={isConfirming}
+                onClick={handleConfirm}
+                disabled={isLoading}
                 className="w-full bg-green-600 hover:bg-green-700 text-white py-6 text-base font-semibold"
               >
                 {isConfirming ? (

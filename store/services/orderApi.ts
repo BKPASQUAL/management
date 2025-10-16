@@ -1,4 +1,3 @@
-// store/services/orderApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 // Enums - Updated to match backend
@@ -106,7 +105,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
-  customerSummary?: CustomerSummary; // Add this line
+  customerSummary?: CustomerSummary;
 }
 
 // API Response interfaces
@@ -146,7 +145,9 @@ export interface ConfirmOrderPayload {
   notes?: string;
 }
 
-// Order API slice
+// ------------------------------------------------------
+// API Slice
+// ------------------------------------------------------
 export const orderApi = createApi({
   reducerPath: "orderApi",
   baseQuery: fetchBaseQuery({
@@ -165,7 +166,9 @@ export const orderApi = createApi({
   }),
   tagTypes: ["Order", "OrderStats"],
   endpoints: (builder) => ({
-    // Get all orders with filters
+    // ------------------------------------------------------
+    //  Get All Orders
+    // ------------------------------------------------------
     getOrders: builder.query<OrdersResponse, OrderFilterParams | undefined>({
       query: (params) => {
         const searchParams = new URLSearchParams();
@@ -202,45 +205,19 @@ export const orderApi = createApi({
               { type: "Order", id: "LIST" },
             ]
           : [{ type: "Order", id: "LIST" }],
-      transformResponse: (response: OrdersResponse) => {
-        console.log("getOrders API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("getOrders API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to fetch orders",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Get single order by ID
+    // ------------------------------------------------------
+    //  Get Single Order by ID
+    // ------------------------------------------------------
     getOrderById: builder.query<SingleOrderResponse, number>({
       query: (id) => `customer-bills/orders/${id}`,
       providesTags: (result, error, id) => [{ type: "Order", id }],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("getOrderById API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("getOrderById API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to fetch order",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Move to processing (PENDING → PROCESSING)
+    // ------------------------------------------------------
+    //  Move to Processing
+    // ------------------------------------------------------
     moveToProcessing: builder.mutation<SingleOrderResponse, number>({
       query: (id) => ({
         url: `customer-bills/orders/${id}/move-to-processing`,
@@ -251,24 +228,11 @@ export const orderApi = createApi({
         { type: "Order", id: "LIST" },
         "OrderStats",
       ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("moveToProcessing API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("moveToProcessing API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to move order to processing",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Move to checking (PROCESSING → CHECKING)
+    // ------------------------------------------------------
+    //  Move to Checking
+    // ------------------------------------------------------
     moveToChecking: builder.mutation<SingleOrderResponse, number>({
       query: (id) => ({
         url: `customer-bills/orders/${id}/move-to-checking`,
@@ -279,24 +243,11 @@ export const orderApi = createApi({
         { type: "Order", id: "LIST" },
         "OrderStats",
       ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("moveToChecking API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("moveToChecking API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to move order to checking",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Move to delivered (CHECKING → DELIVERED)
+    // ------------------------------------------------------
+    //  Move to Delivered
+    // ------------------------------------------------------
     moveToDelivered: builder.mutation<SingleOrderResponse, number>({
       query: (id) => ({
         url: `customer-bills/orders/${id}/move-to-delivered`,
@@ -307,24 +258,26 @@ export const orderApi = createApi({
         { type: "Order", id: "LIST" },
         "OrderStats",
       ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("moveToDelivered API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("moveToDelivered API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to mark order as delivered",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Update order status (generic)
+    // ------------------------------------------------------
+    //  Confirm Order (new)
+    // ------------------------------------------------------
+    confirmOrder: builder.mutation<SingleOrderResponse, number>({
+      query: (id) => ({
+        url: `customer-bills/${id}/confirm`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Order", id },
+        { type: "Order", id: "LIST" },
+        "OrderStats",
+      ],
+    }),
+
+    // ------------------------------------------------------
+    //  Update Order Status (generic)
+    // ------------------------------------------------------
     updateOrderStatus: builder.mutation<
       SingleOrderResponse,
       { id: number; data: UpdateOrderStatusPayload }
@@ -339,24 +292,11 @@ export const orderApi = createApi({
         { type: "Order", id: "LIST" },
         "OrderStats",
       ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("updateOrderStatus API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("updateOrderStatus API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to update order status",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Cancel order
+    // ------------------------------------------------------
+    //  Cancel Order
+    // ------------------------------------------------------
     cancelOrder: builder.mutation<
       SingleOrderResponse,
       { id: number; notes?: string }
@@ -374,28 +314,14 @@ export const orderApi = createApi({
         { type: "Order", id: "LIST" },
         "OrderStats",
       ],
-      transformResponse: (response: SingleOrderResponse) => {
-        console.log("cancelOrder API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("cancelOrder API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to cancel order",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
 
-    // Get order statistics
+    // ------------------------------------------------------
+    //  Order Stats
+    // ------------------------------------------------------
     getOrderStats: builder.query<any, OrderFilterParams | undefined>({
       query: (params) => {
         const searchParams = new URLSearchParams();
-
         if (params?.representative_id)
           searchParams.append(
             "representative_id",
@@ -413,21 +339,6 @@ export const orderApi = createApi({
         }`;
       },
       providesTags: ["OrderStats"],
-      transformResponse: (response: any) => {
-        console.log("getOrderStats API Response:", response);
-        return response;
-      },
-      transformErrorResponse: (response: any) => {
-        console.error("getOrderStats API Error:", response);
-        return {
-          message:
-            response?.data?.message ||
-            response?.message ||
-            "Failed to fetch order statistics",
-          status: response?.status || 500,
-          data: response?.data || null,
-        };
-      },
     }),
   }),
 });
@@ -440,5 +351,6 @@ export const {
   useMoveToDeliveredMutation,
   useUpdateOrderStatusMutation,
   useCancelOrderMutation,
+  useConfirmOrderMutation,
   useGetOrderStatsQuery,
 } = orderApi;
